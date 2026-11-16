@@ -237,7 +237,7 @@ function hills(W: number, H: number, g: number, mounds: [number, number, number]
 export const retro: Skin = {
   id: 'retro',
   name: 'Retro',
-  description: 'Retro-Pixel im 8-Bit-Spielstil',
+  description: 'Retro pixels in 8-bit game style',
   status: {
     pending: [LGR, '#9a9ca3', '#5f574f'],
     running: [YEL, ORA, BRN],

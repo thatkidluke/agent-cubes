@@ -216,7 +216,7 @@ function burst(ctx: SceneCtx, c: CubeCtx): string {
 export const cyber: Skin = {
   id: 'cyber',
   name: 'Cyber',
-  description: 'Neon-Konsole mit Leiterbahnen, holografischen Würfeln und Daten-Chips',
+  description: 'Neon console with circuit traces, holographic cubes and data chips',
   status: {
     pending: ['#94a3b8', '#7c93ad', '#475569'],
     running: ['#67e8f9', '#06b6d4', '#22d3ee'],

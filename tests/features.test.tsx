@@ -120,14 +120,14 @@ test('TaskUpdate fills blockedBy, blockersOf ignores done blockers, delete clean
 test('stuck: failures in a row', async () => {
   let r = plan(2, 1)
   for (let i = 0; i < STUCK.failsInRow; i++) r = call(r, `f${i}`, 'Bash', { command: `cmd ${i}` }, 10 + i * 10, 15 + i * 10, true)
-  expect(stuckReason(r, 0, 100)).toContain('fehlgeschlagen')
+  expect(stuckReason(r, 0, 100)).toContain('failed')
 })
 
 test('stuck: the same call over and over', async () => {
   let r = plan(2, 1)
   for (let i = 0; i < STUCK.sameInRow; i++) r = call(r, `s${i}`, 'Read', { file_path: 'C:/p/a.ts' }, 10 + i * 10, 15 + i * 10)
   const why = stuckReason(r, 0, 100)
-  expect(why).toContain('derselbe Aufruf')
+  expect(why).toContain('the same call')
   expect(why).toContain('a.ts')
   // Three are fine.
   let r3 = plan(2, 1)
@@ -138,14 +138,14 @@ test('stuck: the same call over and over', async () => {
 test('stuck: silence', async () => {
   const r = call(plan(2, 1), 'a', 'Read', { file_path: 'a.ts' }, 1000, 2000)
   expect(stuckReason(r, 0, 2000 + STUCK.silentMs - 1000)).toBe('')
-  expect(stuckReason(r, 0, 2000 + STUCK.silentMs + 60_000)).toContain('keine Aktivität')
+  expect(stuckReason(r, 0, 2000 + STUCK.silentMs + 60_000)).toContain('no activity')
 })
 
 test('stuck: far longer than usual', async () => {
   const now = 1 + STUCK.minMs + 60_000
   // A call still running keeps the silence check quiet.
   const r = toolStart(plan(2, 1), { id: 'a', tool: 'Bash', agentId: undefined, input: { command: 'make' } }, now - 10_000)
-  expect(stuckReason(r, 0, now)).toContain('länger')
+  expect(stuckReason(r, 0, now)).toContain('longer')
   expect(stuckReason(r, 0, 1 + STUCK.minMs - 60_000)).toBe('')
 })
 
@@ -199,7 +199,7 @@ test('every skin renders stuck steps, blockers, diffs, tests and context', async
   r = call(r, 'e', 'Edit', { file_path: 'a.ts', old_string: 'a\nb', new_string: 'c\nd\ne' }, 10, 20)
   r = call(r, 't', 'Bash', { command: 'npm test' }, 30, 40)
   for (let i = 0; i < 3; i++) r = call(r, `f${i}`, 'Bash', { command: 'npm test' }, 50 + i * 10, 55 + i * 10, true)
-  expect(stuckReason(r, 0, 200)).toContain('fehlgeschlagen')
+  expect(stuckReason(r, 0, 200)).toContain('failed')
   expect(blockersOf(r, 2)).toEqual([0, 1])
   for (const skin of SKINS) {
     const svg = buildSvg(r, 600, 200, -1, skin, { context: 0.9 })

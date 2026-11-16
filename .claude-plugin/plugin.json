@@ -1,65 +1,79 @@
 {
   "name": "agent-cubes",
-  "version": "0.5.0",
-  "description": "A live cube timeline of your agents' work beside the Claude Code chat: progress, agents, stuck steps, context, six skins",
-  "author": { "name": "Agent Cubes contributors" },
+  "version": "0.7.0",
+  "description": "A live cube timeline of your agents' work beside the Claude Code chat: progress, agents, stuck steps, context gauges, eight skins",
+  "author": {
+    "name": "Agent Cubes contributors"
+  },
   "license": "MIT",
   "types": "./types/index.d.ts",
   "userConfig": {
     "language": {
       "type": "string",
-      "title": "Sprache / Language",
-      "description": "Sprache des Panels: de (Deutsch) oder en (English). / Panel language: de (German) or en (English).",
-      "options": ["de", "en"],
-      "default": "de"
+      "title": "Language",
+      "description": "Panel language: de (German) or en (English).",
+      "options": [
+        "de",
+        "en"
+      ],
+      "default": "en"
     },
     "defaultSkin": {
       "type": "string",
-      "title": "Standard-Skin",
-      "description": "Skin, der gilt, solange du im Panel keinen anderen gewählt hast. Eine Wahl im Panel hat Vorrang.",
-      "options": ["classic", "cyber", "stellar", "retro", "steampunk", "minimal", "cave", "factory", "quest"],
+      "title": "Default skin",
+      "description": "The skin used until you pick another one in the panel. A pick in the panel wins.",
+      "options": [
+        "classic",
+        "cyber",
+        "cyberpunk",
+        "stellar",
+        "retro",
+        "steampunk",
+        "factory",
+        "minimal"
+      ],
       "default": "classic"
     },
     "budgetUsd": {
       "type": "number",
-      "title": "Kostenbudget pro Auftrag (USD)",
-      "description": "Ab 80 % färbt sich die Kostenanzeige gelb, darüber erscheint ein Hinweis. 0 schaltet das Budget ab.",
+      "title": "Cost budget per task (USD)",
+      "description": "From 80 % the cost turns amber; above the budget a notice appears. 0 turns the budget off.",
       "default": 0,
       "min": 0,
       "max": 10000
     },
     "autoOpen": {
       "type": "boolean",
-      "title": "Panel automatisch öffnen",
-      "description": "Öffnet das Agent-Cubes-Panel beim Start jeder Sitzung. Aus: nur über /cubes.",
+      "title": "Open the panel automatically",
+      "description": "Opens the Agent Cubes panel when each session starts. Off: only via /cubes.",
       "default": true
     },
     "animations": {
       "type": "boolean",
-      "title": "Animationen",
-      "description": "Bewegte Würfel und Effekte. Aus: ein ruhiges Standbild, auch beim Export.",
+      "title": "Animations",
+      "description": "Moving cubes and effects. Off: a calm still image, in exports too.",
       "default": true
     },
     "stuckSilentMinutes": {
       "type": "number",
-      "title": "Hängt nach Stille (Minuten)",
-      "description": "Ein Würfel gilt als hängend, wenn so viele Minuten lang kein Tool-Aufruf kam (0,5 bis 240).",
+      "title": "Stuck after silence (minutes)",
+      "description": "A cube counts as stuck when no tool call came for this many minutes (0.5 to 240).",
       "default": 5,
       "min": 0.5,
       "max": 240
     },
     "stuckFailsInRow": {
       "type": "number",
-      "title": "Hängt nach Fehlern in Folge",
-      "description": "So viele fehlgeschlagene Tool-Aufrufe hintereinander markieren einen Würfel als hängend (1 bis 50).",
+      "title": "Stuck after failures in a row",
+      "description": "This many failed tool calls in a row mark a cube as stuck (1 to 50).",
       "default": 3,
       "min": 1,
       "max": 50
     },
     "stuckSlowFactor": {
       "type": "number",
-      "title": "Hängt bei x-facher Dauer",
-      "description": "Ein Würfel gilt als hängend, wenn er so viel länger läuft als ein üblicher Schritt (mindestens 8 Minuten; 1,1 bis 50).",
+      "title": "Stuck at x times the usual duration",
+      "description": "A cube counts as stuck when it runs this much longer than a usual step (at least 8 minutes; 1.1 to 50).",
       "default": 3,
       "min": 1.1,
       "max": 50

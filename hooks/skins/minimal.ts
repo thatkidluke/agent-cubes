@@ -85,7 +85,7 @@ const safe = <A extends unknown[]>(f: (...a: A) => string) => (...a: A): string 
 export const minimal: Skin = {
   id: 'minimal',
   name: 'Minimal',
-  description: 'Flach und ruhig, für kleine Panels',
+  description: 'Flat and calm, for small panels',
   status: STATUS,
   glass: { top: 0.12, bottom: 0.05, ghost: 0.55 },
   edge: { color: '#475569', opacity: 0.16 },

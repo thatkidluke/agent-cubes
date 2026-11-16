@@ -63,10 +63,10 @@ test('stuckReason takes thresholds and defaults to STUCK', async () => {
   r = toolStart(r, { id: 'a', tool: 'Bash', agentId: undefined }, 1000)
   r = toolEnd(r, { id: 'a', tool: 'Bash', agentId: undefined, isError: true, errorText: 'x' }, 2000)
   expect(stuckReason(r, 0, 3000)).toBe('')
-  expect(stuckReason(r, 0, 3000, { ...STUCK, failsInRow: 1 })).toContain('1× hintereinander fehlgeschlagen')
+  expect(stuckReason(r, 0, 3000, { ...STUCK, failsInRow: 1 })).toContain('failed 1× in a row')
   // Quiet for 2 minutes: stuck only under a 1-minute limit.
   expect(stuckReason(r, 0, 122_000)).toBe('')
-  expect(stuckReason(r, 0, 122_000, { ...STUCK, silentMs: 60_000 })).toContain('keine Aktivität')
+  expect(stuckReason(r, 0, 122_000, { ...STUCK, silentMs: 60_000 })).toContain('no activity')
 })
 
 test('the options reach the panel\'s stuck checks', { options: { stuckFailsInRow: 1 } }, async ($, on) => {
@@ -75,7 +75,7 @@ test('the options reach the panel\'s stuck checks', { options: { stuckFailsInRow
   await $.tool.call(PLAN)
   await $.tool.call({ tool: 'Bash', command: 'false' } as never)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  expect(await ui.find({ type: 'Text', text: /Würfel 01 hängt: 1× hintereinander fehlgeschlagen/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Cube 01 is stuck: failed 1× in a row/ })).toBeDefined()
   await ui.unmount()
 })
 
@@ -85,7 +85,7 @@ test('with the defaults one failure is not stuck', async ($, on) => {
   await $.tool.call(PLAN)
   await $.tool.call({ tool: 'Bash', command: 'false' } as never)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  expect(await ui.find({ type: 'Text', text: /hängt:/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /is stuck:/ })).toBeUndefined()
   await ui.unmount()
 })
 
@@ -128,17 +128,17 @@ test('autoOpen defaults to opening the pane', async ($, on) => {
   expect(opened.count).toBe(1)
 })
 
-test('language: en draws the panel in English', { options: { language: 'en' } }, async ($, on) => {
+test('language: de draws the panel in German', { options: { language: 'de' } }, async ($, on) => {
   world(on)
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   await $.tool.call(PLAN)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  for (const text of [/OVERVIEW/, /NOW/, /CUBE DETAILS/, /cubes done/]) {
+  for (const text of [/ÜBERSICHT/, /JETZT/, /WÜRFEL-DETAILS/, /Würfeln erledigt/]) {
     expect(await ui.find({ type: 'Text', text }), String(text)).toBeDefined()
   }
-  expect(await ui.find({ type: 'Button', text: /Save as image/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /ÜBERSICHT/ })).toBeUndefined()
-  expect(String((await ui.find({ type: 'Svg' }))?.props.alt)).toContain('Cube timeline')
+  expect(await ui.find({ type: 'Button', text: /Als Bild speichern/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /OVERVIEW/ })).toBeUndefined()
+  expect(String((await ui.find({ type: 'Svg' }))?.props.alt)).toContain('Würfel-Zeitleiste')
   await ui.unmount()
 })
 
@@ -152,7 +152,7 @@ test('the status line is there when all is calm', async ($, on) => {
   await $.tool.call(PLAN)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect(await alertLine(ui)).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /Keine offenen Hinweise/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Nothing needs you/ })).toBeDefined()
   await ui.unmount()
 })
 
@@ -164,6 +164,6 @@ test('a stuck step changes the status line instead of adding a box', { options: 
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect(await alertLine(ui)).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /Keine offenen Hinweise/ })).toBeUndefined()
-  expect(await ui.find({ type: 'Text', text: /hängt:/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /is stuck:/ })).toBeDefined()
   await ui.unmount()
 })

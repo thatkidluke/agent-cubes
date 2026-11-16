@@ -61,8 +61,8 @@ export const CLASSIC_CAPTION_DARK = '#e2e8f0'
 /** The original look: grey stone pedestal, glass cubes, silver mini cubes. */
 export const classic: Skin = {
   id: 'classic',
-  name: 'Klassisch',
-  description: 'Steinsockel, Glaswürfel und silberne Mini-Würfel',
+  name: 'Classic',
+  description: 'Stone pedestal, glass cubes and silver mini cubes',
   status: {
     pending: ['#cbd5e1', '#94a3b8', '#64748b'],
     running: ['#93c5fd', '#3b82f6', '#1d4ed8'],

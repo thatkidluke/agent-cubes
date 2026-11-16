@@ -2,8 +2,7 @@
 
 <h1 align="center">Agent Cubes</h1>
 
-<p align="center">A live cube timeline of your agents' work, right beside the Claude Code chat.<br>
-<a href="README.de.md">Deutsche Fassung</a></p>
+<p align="center">A live cube timeline of your agents' work, right beside the Claude Code chat.</p>
 
 ![Agent Cubes, classic skin](docs/skin-classic.svg)
 
@@ -12,7 +11,7 @@ timeline. While a step is worked on, its cube fills with small cubes, one slice 
 tinted by kind of work: reading, writing, running, agents. A finished step turns into a solid cube with a tick.
 
 Subagents show up as coloured badges on the cube they work on. The panel estimates progress and time left, spots
-steps that are stuck, shows how full the context window is, and comes in nine skins.
+steps that are stuck, shows how full the context window is, and comes in eight skins.
 
 ## Features
 
@@ -23,13 +22,16 @@ steps that are stuck, shows how full the context window is, and comes in nine sk
   from this task and from earlier ones
 - **Stuck detection**: failures in a row, the same call over and over, long silence, or far slower than usual
 - **Context tank** on the pedestal: amber from 70 %, red from 85 %
+- **Gauges**: glass canisters that fill up for progress, context, budget (or success rate) and waiting share
+- **Liquid figure tiles**: every figure in the overview has a symbol and a tile that fills to its level
+  (time, waiting share, context, error rate, budget, cubes done), coloured by its state
 - **Cube details**: time, tokens, cost share, lines changed, test runs, files and recent calls of one step
 - **Dependencies** between tasks as pipes with a padlock on the waiting cube
 - **Waiting time**: how long the agents waited for you, live and per task
 - **Timeline**: one lane per agent showing when it worked, waiting phases in amber
 - **Summary** when a task is done, copied as Markdown with one click
 - **Cost budget** per task with a warning
-- **Nine skins**, from calm to playful
+- **Eight skins**, from calm to playful
 - **Statistics** across your last twelve tasks, **data export** as CSV and JSON
 - **Keys 1–9** open the first nine cubes' details
 - **Compact mode** for long plans, **still mode** without animation, **export** of the timeline as an SVG file
@@ -42,8 +44,8 @@ steps that are stuck, shows how full the context window is, and comes in nine sk
 | ![Classic](docs/skin-classic.svg) | ![Cyber](docs/skin-cyber.svg) | ![Stellar](docs/skin-stellar.svg) |
 | **Retro** | **Steampunk** | **Minimal** |
 | ![Retro](docs/skin-retro.svg) | ![Steampunk](docs/skin-steampunk.svg) | ![Minimal](docs/skin-minimal.svg) |
-| **Alien cave** | **Robot factory** | **Fantasy quest** |
-| ![Alien cave](docs/skin-cave.svg) | ![Robot factory](docs/skin-factory.svg) | ![Fantasy quest](docs/skin-quest.svg) |
+| **Cyberpunk** | **Robot factory** | |
+| ![Cyberpunk](docs/skin-cyberpunk.svg) | ![Robot factory](docs/skin-factory.svg) | |
 
 Pick a skin from the dropdown at the top of the panel.
 
@@ -74,7 +76,7 @@ The settings live in the config menu under Agent Cubes; a change reloads the plu
 
 | Setting              | Type    | Default   | Meaning |
 | -------------------- | ------- | --------- | ------- |
-| `language`           | choice  | `de`      | Panel language: `de` or `en`. |
+| `language`           | choice  | `en`      | Panel language: `en` or `de`. |
 | `budgetUsd`          | number  | 0         | Cost budget per task in USD; amber from 80 %, a warning once passed. 0 turns it off. |
 | `defaultSkin`        | choice  | `classic` | Skin while none is picked in the panel; a pick in the panel wins. |
 | `autoOpen`           | yes/no  | yes       | Open the panel when a session starts; otherwise only via `/cubes`. |

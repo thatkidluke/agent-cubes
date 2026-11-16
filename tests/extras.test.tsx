@@ -15,6 +15,7 @@ import {
   toolStart,
 } from '../hooks/model'
 import { buildLanes } from '../hooks/lanes'
+import { buildGauges, buildTiles, warnColors } from '../hooks/gauges'
 import { readSettings } from '../hooks/panel/settings'
 
 const PANE = {
@@ -119,7 +120,7 @@ test('the timeline has a lane per agent, bars per call and the waits in amber', 
   expect(lanes).not.toBeNull()
   expect(lanes!.source.startsWith('<svg')).toBe(true)
   expect(lanes!.source).toContain('<title>Edit · a.ts</title>')
-  expect(lanes!.alt).toContain('1 Wartephasen')
+  expect(lanes!.alt).toContain('1 waiting phases')
   expect(buildLanes(emptyRun, 0, 400)).toBeNull()
 })
 
@@ -137,7 +138,41 @@ test('the panel: cube hotkeys, the timeline card and the data export', async ($,
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect((await ui.find({ type: 'Button', key: 'cube-0' }))?.props.hotkey).toBe('1')
   expect((await ui.find({ type: 'Button', key: 'cube-1' }))?.props.hotkey).toBe('2')
-  expect(await ui.find({ type: 'Text', text: /ZEITSTRAHL/ }), 'timeline card').toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /Wartezeit/ }), 'waiting figure').toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /TIMELINE/ }), 'timeline card').toBeDefined()
+  const svgs = await ui.findAll({ type: 'Svg' })
+  expect(svgs.some(n => String(n.props.alt).includes('Waiting:')), 'waiting tile').toBe(true)
   await ui.unmount()
+})
+
+test('the gauges: a canister per figure, filled to its level, coloured by its state', async () => {
+  const g = buildGauges(
+    [
+      { key: 'a', label: 'Progress', icon: '▲', level: 0.5, value: '50 %', color: ['#fff', '#000'], title: 'p' },
+      { key: 'b', label: 'Context', icon: '◧', level: null, value: '–', color: warnColors(null, 0.7, 0.85), title: 'c' },
+    ],
+    300,
+    true,
+  )
+  expect(g.source).toContain('gauge-a-clip')
+  expect(g.source).toContain('animateTransform')
+  expect(g.alt).toBe('Progress: 50 %, Context: –')
+  expect(buildGauges([{ key: 'a', label: 'x', icon: 'x', level: 0.5, value: '', color: ['#fff', '#000'], title: '' }], 200, false).source).not.toContain('<animate')
+  expect(warnColors(0.9, 0.7, 0.85)[1]).toBe('#e11d48')
+  expect(warnColors(0.75, 0.7, 0.85)[1]).toBe('#f59e0b')
+  expect(warnColors(0.1, 0.7, 0.85)[1]).toBe('#0d9488')
+})
+
+test('the figure tiles: liquid at each level, none for a figure without one', async () => {
+  const t = buildTiles(
+    [
+      { key: 'ctx', icon: '◧', label: 'Context', value: '40 %', level: 0.4, color: ['#fff', '#000'], title: 'c' },
+      { key: 'calls', icon: '⌁', label: 'Tool calls', value: '12', level: null, color: ['#fff', '#000'], title: 't' },
+    ],
+    300,
+    3,
+    true,
+  )
+  expect(t.source).toContain('tile-ctx-clip')
+  expect(t.source).not.toContain('tile-calls-clip')
+  expect(t.alt).toBe('Context: 40 %, Tool calls: 12')
 })

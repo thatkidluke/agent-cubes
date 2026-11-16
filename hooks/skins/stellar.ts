@@ -70,7 +70,7 @@ function orbit(ctx: SceneCtx, c: CubeCtx) {
 export const stellar: Skin = {
   id: 'stellar',
   name: 'Stellar',
-  description: 'Energie-Würfel im Sternenfeld: Plasmakerne, Sternenmaterie und Obsidian-Sockel',
+  description: 'Energy cubes in a star field: plasma cores, star matter and an obsidian pedestal',
   status: {
     pending: ['#a5b4fc', '#6366f1', '#3730a3'],
     running: ['#bae6fd', '#38bdf8', '#0369a1'],

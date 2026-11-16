@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.0
+
+- Gauges in the overview: glass canisters that fill with liquid for progress, context, budget (or the share of
+  tool calls without an error when no budget is set) and the share of time spent waiting. Their colour follows the
+  state (calm, amber, red); while work goes on the surface moves and bubbles rise.
+- The overview's figures are glass tiles now, each with a symbol and a liquid filled to its level: elapsed and
+  time left against the estimated total, waiting share, context, error rate, cost against the budget, cubes done.
+- The panel speaks English by default; set `language` to `de` for German.
+- The repository is English throughout: settings, skin names and descriptions. The German README is gone; the
+  panel itself still speaks German or English.
+
+## 0.6.0
+
+- New skin Cyberpunk: a rainy neon city at night with a lit skyline, flickering signs, a wet street and holo cubes.
+  It replaces Alien cave.
+- Robot factory, far more detailed: robot arms working over cubes in progress, welding sparks, turning gears,
+  ceiling lamps with light cones, pipes with valve wheels and a steam vent, conveyor rollers, a control desk with
+  blinking lights, braced steel crates.
+- Fantasy quest removed. A stored pick of a removed skin falls back to Classic.
+
 ## 0.5.0
 
 - Three new skins: Alien cave (glowing spores, rock with luminous veins, crystal cubes), Robot factory

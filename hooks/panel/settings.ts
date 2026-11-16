@@ -22,7 +22,7 @@ export type PanelSettings = {
 
 export const DEFAULTS = {
   defaultSkin: 'classic',
-  language: 'de',
+  language: 'en',
   budgetUsd: 0,
   autoOpen: true,
   animations: true,
@@ -55,7 +55,7 @@ export function readSettings(options: PluginOptions | undefined): PanelSettings 
     autoOpen: bool(o.autoOpen, DEFAULTS.autoOpen),
     animations: bool(o.animations, DEFAULTS.animations),
     stuck: { ...STUCK, silentMs: Math.round(silentMin * 60_000), failsInRow: fails, slowFactor: slow },
-    language: o.language === 'en' ? 'en' : 'de',
+    language: o.language === 'de' ? 'de' : 'en',
     budgetUsd: clampNum(o.budgetUsd, DEFAULTS.budgetUsd, 0, 10_000),
   }
 }

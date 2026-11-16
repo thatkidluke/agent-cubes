@@ -91,7 +91,7 @@ test('renderer: many steps fold the finished ones into a stack', async () => {
     expect(src.includes('Step alpha 0') && src.includes('Step foxtrot 5'), `${skin.id}: folded titles in the tooltip`).toBe(true)
     // Step 7 stays a cube of its own, the arc still names the real steps.
     expect(src.includes('> 07<'), `${skin.id}: last finished step kept`).toBe(true)
-    expect(src.includes('Schritt 14 wartet auf Schritt 8'), `${skin.id}: dependency mapped`).toBe(true)
+    expect(src.includes('Step 14 waits for step 8'), `${skin.id}: dependency mapped`).toBe(true)
   }
   // Ten steps or fewer never fold.
   expect(buildSvg(finished(10, 7), 640, 100_100).source.includes('–0')).toBe(false)
@@ -100,7 +100,7 @@ test('renderer: many steps fold the finished ones into a stack', async () => {
   const src20 = buildSvg(r20, 640, 100_100, 19).source
   expect(src20.includes('01–02')).toBe(true)
   expect(/1\d–20/.test(src20)).toBe(true)
-  expect((src20.match(/<g><title>Würfel /g) ?? []).length).toBeLessThan(13 * 2 + 1)
+  expect((src20.match(/<g><title>Cube /g) ?? []).length).toBeLessThan(13 * 2 + 1)
 })
 
 test('renderer: the worst case stays well under the limit in every skin', async () => {
@@ -138,10 +138,10 @@ test('renderer: plaques carry a status glyph and titles a status word', async ()
   expect(Object.keys(STATUS_GLYPH).sort()).toEqual(['done', 'error', 'pending', 'running', 'waiting'])
   const src = buildSvg(busy(5, 2), 640, 200).source
   for (const g of ['✓', '▶', '○']) expect(src.includes(`>${g}`), `glyph ${g}`).toBe(true)
-  expect(src.includes('(erledigt') && src.includes('(läuft') && src.includes('(offen')).toBe(true)
+  expect(src.includes('(done') && src.includes('(running') && src.includes('(open')).toBe(true)
   let w = applyTaskTool(startRun(emptyRun, 'job', 1), PLAN, { items: [{ content: 'Ask', status: 'in_progress' }] }, undefined, 1)
   w = toolStart(w, { id: 'ask', tool: 'AskUserQuestion', agentId: undefined }, 100)
   const ws = buildSvg(w, 400, 200).source
   expect(ws.includes('⏸')).toBe(true)
-  expect(ws.includes('(wartet auf dich')).toBe(true)
+  expect(ws.includes('(waiting for you')).toBe(true)
 })

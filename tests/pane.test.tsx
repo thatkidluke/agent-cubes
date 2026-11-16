@@ -42,7 +42,7 @@ test('calls are sorted by kind, and a failed one turns its cube red', async () =
   const svg = buildSvg(r, 500, 600_000)
   expect(svg.source).toContain('id="m-err"')
   expect(svg.source).toContain('id="m-write"')
-  expect(svg.source).toContain('fehlgeschlagene Tool-Aufrufe')
+  expect(svg.source).toContain('failed tool calls')
 })
 
 test('tokens and cost land on the step that used them', async () => {
@@ -114,8 +114,8 @@ test('a subagent lands on the step its description matches and fills that cube',
 
   // All four cubes are drawn from the start; the agents' cubes carry badges.
   const svg = buildSvg(r, 500)
-  expect(svg.alt).toContain('von 4 Würfeln')
-  expect(svg.alt).toContain('Würfel 2, 3, 4')
+  expect(svg.alt).toContain('of 4 cubes')
+  expect(svg.alt).toContain('cube 2, 3, 4')
 })
 
 const PANE = {
@@ -152,7 +152,7 @@ test('the plan list drives progress and the grid', async () => {
   const svg = buildSvg(r, 400)
   expect(svg.source.startsWith('<svg')).toBe(true)
   expect(svg.source).toContain('<animate')
-  expect(svg.alt).toContain('1 von 3')
+  expect(svg.alt).toContain('1 of 3')
 
   r = applyTaskTool(r, 'mcp__ccd_turn__wrap_up', {}, undefined)
   r = endRun(r, 'answer', 5000)
@@ -185,14 +185,14 @@ test('the pane draws with a stored history row (no name may shadow the JSX facto
 
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  // The history itself is not listed any more; it feeds the folded STATISTIK card.
-  expect(await ui.find({ type: 'Text', text: /VERLAUF/ })).toBeUndefined()
-  expect(await ui.find({ type: 'Text', text: /STATISTIK/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /Ø Dauer/ })).toBeUndefined()
+  // The history itself is not listed any more; it feeds the folded STATISTICS card.
+  expect(await ui.find({ type: 'Text', text: /HISTORY/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /STATISTICS/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Avg time/ })).toBeUndefined()
   await ui.press({ key: 'stats-toggle' })
-  expect(await ui.find({ type: 'Text', text: /Ø Dauer/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Avg time/ })).toBeDefined()
   // The data sits in titled cards.
-  for (const title of [/ÜBERSICHT/, /JETZT/, /AGENTS/]) expect(await ui.find({ type: 'Text', text: title })).toBeDefined()
+  for (const title of [/OVERVIEW/, /NOW/, /AGENTS/]) expect(await ui.find({ type: 'Text', text: title })).toBeDefined()
   await ui.unmount()
 })
 
@@ -217,7 +217,7 @@ test('the pane draws the grid and the numbers', async ($, on) => {
 
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect((await ui.find({ type: 'Text', text: /25 %/ }))?.text).toBe('25 %')
-  expect(await ui.find({ type: 'Text', text: /1 von 4 Würfeln/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /1 of 4 cubes/ })).toBeDefined()
   expect(await ui.find({ type: 'Svg' })).toBeDefined()
   // The split-out blocks keep their keys.
   for (const key of ['export', 'view-main', 'skin', 'cube-0']) expect(await ui.find({ key })).toBeDefined()
@@ -226,9 +226,9 @@ test('the pane draws the grid and the numbers', async ($, on) => {
 
   // Pressing a cube's number opens its details; pressing it again closes them.
   await ui.press({ key: 'cube-1' })
-  expect(await ui.find({ type: 'Text', text: /Würfel 02 · Zwei/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Cube 02 · Zwei/ })).toBeDefined()
   await ui.press({ key: 'cube-1' })
-  expect(await ui.find({ type: 'Text', text: /Würfel 02 · Zwei/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /Cube 02 · Zwei/ })).toBeUndefined()
   await ui.unmount()
 
   // The terminal has no Svg: it gets a text strip instead.

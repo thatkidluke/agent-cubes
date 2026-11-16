@@ -32,6 +32,7 @@ import {
   toolStart,
 } from './model'
 import { buildLanes } from './lanes'
+import { buildGauges, buildTiles, warnColors, type Gauge } from './gauges'
 import { agentRow, callColor, card, figures, glyphOf, whoCalled, type Els, type Figure } from './panel/blocks'
 import { cubeDetails, KINDS } from './panel/details'
 import { contextFrac, cubeNo, fileStamp, fmtDuration, fmtEta, fmtTokens, fmtUsd, joinPath, type ContextLike } from './panel/format'
@@ -347,20 +348,103 @@ export const register: Register = (on, options) => {
 
     // ── Overview ──
     const overview: Figure[] = [
-      [tr('Laufzeit', 'Elapsed'), r.startedAt ? fmtDuration(elapsed) : '–'],
-      [tr('Restzeit', 'Time left'), left === null ? '–' : `${fmtEta(left)}${exp.isMeasured ? '' : '*'}`],
-      [tr('Wartezeit', 'Waiting'), waitNow > 0 ? `≈ ${fmtDuration(waitNow)}` : '–', r.status === 'waiting' ? PALETTE.waiting[1] : undefined],
-      [tr('Kontext', 'Context'), ctxFrac === null ? '–' : `${Math.round(ctxFrac * 100)} %`, ctxFrac === null ? undefined : warnColor(ctxFrac)],
-      [tr('Fehler', 'Errors'), String(r.errors), r.errors > 0 ? PALETTE.error[1] : undefined],
-      [tr('Tool-Aufrufe', 'Tool calls'), String(r.toolCalls)],
-      [tr('Tokens', 'Tokens'), `${fmtTokens(r.tokensIn)} ↓ ${fmtTokens(r.tokensOut)} ↑`],
+      [`◷ ${tr('Laufzeit', 'Elapsed')}`, r.startedAt ? fmtDuration(elapsed) : '–'],
+      [`⧗ ${tr('Restzeit', 'Time left')}`, left === null ? '–' : `${fmtEta(left)}${exp.isMeasured ? '' : '*'}`],
+      [`‖ ${tr('Wartezeit', 'Waiting')}`, waitNow > 0 ? `≈ ${fmtDuration(waitNow)}` : '–', r.status === 'waiting' ? PALETTE.waiting[1] : undefined],
+      [`◧ ${tr('Kontext', 'Context')}`, ctxFrac === null ? '–' : `${Math.round(ctxFrac * 100)} %`, ctxFrac === null ? undefined : warnColor(ctxFrac)],
+      [`✕ ${tr('Fehler', 'Errors')}`, String(r.errors), r.errors > 0 ? PALETTE.error[1] : undefined],
+      [`⌁ ${tr('Tool-Aufrufe', 'Tool calls')}`, String(r.toolCalls)],
+      [`⇅ ${tr('Tokens', 'Tokens')}`, `${fmtTokens(r.tokensIn)} ↓ ${fmtTokens(r.tokensOut)} ↑`],
       [
-        tr('Kosten', 'Cost'),
+        `$ ${tr('Kosten', 'Cost')}`,
         runUsd === null ? '–' : `≈ ${fmtUsd(runUsd)}${settings.budgetUsd > 0 ? ` / ${fmtUsd(settings.budgetUsd)}` : ''}`,
         costColor,
       ],
-      [tr('Würfel', 'Cubes'), prog ? `${prog.done} / ${prog.total}` : '1'],
+      [`▣ ${tr('Würfel', 'Cubes')}`, prog ? `${prog.done} / ${prog.total}` : '1'],
     ]
+    // The canisters at the top of the overview: what to watch at a glance.
+    const pctOf = (v: number) => `${Math.round(v * 100)} %`
+    const callsOk = r.toolCalls > 0 ? 1 - r.errors / r.toolCalls : null
+    const waitShare = elapsed > 0 ? Math.min(1, waitNow / elapsed) : null
+    const gaugeItems: Gauge[] = [
+      {
+        key: 'progress',
+        label: tr('Fortschritt', 'Progress'),
+        icon: '▲',
+        level: overall,
+        value: overall === null ? '–' : pctOf(overall),
+        color: overall !== null && overall >= 1 ? ['#86efac', '#16a34a'] : ['#93c5fd', '#2563eb'],
+        title: tr('Geschätzter Fortschritt des Auftrags', 'Estimated progress of the task'),
+      },
+      {
+        key: 'context',
+        label: tr('Kontext', 'Context'),
+        icon: '◧',
+        level: ctxFrac,
+        value: ctxFrac === null ? '–' : pctOf(ctxFrac),
+        color: warnColors(ctxFrac, CONTEXT_AMBER, CONTEXT_RED),
+        title: tr('Füllstand des Kontextfensters', 'How full the context window is'),
+      },
+      settings.budgetUsd > 0
+        ? {
+            key: 'budget',
+            label: tr('Budget', 'Budget'),
+            icon: '$',
+            level: budgetFrac === null ? null : Math.min(1, budgetFrac),
+            value: runUsd === null ? '–' : fmtUsd(runUsd),
+            color: warnColors(budgetFrac, 0.8, 1),
+            title: tr(`Kosten im Verhältnis zum Budget von ${fmtUsd(settings.budgetUsd)}`, `Cost against the budget of ${fmtUsd(settings.budgetUsd)}`),
+          }
+        : {
+            key: 'success',
+            label: tr('Erfolg', 'Success'),
+            icon: '✓',
+            level: callsOk,
+            value: callsOk === null ? '–' : pctOf(callsOk),
+            color: callsOk !== null && callsOk < 0.8 ? ['#fb7185', '#e11d48'] : ['#86efac', '#16a34a'],
+            title: tr('Anteil der Tool-Aufrufe ohne Fehler', 'Share of tool calls without an error'),
+          },
+      {
+        key: 'waiting',
+        label: tr('Warten', 'Waiting'),
+        icon: '‖',
+        level: waitShare,
+        value: waitShare === null ? '–' : pctOf(waitShare),
+        color: warnColors(waitShare, 0.25, 0.5),
+        title: tr('Anteil der Laufzeit, in der auf dich gewartet wurde', 'Share of the time spent waiting for you'),
+      },
+    ]
+    const gauges = Svg ? buildGauges(gaugeItems, Math.max(240, Math.min(680, cols * 7.5)), settings.animations && active) : null
+    // The same figures as glass tiles with a liquid at each one's level, where the
+    // surface draws pictures; a figure without a natural level gets an empty tile.
+    const span = left === null ? null : elapsed + left
+    const BLUE: [string, string] = ['#93c5fd', '#2563eb']
+    const VIOLET: [string, string] = ['#c4b5fd', '#7c3aed']
+    const GREEN: [string, string] = ['#86efac', '#16a34a']
+    const GREY: [string, string] = ['#cbd5e1', '#64748b']
+    const tileSpec: Array<[key: string, level: number | null, color: [string, string], title: string]> = [
+      ['elapsed', span ? elapsed / span : null, BLUE, tr('Laufzeit im Verhältnis zur geschätzten Gesamtdauer', 'Elapsed against the estimated total')],
+      ['left', span ? (left ?? 0) / span : null, VIOLET, tr('Restzeit im Verhältnis zur geschätzten Gesamtdauer', 'Time left against the estimated total')],
+      ['waiting', waitShare, warnColors(waitShare, 0.25, 0.5), tr('Anteil der Laufzeit, in der auf dich gewartet wurde', 'Share of the time spent waiting for you')],
+      ['context', ctxFrac, warnColors(ctxFrac, CONTEXT_AMBER, CONTEXT_RED), tr('Füllstand des Kontextfensters', 'How full the context window is')],
+      ['errors', r.toolCalls > 0 ? r.errors / r.toolCalls : null, r.errors > 0 ? warnColors(r.errors / r.toolCalls, 0, 0.2) : GREY, tr('Anteil fehlgeschlagener Tool-Aufrufe', 'Share of failed tool calls')],
+      ['calls', null, GREY, tr('Tool-Aufrufe in diesem Auftrag', 'Tool calls in this task')],
+      ['tokens', null, GREY, tr('Tokens hinein und heraus', 'Tokens in and out')],
+      ['cost', budgetFrac, warnColors(budgetFrac, 0.8, 1), settings.budgetUsd > 0 ? tr('Kosten im Verhältnis zum Budget', 'Cost against the budget') : tr('Geschätzte Kosten; mit einem Budget füllt sich die Kachel', 'Estimated cost; with a budget set the tile fills up')],
+      ['cubes', prog ? prog.done / Math.max(1, prog.total) : null, GREEN, tr('Erledigte Würfel', 'Cubes done')],
+    ]
+    const tiles = Svg
+      ? buildTiles(
+          overview.map(([label, value, color], k) => {
+            const [key, level, liquid, title] = tileSpec[k]!
+            const [icon, ...words] = label.split(' ')
+            return { key, icon: icon!, label: words.join(' '), value, level, color: liquid, valueColor: color, title }
+          }),
+          Math.max(240, Math.min(680, cols * 7.5)),
+          3,
+          settings.animations && active,
+        )
+      : null
     const lanes = Svg ? buildLanes(r, now, Math.max(240, Math.min(680, cols * 7.5))) : null
     const summary = !active && r.status === 'done' && r.tasks.length > 0 ? summaryOf(r, runUsd) : null
 
@@ -385,7 +469,7 @@ export const register: Register = (on, options) => {
         key="skin"
         label="Skin"
         value={skin.id}
-        options={SKINS.map(s => ({ value: s.id, label: s.id === 'classic' ? tr('Klassisch', 'Classic') : s.name }))}
+        options={SKINS.map(s => ({ value: s.id, label: s.id === 'classic' ? tr('Klassisch', 'Classic') : s.id === 'factory' ? tr('Roboterfabrik', 'Robot factory') : s.name }))}
         onSelect={value => pickSkin(value)}
       />
     ) : (
@@ -471,7 +555,16 @@ export const register: Register = (on, options) => {
           'card-overview',
           tr('ÜBERSICHT', 'OVERVIEW'),
           <Box flexDirection="column" gap={1}>
-            {figures(blockEls, 'ov', overview, 3)}
+            {gauges && Svg && (
+              <Box flexDirection="row" justifyContent="center">
+                <Svg source={gauges.source} alt={gauges.alt} width={gauges.width} height={gauges.height} isInteractive />
+              </Box>
+            )}
+            {tiles && Svg ? (
+              <Svg key="ov-tiles" source={tiles.source} alt={tiles.alt} width={tiles.width} height={tiles.height} isInteractive />
+            ) : (
+              figures(blockEls, 'ov', overview, 3)
+            )}
             {left !== null && !exp.isMeasured && (
               <Text size="footnote" dimColor>
                 {tr(

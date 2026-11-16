@@ -6,7 +6,7 @@
  */
 export type Lang = 'de' | 'en'
 
-let lang: Lang = 'de'
+let lang: Lang = 'en'
 
 export function setLang(next: Lang): void {
   lang = next

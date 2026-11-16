@@ -215,7 +215,7 @@ function burst(ctx: SceneCtx, c: CubeCtx): string {
 export const steampunk: Skin = {
   id: 'steampunk',
   name: 'Steampunk',
-  description: 'Messing, Kupfer und Zahnräder',
+  description: 'Brass, copper and gears',
   status: {
     pending: ['#d9bd80', '#a8864a', '#6b5226'],
     running: ['#ffd27a', '#e0a43c', '#b97a22'],

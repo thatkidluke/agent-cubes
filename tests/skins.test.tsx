@@ -155,7 +155,7 @@ test('skins: the test runs are in the states they claim', async () => {
     expect(heavy.tasks[i]?.status).toBe('running')
     expect(heavy.tasks[i]?.calls).toBe(27)
   }
-  expect(buildSvg(heavy, WIDTH, NOW).alt).toContain('Würfel 1, 2, 3, 4, 5, 6, 7, 8')
+  expect(buildSvg(heavy, WIDTH, NOW).alt).toContain('cube 1, 2, 3, 4, 5, 6, 7, 8')
   const busy = busyRun()
   expect(busy.tasks).toHaveLength(5)
   expect(busy.tasks[0]?.status).toBe('done')
