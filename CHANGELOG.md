@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.1
+
+- A new README: a hero banner, the panel and the summary in light and dark, a gallery of all eight skins
+  with a line on each, the features grouped, and the settings at a glance.
+
 ## 0.9.0
 
 - No white flash: while work goes on, every drawing in the panel is shown as an image instead of in a frame

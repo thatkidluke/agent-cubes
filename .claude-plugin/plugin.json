@@ -1,6 +1,6 @@
 {
   "name": "agent-cubes",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "A live cube timeline of your agents' work beside the Claude Code chat: progress, agents, stuck steps, context gauges, eight skins",
   "author": {
     "name": "Agent Cubes contributors"
