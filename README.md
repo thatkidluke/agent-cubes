@@ -25,7 +25,12 @@ steps that are stuck, shows how full the context window is, and comes in six ski
 - **Context tank** on the pedestal: amber from 70 %, red from 85 %
 - **Cube details**: time, tokens, cost share, lines changed, test runs, files and recent calls of one step
 - **Dependencies** between tasks as pipes with a padlock on the waiting cube
-- **Statistics** across your last twelve tasks
+- **Waiting time**: how long the agents waited for you, live and per task
+- **Timeline**: one lane per agent showing when it worked, waiting phases in amber
+- **Summary** when a task is done, copied as Markdown with one click
+- **Cost budget** per task with a warning
+- **Statistics** across your last twelve tasks, **data export** as CSV and JSON
+- **Keys 1–9** open the first nine cubes' details
 - **Compact mode** for long plans, **still mode** without animation, **export** of the timeline as an SVG file
 - **German and English** user interface
 
@@ -67,6 +72,7 @@ The settings live in the config menu under Agent Cubes; a change reloads the plu
 | Setting              | Type    | Default   | Meaning |
 | -------------------- | ------- | --------- | ------- |
 | `language`           | choice  | `de`      | Panel language: `de` or `en`. |
+| `budgetUsd`          | number  | 0         | Cost budget per task in USD; amber from 80 %, a warning once passed. 0 turns it off. |
 | `defaultSkin`        | choice  | `classic` | Skin while none is picked in the panel; a pick in the panel wins. |
 | `autoOpen`           | yes/no  | yes       | Open the panel when a session starts; otherwise only via `/cubes`. |
 | `animations`         | yes/no  | yes       | Animation in the panel and the export; off draws a still picture. |
@@ -79,7 +85,8 @@ The settings live in the config menu under Agent Cubes; a change reloads the plu
 Progress, time left and cost are **estimates**. A step in work fills by its time and calls compared with finished
 steps of the same kind, or, until there are some, with earlier tasks; it only becomes full once it is checked off.
 A task's cost is the session's cost since the task began, shared out across its steps by their price-weighted
-tokens. Where the session reports no cost, the panel shows "–". Only your account's figures are binding.
+tokens. Where the session reports no cost, the panel shows "–". The waiting time is exact for questions; for a
+permission prompt it runs until the approved call has finished, since the app does not report the moment of approval. Only your account's figures are binding.
 
 ## License
 

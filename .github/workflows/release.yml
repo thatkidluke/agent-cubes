@@ -1,0 +1,35 @@
+name: Release
+
+# On every push to main: when plugin.json names a version that has no release
+# yet, tag it and publish a GitHub release with that version's CHANGELOG section.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the version
+        id: version
+        run: echo "tag=v$(jq -r .version .claude-plugin/plugin.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the release if it is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "$TAG is released already."
+            exit 0
+          fi
+          # The changelog section of this version: from its heading to the next one.
+          awk -v v="## ${TAG#v}" '$0 == v { on = 1; next } /^## / && on { exit } on' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "Agent Cubes $TAG" > notes.md
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "Agent Cubes $TAG" --notes-file notes.md

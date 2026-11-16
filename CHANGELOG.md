@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0
+
+- Waiting time: how long the agents waited for you (questions, permission prompts), live in the overview,
+  in the summary, the statistics and the data export.
+- Summary card when a task is done, with a button that copies it as Markdown (for a pull request or a status note).
+- Timeline: one lane per agent showing when it worked, waiting phases in amber.
+- Cost budget per task (`budgetUsd`): the cost turns amber from 80 % and the status line warns once it is passed.
+- Keys 1–9 open the first nine cubes' details while the panel has the keyboard.
+- Data export: the stored tasks as CSV (one row per step) and JSON.
+- The status line above the drawing is always one row, so the drawing no longer jumps when a question or a stuck
+  step comes and goes.
+- Releases: every new version in plugin.json is tagged and published on GitHub automatically.
+
 ## 0.3.0
 
 - Estimates per kind of step: tests, review, research, docs, setup, shipping and other work are timed apart,

@@ -26,7 +26,12 @@ Restzeit, erkennt hängende Schritte, zeigt, wie voll das Kontextfenster ist, un
 - **Kontext-Tank** am Sockel: gelb ab 70 %, rot ab 85 %
 - **Würfel-Details**: Dauer, Tokens, Kostenanteil, geänderte Zeilen, Testläufe, Dateien und letzte Aufrufe eines Schritts
 - **Abhängigkeiten** zwischen Aufgaben als Leitungen mit Schloss am wartenden Würfel
-- **Statistik** über deine letzten zwölf Aufträge
+- **Wartezeit**: wie lange die Agents auf dich gewartet haben, live und je Auftrag
+- **Zeitstrahl**: eine Spur je Agent, wann er gearbeitet hat, Wartephasen in Gelb
+- **Zusammenfassung** am Ende eines Auftrags, mit einem Klick als Markdown kopiert
+- **Kostenbudget** pro Auftrag mit Warnung
+- **Statistik** über deine letzten zwölf Aufträge, **Daten-Export** als CSV und JSON
+- **Tasten 1–9** öffnen die Details der ersten neun Würfel
 - **Kompaktmodus** für lange Pläne, **Standbild** ohne Animation, **Export** der Zeitleiste als SVG-Datei
 - Oberfläche auf **Deutsch und Englisch**
 
@@ -68,6 +73,7 @@ Die Einstellungen stehen im Konfigurationsmenü unter Agent Cubes; eine Änderun
 | Einstellung          | Typ     | Standard  | Bedeutung |
 | -------------------- | ------- | --------- | --------- |
 | `language`           | Auswahl | `de`      | Sprache des Panels: `de` oder `en`. |
+| `budgetUsd`          | Zahl    | 0         | Kostenbudget pro Auftrag in USD; gelb ab 80 %, Hinweis bei Überschreitung. 0 schaltet es ab. |
 | `defaultSkin`        | Auswahl | `classic` | Skin, solange im Panel keiner gewählt ist. Eine Wahl im Panel hat Vorrang. |
 | `autoOpen`           | Ja/Nein | ja        | Panel beim Start jeder Sitzung öffnen. Sonst nur über `/cubes`. |
 | `animations`         | Ja/Nein | ja        | Animationen in Panel und Export. Aus: ruhiges Standbild. |
@@ -80,7 +86,9 @@ Die Einstellungen stehen im Konfigurationsmenü unter Agent Cubes; eine Änderun
 Fortschritt, Restzeit und Kosten sind **Schätzungen**. Ein Schritt in Arbeit füllt sich nach Zeit und Aufrufen im
 Vergleich zu fertigen Schritten derselben Art oder, bis es solche gibt, zu früheren Aufträgen; voll wird er erst,
 wenn er abgehakt ist. Die Kosten eines Auftrags sind die Sitzungskosten seit Auftragsbeginn, auf die Schritte
-verteilt nach ihren preisgewichteten Tokens. Wo die Sitzung keine Kosten meldet, steht „–“. Verbindlich sind nur
+verteilt nach ihren preisgewichteten Tokens. Wo die Sitzung keine Kosten meldet, steht „–“. Die Wartezeit ist bei Rückfragen
+genau; bei einer Freigabe reicht sie bis zum Ende des freigegebenen Aufrufs, weil die App den Moment der Zustimmung
+nicht meldet. Verbindlich sind nur
 die Angaben deines Kontos.
 
 ## Lizenz

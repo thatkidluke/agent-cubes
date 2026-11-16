@@ -141,3 +141,29 @@ test('language: en draws the panel in English', { options: { language: 'en' } },
   expect(String((await ui.find({ type: 'Svg' }))?.props.alt)).toContain('Cube timeline')
   await ui.unmount()
 })
+
+// The status line above the drawing is always one row: a stuck step or a question
+// changes its words, never the layout, so the drawing below does not jump.
+const alertLine = async (ui: { find: (q: { key: string }) => Promise<unknown> }) => ui.find({ key: 'alert-line' })
+
+test('the status line is there when all is calm', async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.tool.call(PLAN)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await alertLine(ui)).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Keine offenen Hinweise/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a stuck step changes the status line instead of adding a box', { options: { stuckFailsInRow: 1 } }, async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.tool.call(PLAN)
+  await $.tool.call({ tool: 'Bash', command: 'false' } as never)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await alertLine(ui)).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Keine offenen Hinweise/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /hängt:/ })).toBeDefined()
+  await ui.unmount()
+})

@@ -16,11 +16,14 @@ export type PanelSettings = {
   stuck: StuckThresholds
   /** The panel's language. */
   language: Lang
+  /** A cost budget per task in USD; 0 for none. */
+  budgetUsd: number
 }
 
 export const DEFAULTS = {
   defaultSkin: 'classic',
   language: 'de',
+  budgetUsd: 0,
   autoOpen: true,
   animations: true,
   stuckSilentMinutes: STUCK.silentMs / 60_000,
@@ -53,5 +56,6 @@ export function readSettings(options: PluginOptions | undefined): PanelSettings 
     animations: bool(o.animations, DEFAULTS.animations),
     stuck: { ...STUCK, silentMs: Math.round(silentMin * 60_000), failsInRow: fails, slowFactor: slow },
     language: o.language === 'en' ? 'en' : 'de',
+    budgetUsd: clampNum(o.budgetUsd, DEFAULTS.budgetUsd, 0, 10_000),
   }
 }

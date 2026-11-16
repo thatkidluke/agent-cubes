@@ -24,10 +24,14 @@ import {
   statsFrom,
   stepProgress,
   stuckReason,
+  historyCsv,
+  summaryMarkdown,
+  summaryOf,
   toHistory,
   toolEnd,
   toolStart,
 } from './model'
+import { buildLanes } from './lanes'
 import { agentRow, callColor, card, figures, glyphOf, whoCalled, type Els, type Figure } from './panel/blocks'
 import { cubeDetails, KINDS } from './panel/details'
 import { contextFrac, cubeNo, fileStamp, fmtDuration, fmtEta, fmtTokens, fmtUsd, joinPath, type ContextLike } from './panel/format'
@@ -42,7 +46,7 @@ const HISTORY_KEY = 'history'
 const HISTORY_MAX = 12
 
 // Change a tag when its value's fields change: older stored values are then read as the initial one.
-const run = atom({ plugin: 'agent-cubes', key: 'run' } as const, emptyRun, { shape: 'run-4' })
+const run = atom({ plugin: 'agent-cubes', key: 'run' } as const, emptyRun, { shape: 'run-5' })
 // The beat carries the meters, so a redraw reads them from state instead of asking the host each time.
 const tick = atom({ plugin: 'agent-cubes', key: 'tick' } as const, { beat: 0, usd: null as number | null, ctx: null as number | null }, { shape: 'tick-2' })
 const selected = atom({ plugin: 'agent-cubes', key: 'selected' } as const, -1)
@@ -196,7 +200,8 @@ export const register: Register = (on, options) => {
     const verdict = await next(e)
     if (verdict.decision === 'ask' && e.tool_use_id !== undefined) {
       const id = e.tool_use_id
-      await update($, run, r => markWaiting(r ?? emptyRun, id, e.tool))
+      const at = await $.clock.now()
+      await update($, run, r => markWaiting(r ?? emptyRun, id, e.tool, at))
     }
     return verdict
   }).catch(($, e, next) => next(e))
@@ -269,6 +274,33 @@ export const register: Register = (on, options) => {
     const exp = expected(r)
     const warnColor = (frac: number) => (frac >= CONTEXT_RED ? PALETTE.error[1] : frac >= CONTEXT_AMBER ? PALETTE.waiting[1] : undefined)
     const stuck = r.tasks.map((_t, i) => ({ i, why: stuckReason(r, i, now, limits) })).filter(s => s.why)
+    // The cost budget: amber from 80 %, a status line once it is passed.
+    const budgetFrac = settings.budgetUsd > 0 && runUsd !== null ? runUsd / settings.budgetUsd : null
+    const overBudget = budgetFrac !== null && budgetFrac > 1
+    const costColor = budgetFrac === null ? undefined : budgetFrac > 1 ? PALETTE.error[1] : budgetFrac >= 0.8 ? PALETTE.waiting[1] : undefined
+    const waitNow = (r.waitMs ?? 0) + (r.waitSince ? Math.max(0, now - r.waitSince) : 0)
+    // The status line's content: a question first, then a stuck step, else a calm line.
+    const clip = (t: string) => (t.length > 90 ? t.slice(0, 89) + '…' : t)
+    const firstStuck = stuck[0]
+    const alert: { text: string; color: string | undefined; strong: boolean } =
+      r.status === 'waiting'
+        ? { text: clip(`⏸ ${tr('Wartet auf deine Antwort', 'Waiting for your answer')}${r.waitingFor ? `: ${r.waitingFor}` : ''}`), color: PALETTE.waiting[1], strong: true }
+        : firstStuck
+          ? {
+              text: clip(
+                `⚠ ${tr('Würfel', 'Cube')} ${cubeNo(firstStuck.i)} ${tr('hängt', 'is stuck')}: ${firstStuck.why}` +
+                  (stuck.length > 1 ? ` (+${stuck.length - 1})` : ''),
+              ),
+              color: PALETTE.error[1],
+              strong: true,
+            }
+          : overBudget
+            ? {
+                text: clip(`$ ${tr('Kostenbudget überschritten', 'Cost budget exceeded')}: ≈ ${fmtUsd(runUsd ?? 0)} / ${fmtUsd(settings.budgetUsd)}`),
+                color: PALETTE.error[1],
+                strong: true,
+              }
+            : { text: active ? tr('● Keine offenen Hinweise', '● Nothing needs you') : tr('○ Bereit', '○ Ready'), color: undefined, strong: false }
     const stats2 = statsFrom(hist)
 
     const exportSvg = async () => {
@@ -282,6 +314,26 @@ export const register: Register = (on, options) => {
       } catch (err) {
         $.ui.toast(`${tr('Speichern fehlgeschlagen', 'Saving failed')}: ${err instanceof Error ? err.message : String(err)}`)
       }
+    }
+    // The stored runs as CSV (one row per step, for a spreadsheet) and JSON, next to the work.
+    const exportData = async () => {
+      try {
+        const at = await $.clock.now()
+        const dir = await $.session.cwd()
+        const csv = joinPath(dir, `agent-cubes-history-${fileStamp(at)}.csv`)
+        const json = joinPath(dir, `agent-cubes-history-${fileStamp(at)}.json`)
+        await $.fs.write(csv, historyCsv(hist))
+        await $.fs.write(json, JSON.stringify(hist, null, 2) + '\n')
+        await update($, exported, () => csv)
+        $.ui.toast(`${tr('Gespeichert', 'Saved')}: ${csv}`)
+      } catch (err) {
+        $.ui.toast(`${tr('Speichern fehlgeschlagen', 'Saving failed')}: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+    // The finished run's summary as Markdown, onto the clipboard of the surface that asked.
+    const copySummary = async () => {
+      const copied = await $.ui.copy({ text: summaryMarkdown(r, runUsd), surface: e.surface })
+      $.ui.toast(copied.isCopied ? tr('Zusammenfassung kopiert', 'Summary copied') : tr('Kopieren nicht möglich', 'Could not copy'))
     }
     const viewAgent = async (agentId: string | undefined) => {
       const shown = await $.ui.view(agentId ? { agentId } : {})
@@ -297,13 +349,20 @@ export const register: Register = (on, options) => {
     const overview: Figure[] = [
       [tr('Laufzeit', 'Elapsed'), r.startedAt ? fmtDuration(elapsed) : '–'],
       [tr('Restzeit', 'Time left'), left === null ? '–' : `${fmtEta(left)}${exp.isMeasured ? '' : '*'}`],
+      [tr('Wartezeit', 'Waiting'), waitNow > 0 ? `≈ ${fmtDuration(waitNow)}` : '–', r.status === 'waiting' ? PALETTE.waiting[1] : undefined],
       [tr('Kontext', 'Context'), ctxFrac === null ? '–' : `${Math.round(ctxFrac * 100)} %`, ctxFrac === null ? undefined : warnColor(ctxFrac)],
       [tr('Fehler', 'Errors'), String(r.errors), r.errors > 0 ? PALETTE.error[1] : undefined],
-      [tr('Tokens', 'Tokens'), `${fmtTokens(r.tokensIn)} ↓ ${fmtTokens(r.tokensOut)} ↑`],
-      [tr('Kosten', 'Cost'), runUsd === null ? '–' : `≈ ${fmtUsd(runUsd)}`],
       [tr('Tool-Aufrufe', 'Tool calls'), String(r.toolCalls)],
+      [tr('Tokens', 'Tokens'), `${fmtTokens(r.tokensIn)} ↓ ${fmtTokens(r.tokensOut)} ↑`],
+      [
+        tr('Kosten', 'Cost'),
+        runUsd === null ? '–' : `≈ ${fmtUsd(runUsd)}${settings.budgetUsd > 0 ? ` / ${fmtUsd(settings.budgetUsd)}` : ''}`,
+        costColor,
+      ],
       [tr('Würfel', 'Cubes'), prog ? `${prog.done} / ${prog.total}` : '1'],
     ]
+    const lanes = Svg ? buildLanes(r, now, Math.max(240, Math.min(680, cols * 7.5))) : null
+    const summary = !active && r.status === 'done' && r.tasks.length > 0 ? summaryOf(r, runUsd) : null
 
     // ── Now: the current step, its time and estimate, the last error ──
     const nowLine = curTask
@@ -358,23 +417,15 @@ export const register: Register = (on, options) => {
           color={runColor}
         />
 
-        {/* Things that need attention */}
-        {r.status === 'waiting' && (
-          <Box borderStyle="round" borderColor={PALETTE.waiting[1]} paddingX={1}>
-            <Text color={PALETTE.waiting[1]} weight="semibold">
-              ⏸ {tr('Wartet auf deine Antwort', 'Waiting for your answer')}{r.waitingFor ? `: ${r.waitingFor}` : ''}
-            </Text>
-          </Box>
-        )}
-        {stuck.length > 0 && (
-          <Box flexDirection="column" borderStyle="round" borderColor={PALETTE.error[1]} paddingX={1}>
-            {stuck.map(s => (
-              <Text key={`stuck-${s.i}`} color={PALETTE.error[1]} weight="semibold">
-                ⚠ Würfel {cubeNo(s.i)} hängt: {s.why}
-              </Text>
-            ))}
-          </Box>
-        )}
+        {/*
+          One status line that is always there and always one row high, so the drawing
+          below never moves when a question or a stuck step comes and goes.
+        */}
+        <Box key="alert-line" flexDirection="row" gap={1}>
+          <Text color={alert.color} weight={alert.strong ? 'semibold' : 'regular'} dimColor={!alert.strong}>
+            {alert.text}
+          </Text>
+        </Box>
 
         {svg && Svg ? (
           <Box flexDirection="row" justifyContent="center">
@@ -384,13 +435,43 @@ export const register: Register = (on, options) => {
           <Text>{r.tasks.map(t => (t.status === 'done' ? '■' : t.status === 'running' ? '▣' : '□')).join(' ')}</Text>
         )}
 
+        {/* 0. Once a task is finished: its summary, ready to copy as Markdown */}
+        {summary &&
+          card(
+            blockEls,
+            'card-summary',
+            tr('ZUSAMMENFASSUNG', 'SUMMARY'),
+            <Box flexDirection="column" gap={1}>
+              {figures(
+                blockEls,
+                'sum',
+                [
+                  [tr('Schritte', 'Steps'), `${summary.done} / ${summary.steps}`],
+                  [tr('Dauer', 'Time'), fmtDuration(summary.ms)],
+                  [tr('Wartezeit', 'Waiting'), summary.waitMs > 0 ? `≈ ${fmtDuration(summary.waitMs)}` : '–'],
+                  [tr('Subagents', 'Subagents'), String(summary.agents)],
+                  [tr('Code', 'Code'), `+${summary.added} −${summary.removed}`],
+                  [
+                    tr('Tests', 'Tests'),
+                    summary.testsPassed + summary.testsFailed > 0 ? `${summary.testsPassed} ✓ ${summary.testsFailed} ✕` : '–',
+                    summary.lastTest === 'fail' ? PALETTE.error[1] : undefined,
+                  ],
+                ],
+                3,
+              )}
+            </Box>,
+            <Button key="copy-summary" variant="secondary" onPress={copySummary}>
+              {tr('Als Markdown kopieren', 'Copy as Markdown')}
+            </Button>,
+          )}
+
         {/* 1. Overview */}
         {card(
           blockEls,
           'card-overview',
           tr('ÜBERSICHT', 'OVERVIEW'),
           <Box flexDirection="column" gap={1}>
-            {figures(blockEls, 'ov', overview)}
+            {figures(blockEls, 'ov', overview, 3)}
             {left !== null && !exp.isMeasured && (
               <Text size="footnote" dimColor>
                 {tr(
@@ -497,6 +578,8 @@ export const register: Register = (on, options) => {
                   <Button
                     key={`cube-${i}`}
                     variant={sel === i ? 'primary' : 'secondary'}
+                    // Keys 1–9 open the first nine cubes while the panel has the keyboard.
+                    {...(i < 9 ? { hotkey: String(i + 1) } : {})}
                     onPress={() => update($, selected, s => (s === i ? -1 : i))}
                   >
                     {cubeNo(i)}
@@ -504,6 +587,18 @@ export const register: Register = (on, options) => {
                 ))}
               </Box>
               {details}
+            </Box>,
+          )}
+
+        {/* 5b. Who worked when: one lane per agent, waiting phases in amber */}
+        {lanes &&
+          Svg &&
+          card(
+            blockEls,
+            'card-lanes',
+            tr('ZEITSTRAHL', 'TIMELINE'),
+            <Box flexDirection="row" justifyContent="center">
+              <Svg source={lanes.source} alt={lanes.alt} width={lanes.width} height={lanes.height} isInteractive />
             </Box>,
           )}
 
@@ -537,6 +632,11 @@ export const register: Register = (on, options) => {
           <Button key="export" variant="secondary" onPress={exportSvg}>
             {tr('Als Bild speichern', 'Save as image')}
           </Button>
+          {hist.length > 0 && (
+            <Button key="export-data" variant="secondary" onPress={exportData}>
+              {tr('Daten exportieren (CSV/JSON)', 'Export data (CSV/JSON)')}
+            </Button>
+          )}
           {savedTo && (
             <Text size="footnote" dimColor>
               {tr('Gespeichert', 'Saved')}: {savedTo}

@@ -21,6 +21,9 @@ export const emptyRun: CubeRun = {
   tokensOut: 0,
   units: 0,
   costAtStart: 0,
+  waitMs: 0,
+  waitSince: 0,
+  waits: [],
   prior: DEFAULT_PRIOR,
 }
 
@@ -163,6 +166,7 @@ export function toolStart(
   return {
     ...r,
     status: isWaiting ? 'waiting' : r.status,
+    waitSince: isWaiting && !r.waitSince ? now : r.waitSince,
     waitingId: isWaiting ? c.id : r.waitingId,
     waitingFor: isWaiting ? label : r.waitingFor,
     toolCalls: r.toolCalls + 1,
@@ -202,6 +206,7 @@ export function toolEnd(
   return {
     ...r,
     status: wasWaiting && r.status === 'waiting' ? 'running' : r.status,
+    ...(wasWaiting ? closeWait(r, now) : {}),
     waitingId: wasWaiting ? '' : r.waitingId,
     waitingFor: wasWaiting ? '' : r.waitingFor,
     calls: r.calls.map(x =>
@@ -229,9 +234,19 @@ export function toolEnd(
 }
 
 /** A permission prompt is shown for this call. */
-export function markWaiting(r: CubeRun, id: string, tool: string): CubeRun {
+export function markWaiting(r: CubeRun, id: string, tool: string, now = 0): CubeRun {
   if (!isActive(r)) return r
-  return { ...r, status: 'waiting', waitingId: id, waitingFor: shortTool(tool) }
+  return { ...r, status: 'waiting', waitingId: id, waitingFor: shortTool(tool), waitSince: r.waitSince || now }
+}
+
+/** Closes the wait that is open, adding its length to the run's waiting time. */
+function closeWait(r: CubeRun, now: number): Pick<CubeRun, 'waitMs' | 'waitSince' | 'waits'> {
+  if (!r.waitSince || !now || now <= r.waitSince) return { waitMs: r.waitMs ?? 0, waitSince: 0, waits: r.waits ?? [] }
+  return {
+    waitMs: (r.waitMs ?? 0) + (now - r.waitSince),
+    waitSince: 0,
+    waits: [...(r.waits ?? []), { start: r.waitSince, end: now }].slice(-50),
+  }
 }
 
 type Usage = {
@@ -441,6 +456,7 @@ export function endRun(r: CubeRun, reason: string, now: number): CubeRun {
     ...r,
     status,
     endedAt: now,
+    ...closeWait(r, now),
     mainTool: '',
     waitingId: '',
     waitingFor: '',
@@ -573,6 +589,7 @@ export function toHistory(r: CubeRun, usd: number): HistRun {
     ms: Math.max(0, (r.endedAt || r.startedAt) - r.startedAt),
     tokens: r.tokensIn + r.tokensOut,
     usd,
+    waitMs: r.waitMs ?? 0,
     errors: r.errors,
     calls: r.toolCalls,
     tasks: r.tasks.map(t => ({
@@ -695,3 +712,97 @@ export function statsFrom(history: HistRun[]): RunStats | null {
   }
 }
 
+
+const mmss = (ms: number) => {
+  const s = Math.max(0, Math.floor(ms / 1000))
+  const m = Math.floor(s / 60)
+  return m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${m}:${String(s % 60).padStart(2, '0')}`
+}
+
+/** The figures of a finished run, for the summary card and its Markdown. */
+export type RunSummary = {
+  steps: number
+  done: number
+  ms: number
+  waitMs: number
+  agents: number
+  calls: number
+  errors: number
+  added: number
+  removed: number
+  testsPassed: number
+  testsFailed: number
+  lastTest: '' | 'pass' | 'fail'
+  usd: number | null
+}
+
+export function summaryOf(r: CubeRun, usd: number | null): RunSummary {
+  const sum = (f: (t: CubeTask) => number) => r.tasks.reduce((s, t) => s + f(t), 0)
+  const last = [...r.tasks].reverse().find(t => t.lastTest)?.lastTest ?? ''
+  return {
+    steps: r.tasks.length,
+    done: r.tasks.filter(t => t.status === 'done').length,
+    ms: Math.max(0, (r.endedAt || r.startedAt) - r.startedAt),
+    waitMs: r.waitMs ?? 0,
+    agents: r.agents.length,
+    calls: r.toolCalls,
+    errors: r.errors,
+    added: sum(t => t.added),
+    removed: sum(t => t.removed),
+    testsPassed: sum(t => t.testsPassed),
+    testsFailed: sum(t => t.testsFailed),
+    lastTest: last,
+    usd,
+  }
+}
+
+/** A Markdown summary of a finished run, for a pull request or a status note. */
+export function summaryMarkdown(r: CubeRun, usd: number | null): string {
+  const s = summaryOf(r, usd)
+  const lines = [
+    `### ${tr('Agent Cubes: Zusammenfassung', 'Agent Cubes: summary')}`,
+    '',
+    r.prompt ? `> ${r.prompt.replace(/\s+/g, ' ').slice(0, 200)}` : '',
+    '',
+    `| | |`,
+    `| --- | --- |`,
+    `| ${tr('Schritte', 'Steps')} | ${s.done} / ${s.steps} |`,
+    `| ${tr('Dauer', 'Time')} | ${mmss(s.ms)} |`,
+    `| ${tr('Wartezeit auf dich', 'Waiting for you')} | ≈ ${mmss(s.waitMs)} |`,
+    `| ${tr('Subagents', 'Subagents')} | ${s.agents} |`,
+    `| ${tr('Tool-Aufrufe', 'Tool calls')} | ${s.calls} (${s.errors} ${tr('Fehler', 'errors')}) |`,
+    `| Code | +${s.added} −${s.removed} |`,
+    s.testsPassed + s.testsFailed > 0
+      ? `| Tests | ${s.testsPassed} ✓ ${s.testsFailed} ✕${s.lastTest ? ` (${tr('zuletzt', 'last')} ${s.lastTest === 'pass' ? '✓' : '✕'})` : ''} |`
+      : '',
+    s.usd !== null ? `| ${tr('Kosten', 'Cost')} | ≈ $${s.usd.toFixed(2)} |` : '',
+    '',
+    `**${tr('Schritte', 'Steps')}**`,
+    '',
+    ...r.tasks.map((t, i) => {
+      const took = t.status === 'done' && t.startedAt && t.endedAt > t.startedAt ? ` · ${mmss(t.endedAt - t.startedAt)}` : ''
+      return `${i + 1}. ${t.status === 'done' ? '✓' : '○'} ${t.title}${took}`
+    }),
+  ]
+  return lines.filter((l, i, all) => !(l === '' && all[i - 1] === '')).join('\n').trim() + '\n'
+}
+
+const csvCell = (v: string | number) => {
+  const s = String(v)
+  return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+/** Every stored run, one row per step, as CSV for a spreadsheet. */
+export function historyCsv(history: HistRun[]): string {
+  const rows: (string | number)[][] = [
+    ['run_started', 'prompt', 'run_ms', 'run_usd', 'run_wait_ms', 'step', 'step_title', 'step_kind', 'step_ms', 'step_calls', 'step_tokens', 'step_errors'],
+  ]
+  for (const h of history) {
+    const started = new Date(h.at).toISOString()
+    h.tasks.forEach((t, i) =>
+      rows.push([started, h.prompt, h.ms, h.usd.toFixed(4), h.waitMs ?? '', i + 1, t.title, stepKind(t.title), t.ms, t.calls, t.tokens, t.errors]),
+    )
+    if (h.tasks.length === 0) rows.push([started, h.prompt, h.ms, h.usd.toFixed(4), h.waitMs ?? '', '', '', '', '', h.calls, h.tokens, h.errors])
+  }
+  return rows.map(r => r.map(csvCell).join(',')).join('\n') + '\n'
+}

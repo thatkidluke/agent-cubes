@@ -80,6 +80,11 @@ export type CubeRun = {
   units: number
   /** The session's cost in USD when the run began. */
   costAtStart: number
+  /** Time the agents spent waiting for the person (permission prompts, questions), summed; and the phases, for the timeline. */
+  waitMs: number
+  /** When the current wait began; 0 while nobody waits. */
+  waitSince: number
+  waits: { start: number; end: number }[]
   /** What a step takes, from earlier runs: the yardstick until a step of this run is done. */
   prior: { calls: number; ms: number; byKind?: Record<string, { calls: number; ms: number; n: number }> }
 }
@@ -89,6 +94,8 @@ export type HistTask = { title: string; ms: number; calls: number; tokens: numbe
 /** A finished run, kept across sessions. */
 export type HistRun = {
   at: number
+  /** Time spent waiting for the person; absent in rows from before 0.4. */
+  waitMs?: number
   prompt: string
   ms: number
   tokens: number
