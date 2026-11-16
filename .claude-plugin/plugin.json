@@ -1,6 +1,6 @@
 {
   "name": "agent-cubes",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A live cube timeline of your agents' work beside the Claude Code chat: progress, agents, stuck steps, context, six skins",
   "author": { "name": "Agent Cubes contributors" },
   "license": "MIT",
@@ -17,7 +17,7 @@
       "type": "string",
       "title": "Standard-Skin",
       "description": "Skin, der gilt, solange du im Panel keinen anderen gewählt hast. Eine Wahl im Panel hat Vorrang.",
-      "options": ["classic", "cyber", "stellar", "retro", "steampunk", "minimal"],
+      "options": ["classic", "cyber", "stellar", "retro", "steampunk", "minimal", "cave", "factory", "quest"],
       "default": "classic"
     },
     "budgetUsd": {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- Three new skins: Alien cave (glowing spores, rock with luminous veins, crystal cubes), Robot factory
+  (conveyor belt, hazard stripes, warning lamps, steel crates) and Fantasy quest (meadow, stone blocks with
+  torches, rune circles, wooden chests).
+- Larger captions under the plaques: the time and the +/- line are now readable at a glance; the pedestal grows
+  to fit them.
+
 ## 0.4.0
 
 - Waiting time: how long the agents waited for you (questions, permission prompts), live in the overview,

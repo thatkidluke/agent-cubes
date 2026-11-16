@@ -12,7 +12,7 @@ timeline. While a step is worked on, its cube fills with small cubes, one slice 
 tinted by kind of work: reading, writing, running, agents. A finished step turns into a solid cube with a tick.
 
 Subagents show up as coloured badges on the cube they work on. The panel estimates progress and time left, spots
-steps that are stuck, shows how full the context window is, and comes in six skins.
+steps that are stuck, shows how full the context window is, and comes in nine skins.
 
 ## Features
 
@@ -29,6 +29,7 @@ steps that are stuck, shows how full the context window is, and comes in six ski
 - **Timeline**: one lane per agent showing when it worked, waiting phases in amber
 - **Summary** when a task is done, copied as Markdown with one click
 - **Cost budget** per task with a warning
+- **Nine skins**, from calm to playful
 - **Statistics** across your last twelve tasks, **data export** as CSV and JSON
 - **Keys 1–9** open the first nine cubes' details
 - **Compact mode** for long plans, **still mode** without animation, **export** of the timeline as an SVG file
@@ -41,6 +42,8 @@ steps that are stuck, shows how full the context window is, and comes in six ski
 | ![Classic](docs/skin-classic.svg) | ![Cyber](docs/skin-cyber.svg) | ![Stellar](docs/skin-stellar.svg) |
 | **Retro** | **Steampunk** | **Minimal** |
 | ![Retro](docs/skin-retro.svg) | ![Steampunk](docs/skin-steampunk.svg) | ![Minimal](docs/skin-minimal.svg) |
+| **Alien cave** | **Robot factory** | **Fantasy quest** |
+| ![Alien cave](docs/skin-cave.svg) | ![Robot factory](docs/skin-factory.svg) | ![Fantasy quest](docs/skin-quest.svg) |
 
 Pick a skin from the dropdown at the top of the panel.
 

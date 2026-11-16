@@ -13,7 +13,7 @@ für einen Abschnitt der echten Tool-Aufrufe des Schritts und ist nach Art der A
 Ausführen, Agents. Ein fertiger Schritt wird ein massiver Würfel mit Haken.
 
 Subagents erscheinen als farbige Marker auf dem Würfel, an dem sie arbeiten. Das Panel schätzt Fortschritt und
-Restzeit, erkennt hängende Schritte, zeigt, wie voll das Kontextfenster ist, und gibt es in sechs Skins.
+Restzeit, erkennt hängende Schritte, zeigt, wie voll das Kontextfenster ist, und gibt es in neun Skins.
 
 ## Funktionen
 
@@ -30,6 +30,7 @@ Restzeit, erkennt hängende Schritte, zeigt, wie voll das Kontextfenster ist, un
 - **Zeitstrahl**: eine Spur je Agent, wann er gearbeitet hat, Wartephasen in Gelb
 - **Zusammenfassung** am Ende eines Auftrags, mit einem Klick als Markdown kopiert
 - **Kostenbudget** pro Auftrag mit Warnung
+- **Neun Skins**, von ruhig bis verspielt
 - **Statistik** über deine letzten zwölf Aufträge, **Daten-Export** als CSV und JSON
 - **Tasten 1–9** öffnen die Details der ersten neun Würfel
 - **Kompaktmodus** für lange Pläne, **Standbild** ohne Animation, **Export** der Zeitleiste als SVG-Datei
@@ -42,6 +43,8 @@ Restzeit, erkennt hängende Schritte, zeigt, wie voll das Kontextfenster ist, un
 | ![Klassisch](docs/skin-classic.svg) | ![Cyber](docs/skin-cyber.svg) | ![Stellar](docs/skin-stellar.svg) |
 | **Retro** | **Steampunk** | **Minimal** |
 | ![Retro](docs/skin-retro.svg) | ![Steampunk](docs/skin-steampunk.svg) | ![Minimal](docs/skin-minimal.svg) |
+| **Alien-Höhle** | **Roboterfabrik** | **Fantasy-Abenteuer** |
+| ![Alien-Höhle](docs/skin-cave.svg) | ![Roboterfabrik](docs/skin-factory.svg) | ![Fantasy-Abenteuer](docs/skin-quest.svg) |
 
 Den Skin wählst du im Dropdown oben im Panel.
 

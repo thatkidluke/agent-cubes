@@ -62,6 +62,9 @@ const PED_H = 0.95
 const FOOT = 0.14
 /** How long a cube counts as just finished. */
 const JUST_DONE_MS = 4000
+/** Caption sizes under the plaques: readable at a glance, never under 10 px. */
+const capSize = (S: number) => Math.max(10, S * 0.26)
+const diffSize = (S: number) => Math.max(10, S * 0.24)
 
 type Badge = { color: string; letter: string; title: string; isLive: boolean }
 
@@ -374,13 +377,13 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
   const spanU0 = uEnd - uStart + 0.2 + (PED_BACK - PED_FRONT) * DX
   // The context tank's label sits right of the pedestal: make room for "100 %".
   const S0 = fit(spanU0)
-  const spanU = spanU0 + (ctxFill === null ? 0 : 0.12 + (Math.max(7, S0 * 0.17) * 0.62 * 5 * 1.2) / S0)
+  const spanU = spanU0 + (ctxFill === null ? 0 : 0.12 + (capSize(S0) * 0.62 * 5 * 1.2) / S0)
   const S = fit(spanU)
-  const cs = Math.max(7, S * 0.17)
-  const ds = Math.max(6.5, S * 0.15)
-  // A diff line under the captions needs a taller pedestal.
+  const cs = capSize(S)
+  const ds = diffSize(S)
+  // The captions, and a diff line under them, need room: the pedestal grows to fit them.
   const anyDiff = bigs.some(b => b.added > 0 || b.removed > 0)
-  const pedH = anyDiff ? Math.max(PED_H, 0.8 + (0.35 * cs + 1.45 * ds) / S + 0.05) : PED_H
+  const pedH = Math.max(PED_H, 0.8 + (0.4 * cs + (anyDiff ? 1.35 * ds : 0)) / S + 0.06)
   const badgeR = Math.max(7, S * 0.2)
   const drop = S * 0.9
   const above = Math.max(drop, S * 0.42 + badgeR * 2 + 6)
@@ -570,7 +573,7 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
       const minus = big.removed > 0 ? `<tspan fill="${skin.status.error[1]}">−${k(big.removed)}</tspan>` : ''
       parts.push(
         `<text class="t cap" x="${n1(cx)}" y="${n1(cy + cs * 0.35 + ds * 1.15)}" font-size="${n1(ds)}" text-anchor="middle">` +
-          `<title>${big.added} Zeilen hinzugefügt, ${big.removed} entfernt</title>${plus}${plus && minus ? ' ' : ''}${minus}</text>`,
+          `<title>${tr(`${big.added} Zeilen hinzugefügt, ${big.removed} entfernt`, `${big.added} lines added, ${big.removed} removed`)}</title>${plus}${plus && minus ? ' ' : ''}${minus}</text>`,
       )
     }
     if (big.stuck) {
