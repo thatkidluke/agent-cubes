@@ -1,5 +1,5 @@
 import type { CubeStatus } from '../../types'
-import { box, circle, fmt, lin, line, n1, poly, pts, rad, seeded } from '../svg'
+import { box, circle, fmt, lin, line, n1, poly, pts, rad, seeded, lerp } from '../svg'
 import type { Pt } from '../svg'
 import type { CubeCtx, SceneCtx, Skin } from './types'
 
@@ -14,7 +14,6 @@ const NEON: Record<CubeStatus, string> = {
 const CYAN = '#22d3ee'
 const MAGENTA = '#e879f9'
 
-const lerp = (a: Pt, b: Pt, t: number): Pt => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 
 /** Screen helpers for the pedestal's front face (a screen-aligned rectangle). */
 function front(ctx: SceneCtx) {

@@ -8,7 +8,6 @@ import {
   emptyRun,
   endRun,
   eta,
-  fromHistory,
   priorFrom,
   progress,
   startRun,
@@ -38,7 +37,7 @@ test('calls are sorted by kind, and a failed one turns its cube red', async () =
   r = toolStart(r, { id: 'b', tool: 'Write', agentId: undefined, input: { file_path: 'C:/x/out.png' } }, 600)
   expect(r.tasks[0]?.errors).toBe(1)
   expect(r.calls[0]?.ms).toBe(500)
-  expect(r.calls[1]?.file).toBe('C:/x/out.png')
+  expect(r.calls[1]?.file).toBe('out.png')
 
   const svg = buildSvg(r, 500, 600_000)
   expect(svg.source).toContain('id="m-err"')
@@ -72,9 +71,6 @@ test('a finished run goes to the history and teaches the next run its pace', asy
   const h = toHistory(r, 0.5)
   expect(h.tasks.map(t => t.ms)).toEqual([30_000, 20_000])
   expect(priorFrom([h]).ms).toBe(25_000)
-  const back = fromHistory(h)
-  expect(progress(back)).toEqual({ done: 2, total: 2 })
-  expect(buildSvg(back, 400).alt).toContain('2 von 2')
 })
 
 test('a step in work fills over time and calls, but only a check-off makes it full', async () => {

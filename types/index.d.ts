@@ -102,7 +102,8 @@ declare module 'claude-code' {
   interface PluginState {
     'agent-cubes': {
       run: Shaped<CubeRun>
-      tick: number
+      /** The once-a-second beat while a run is active, carrying the session's cost and context fill read with it. */
+      tick: Shaped<{ beat: number; usd: number | null; ctx: number | null }>
       /** The step whose details are open; -1 for none. */
       selected: number
       history: Shaped<HistRun[]>

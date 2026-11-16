@@ -41,7 +41,8 @@ const HISTORY_MAX = 12
 
 // Change a tag when its value's fields change: older stored values are then read as the initial one.
 const run = atom({ plugin: 'agent-cubes', key: 'run' } as const, emptyRun, { shape: 'run-4' })
-const tick = atom({ plugin: 'agent-cubes', key: 'tick' } as const, 0)
+// The beat carries the meters, so a redraw reads them from state instead of asking the host each time.
+const tick = atom({ plugin: 'agent-cubes', key: 'tick' } as const, { beat: 0, usd: null as number | null, ctx: null as number | null }, { shape: 'tick-2' })
 const selected = atom({ plugin: 'agent-cubes', key: 'selected' } as const, -1)
 const history = atom({ plugin: 'agent-cubes', key: 'history' } as const, [] as HistRun[], { shape: 'hist-1' })
 /** The skin the person picked in the panel; '' while they have not, so the defaultSkin setting applies. */
@@ -84,6 +85,14 @@ async function sessionUsage($: { session: { usage: () => Promise<UsageLike> } })
 }
 
 /** The session's cost in USD, or undefined where the host keeps no ledger or cannot say. */
+/** Reads cost and context once and hands them to the drawing with the next beat. */
+async function refreshMeters($: Parameters<typeof sessionUsage>[0] & Parameters<typeof update>[0]): Promise<void> {
+  const usage = await sessionUsage($)
+  const usd = usage?.cost?.usd ?? null
+  const ctx = contextFrac(usage?.context)
+  await update($, tick, t => ({ beat: (t?.beat ?? 0) + 1, usd, ctx }))
+}
+
 async function sessionUsd($: { session: { usage: () => Promise<UsageLike> } }): Promise<number | undefined> {
   return (await sessionUsage($))?.cost?.usd
 }
@@ -109,10 +118,11 @@ export const register: Register = (on, options) => {
     const storedSkin = await $.store.get(SKIN_KEY).catch(() => undefined)
     if (typeof storedSkin === 'string' && SKINS.some(s => s.id === storedSkin)) await update($, skinPick, () => storedSkin)
     if (settings.autoOpen) void $.ui.open({ id: PANE, title: TITLE })
-    // Keeps the elapsed time and the estimated fill moving while a run is active.
+    // Keeps the elapsed time, the estimated fill and the meters moving while a run is active: one write a second.
+    await refreshMeters($)
     $.clock.every(1000, async () => {
       const r = await read($, run)
-      if (isActive(r)) await update($, tick, n => (n ?? 0) + 1)
+      if (isActive(r)) await refreshMeters($)
     })
     return next(e)
   })
@@ -166,6 +176,8 @@ export const register: Register = (on, options) => {
       await update($, history, list => [...(list ?? []), row].slice(-HISTORY_MAX))
       await $.store.set(HISTORY_KEY, await read($, history)).catch(() => undefined)
     }
+    // The run's final cost and context fill, shown once the beat has stopped.
+    await refreshMeters($)
     return next(e)
   })
 
@@ -215,16 +227,15 @@ export const register: Register = (on, options) => {
     const Svg = 'Svg' in els ? els.Svg : undefined
     const Select = 'Select' in els ? els.Select : undefined
     const r = await read($, run)
-    await read($, tick)
+    const meters = await read($, tick)
     const sel = await read($, selected)
     const hist = await read($, history)
     const skin = skinById((await read($, skinPick)) || settings.defaultSkin)
     const statsOpen = await read($, statsOpenAtom)
     const savedTo = await read($, exported)
     const now = await $.clock.now()
-    const usage = await sessionUsage($)
-    const usd = usage?.cost?.usd
-    const ctxFrac = contextFrac(usage?.context)
+    const usd = meters.usd ?? undefined
+    const ctxFrac = meters.ctx
     const runUsd = usd !== undefined && r.units > 0 ? Math.max(0, usd - r.costAtStart) : null
 
     const prog = progress(r)

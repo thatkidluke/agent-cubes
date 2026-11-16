@@ -7,6 +7,8 @@ export type Project = (u: number, v: number, w: number) => Pt
 
 /** One decimal, as short as possible: keeps the markup small. */
 export const n1 = (v: number) => (Math.round(v * 10) / 10).toString()
+/** The point a fraction t of the way from a to b. */
+export const lerp = (a: Pt, b: Pt, t: number): Pt => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 export const fmt = (p: Pt) => `${n1(p[0])},${n1(p[1])}`
 export const pts = (ps: Pt[]) => ps.map(fmt).join(' ')
 export const poly = (ps: Pt[], attrs: string) => `<polygon points="${pts(ps)}" ${attrs}/>`

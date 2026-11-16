@@ -175,7 +175,8 @@ export function toolStart(
         taskIndex: idx,
         at: now,
         ms: 0,
-        file: fileOf(c.input),
+        // The base name only: the full path is never shown and would bloat the stored run.
+        file: base(fileOf(c.input)),
         detail: detailOf(c.tool, c.input),
         ...diffOf(c.tool, c.input),
         isTest: (c.tool === 'Bash' || c.tool === 'PowerShell') && isTestCommand(typeof c.input?.command === 'string' ? c.input.command : ''),
@@ -548,17 +549,6 @@ export function priorFrom(history: HistRun[]): { calls: number; ms: number } {
   }
 }
 
-/** A past run rebuilt as a finished run, to draw its timeline. */
-export function fromHistory(h: HistRun): CubeRun {
-  let at = h.at
-  const tasks = h.tasks.map((t, i) => {
-    const startedAt = at
-    at += t.ms
-    return { ...newTask(`h-${i}`, t.title, '', 'done'), calls: t.calls, tokens: t.tokens, errors: t.errors, startedAt: t.ms ? startedAt : 0, endedAt: t.ms ? at : 0 }
-  })
-  return { ...emptyRun, status: 'done', prompt: h.prompt, startedAt: h.at, endedAt: h.at + h.ms, tasks, toolCalls: h.calls, errors: h.errors }
-}
-
 /** Indices of the unfinished steps that step i waits for. */
 export function blockersOf(r: CubeRun, i: number): number[] {
   const t = r.tasks[i]
@@ -655,43 +645,3 @@ export function statsFrom(history: HistRun[]): RunStats | null {
   }
 }
 
-/**
- * A past run as it stood at `frac` (0..1) of its time, drawn at `now`: steps
- * finished by then are done, the one in progress runs with its calls so far.
- * A step that finished within the last `recent` of the timeline ends `now`, so
- * its completion effect plays in the fast replay.
- */
-export function replayRun(h: HistRun, frac: number, now: number, recent = 0.06): CubeRun {
-  const f = Math.max(0, Math.min(1, frac))
-  const total = Math.max(1, h.tasks.reduce((s, t) => s + t.ms, 0) || h.ms)
-  const at = f * total
-  let start = 0
-  let running = false
-  const tasks: CubeTask[] = h.tasks.map((t, i) => {
-    const end = start + t.ms
-    const base: CubeTask = { ...newTask(`r-${i}`, t.title, '', 'pending'), tokens: t.tokens }
-    let out: CubeTask
-    if (end <= at && t.ms > 0) {
-      const endedAt = at - end < recent * total ? now - 200 : now - 60_000
-      out = { ...base, status: 'done', calls: t.calls, errors: t.errors, startedAt: endedAt - t.ms, endedAt }
-    } else if (!running && start <= at) {
-      running = true
-      const part = t.ms ? (at - start) / t.ms : 0
-      out = { ...base, status: 'running', calls: Math.round(t.calls * part), errors: Math.round(t.errors * part), startedAt: now - Math.max(0, at - start) }
-    } else out = base
-    start = end
-    return out
-  })
-  const prior = priorFrom([h])
-  return {
-    ...emptyRun,
-    status: f >= 1 ? 'done' : 'running',
-    prompt: h.prompt,
-    startedAt: now - at,
-    endedAt: f >= 1 ? now : 0,
-    tasks,
-    toolCalls: tasks.reduce((s, t) => s + t.calls, 0),
-    errors: tasks.reduce((s, t) => s + t.errors, 0),
-    prior,
-  }
-}

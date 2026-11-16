@@ -7,7 +7,6 @@ import {
   diffOf,
   emptyRun,
   isTestCommand,
-  replayRun,
   startRun,
   statsFrom,
   STUCK,
@@ -187,40 +186,6 @@ test('statsFrom sums up the history', async () => {
   expect(many.recentMs.length).toBe(10)
   expect(many.recentMs[0]).toBe(3000)
   expect(many.recentMs[9]).toBe(12_000)
-})
-
-// 8. replayRun
-const h3 = hist(1, 60_000, 1, 0, [['A', 10_000], ['B', 20_000], ['C', 30_000]])
-
-test('replay at 0 has the first step running', async () => {
-  const r = replayRun(h3, 0, 1_000_000)
-  expect(r.tasks.map(t => t.status)).toEqual(['running', 'pending', 'pending'])
-  expect(r.status).toBe('running')
-})
-
-test('replay halfway has earlier steps done and one running', async () => {
-  const r = replayRun(h3, 0.25, 1_000_000)
-  // 15 s of 60 s: A done, B running for 5 s.
-  expect(r.tasks.map(t => t.status)).toEqual(['done', 'running', 'pending'])
-  expect(r.tasks[1]?.startedAt).toBe(1_000_000 - 5_000)
-  expect(r.tasks.filter(t => t.status === 'running').length).toBe(1)
-})
-
-test('replay at 1 has every step done', async () => {
-  const r = replayRun(h3, 1, 1_000_000)
-  expect(r.tasks.map(t => t.status)).toEqual(['done', 'done', 'done'])
-  expect(r.status).toBe('done')
-  expect(r.endedAt).toBe(1_000_000)
-})
-
-test('a step that just ended in the replay ends now', async () => {
-  const now = 1_000_000
-  // 30 s of 60 s: B ended right at this point, A 20 s earlier.
-  const r = replayRun(h3, 0.5, now)
-  expect(r.tasks.map(t => t.status)).toEqual(['done', 'done', 'running'])
-  expect(Math.abs(r.tasks[1]!.endedAt - now)).toBeLessThan(1000)
-  expect(now - r.tasks[0]!.endedAt).toBeGreaterThan(10_000)
-  expect(r.tasks[1]!.endedAt - r.tasks[1]!.startedAt).toBe(20_000)
 })
 
 // 9. Rendering smoke
