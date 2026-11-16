@@ -19,7 +19,8 @@
   <a href="#the-panel">The panel</a> ·
   <a href="#skins">Skins</a> ·
   <a href="#settings">Settings</a> ·
-  <a href="#how-exact-are-the-numbers">Accuracy</a>
+  <a href="#how-exact-are-the-numbers">Accuracy</a> ·
+  <a href="#privacy-and-permissions">Privacy</a>
 </p>
 
 ---
@@ -180,6 +181,40 @@ Progress, time left and cost are **estimates**.
   since the app does not report the moment of approval.
 
 Only your account's figures are binding.
+
+## Privacy and permissions
+
+Agent Cubes only watches. It never changes, answers or blocks anything the agents do, and it sends nothing off
+your machine: no network calls, no telemetry, no accounts. The only web address in the code is the SVG namespace
+`http://www.w3.org/2000/svg`, which every SVG file names and nothing ever contacts.
+
+**What it reads.** The plan steps, the tool calls of the session and its subagents (tool name, the file or command
+for the live feed, the lines an edit adds or removes, whether the call failed), token use, the session's cost and
+how full the context window is. It reads no credentials, environment variables or files of yours.
+
+**The hooks it uses, and what each does**
+
+| Hook | What it does |
+| --- | --- |
+| `session.start` | Loads the stored history and skin pick, opens the panel if `autoOpen` is on, starts a once-a-second refresh while a task runs. |
+| `command.run` for `/cubes` | Opens the panel. |
+| `turn.start`, `turn.step`, `turn.complete` | Start and end a task, count each model request's tokens. They pass everything on unchanged. |
+| `agent.spawn` | Reads a new subagent's description to name its badge. The spawn itself is unchanged. |
+| `tool.check` | Notes when a call needs your permission, to measure how long the agents wait for you. It passes the decision on exactly as it came and never makes one. |
+| `tool.call` | Notes each call's start, end and outcome to fill the cubes. The call and its result are unchanged. |
+| `ui.render` | Draws the panel. |
+
+**What it stores.** Your skin pick and a short history of your last twelve tasks (step titles, times, counts, cost)
+in the plugin's own storage, for estimates and statistics.
+
+**What it writes, and only when you press a button**
+
+- **Save as image** writes `agent-cubes-<time>.svg` into the session's working folder.
+- **Export data** writes `agent-cubes-history-<time>.csv` and `.json` there.
+- **Copy as Markdown** puts the summary on your clipboard.
+- **↗ agent** opens that agent's transcript in the app.
+
+No file it writes is one that other tools run or read as settings.
 
 ## License
 

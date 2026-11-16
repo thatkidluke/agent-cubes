@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.2
+
+- README: a Privacy and permissions section. What the plugin reads, every hook it uses and what it does, what
+  it stores, and the files it writes only when you press a button. It sends nothing off your machine.
+
 ## 0.9.1
 
 - A new README: a hero banner, the panel and the summary in light and dark, a gallery of all eight skins
