@@ -1,0 +1,6 @@
+{
+  "name": "agent-cubes",
+  "description": "Agent Cubes: a live cube timeline of your agents' work beside the Claude Code chat.",
+  "owner": { "name": "Agent Cubes contributors" },
+  "plugins": [{ "name": "agent-cubes", "source": "./" }]
+}

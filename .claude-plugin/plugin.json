@@ -1,0 +1,53 @@
+{
+  "name": "agent-cubes",
+  "version": "0.2.0",
+  "description": "A cube timeline beside the chat that shows how far the agents' current task has progressed",
+  "author": { "name": "Agent Cubes contributors" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "defaultSkin": {
+      "type": "string",
+      "title": "Standard-Skin",
+      "description": "Skin, der gilt, solange du im Panel keinen anderen gewählt hast. Eine Wahl im Panel hat Vorrang.",
+      "options": ["classic", "cyber", "stellar", "retro", "steampunk", "minimal"],
+      "default": "classic"
+    },
+    "autoOpen": {
+      "type": "boolean",
+      "title": "Panel automatisch öffnen",
+      "description": "Öffnet das Agent-Cubes-Panel beim Start jeder Sitzung. Aus: nur über /cubes.",
+      "default": true
+    },
+    "animations": {
+      "type": "boolean",
+      "title": "Animationen",
+      "description": "Bewegte Würfel und Effekte. Aus: ein ruhiges Standbild, auch beim Export.",
+      "default": true
+    },
+    "stuckSilentMinutes": {
+      "type": "number",
+      "title": "Hängt nach Stille (Minuten)",
+      "description": "Ein Würfel gilt als hängend, wenn so viele Minuten lang kein Tool-Aufruf kam (0,5 bis 240).",
+      "default": 5,
+      "min": 0.5,
+      "max": 240
+    },
+    "stuckFailsInRow": {
+      "type": "number",
+      "title": "Hängt nach Fehlern in Folge",
+      "description": "So viele fehlgeschlagene Tool-Aufrufe hintereinander markieren einen Würfel als hängend (1 bis 50).",
+      "default": 3,
+      "min": 1,
+      "max": 50
+    },
+    "stuckSlowFactor": {
+      "type": "number",
+      "title": "Hängt bei x-facher Dauer",
+      "description": "Ein Würfel gilt als hängend, wenn er so viel länger läuft als ein üblicher Schritt (mindestens 8 Minuten; 1,1 bis 50).",
+      "default": 3,
+      "min": 1.1,
+      "max": 50
+    }
+  }
+}
