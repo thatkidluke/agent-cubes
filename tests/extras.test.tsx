@@ -14,9 +14,11 @@ import {
   toolEnd,
   toolStart,
 } from '../hooks/model'
-import { buildLanes } from '../hooks/lanes'
 import { buildSummary } from '../hooks/summary'
+import { memo, phaseLock } from '../hooks/svg'
 import { buildGauges, buildTiles, warnColors } from '../hooks/gauges'
+import { buildAgents, buildLive, buildNow, clip } from '../hooks/panel/live'
+import { activity, clock, coins, cup, diffBlocks, hourglass, perMinute, tank, tokenBars, warning } from '../hooks/pictos'
 import { readSettings } from '../hooks/panel/settings'
 
 const PANE = {
@@ -115,16 +117,6 @@ test('the history exports as CSV, one row per step, quoting what needs it', asyn
   expect(lines[2]).toContain(',2,Tests,test,')
 })
 
-test('the timeline has a lane per agent, bars per call and the waits in amber', async () => {
-  const r = finishedRun()
-  const lanes = buildLanes(r, 61_000, 400)
-  expect(lanes).not.toBeNull()
-  expect(lanes!.source.startsWith('<svg')).toBe(true)
-  expect(lanes!.source).toContain('<title>Edit · a.ts</title>')
-  expect(lanes!.alt).toContain('1 waiting phases')
-  expect(buildLanes(emptyRun, 0, 400)).toBeNull()
-})
-
 test('a budget is read and clamped', async () => {
   expect(readSettings({}).budgetUsd).toBe(0)
   expect(readSettings({ budgetUsd: 2.5 }).budgetUsd).toBe(2.5)
@@ -139,7 +131,7 @@ test('the panel: cube hotkeys, the timeline card and the data export', async ($,
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect((await ui.find({ type: 'Button', key: 'cube-0' }))?.props.hotkey).toBe('1')
   expect((await ui.find({ type: 'Button', key: 'cube-1' }))?.props.hotkey).toBe('2')
-  expect(await ui.find({ type: 'Text', text: /TIMELINE/ }), 'timeline card').toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /TIMELINE/ }), 'no timeline card').toBeUndefined()
   const svgs = await ui.findAll({ type: 'Svg' })
   expect(svgs.some(n => String(n.props.alt).includes('Waiting:')), 'waiting tile').toBe(true)
   await ui.unmount()
@@ -163,25 +155,32 @@ test('the gauges: a canister per figure, filled to its level, coloured by its st
   expect(warnColors(0.1, 0.7, 0.85)[1]).toBe('#0d9488')
 })
 
-test('the figure tiles: liquid at each level, none for a figure without one', async () => {
+test('the figure tiles: a pictogram in a badge each, a level bar where the figure has a level', async () => {
   const t = buildTiles(
     [
-      { key: 'ctx', icon: '◧', label: 'Context', value: '40 %', level: 0.4, color: ['#fff', '#000'], title: 'c' },
-      { key: 'calls', icon: '⌁', label: 'Tool calls', value: '12', level: null, color: ['#fff', '#000'], title: 't' },
+      { key: 'ctx', label: 'Context', value: '40 %', level: 0.4, color: '#f59e0b', pic: tank(0.4, ['#fcd34d', '#f59e0b'], 0.7, 0.85), title: 'c' },
+      { key: 'calls', label: 'Tool calls', value: '12', level: null, color: '#14b8a6', pic: activity([1, 2, 3], false), title: 't' },
+      { key: 'code', label: 'Code', value: '+3 −1', valueHtml: '<tspan>+3</tspan>', level: 0.75, rest: '#e11d48', color: '#16a34a', pic: diffBlocks(3, 1), title: 'd' },
     ],
-    300,
+    360,
     3,
-    true,
   )
   expect(t.source).toContain('tile-ctx-clip')
   expect(t.source).not.toContain('tile-calls-clip')
-  expect(t.alt).toBe('Context: 40 %, Tool calls: 12')
+  expect(t.source).toContain('<tspan>+3</tspan>')
+  expect(t.source).toContain('prefers-color-scheme:dark')
+  expect(t.alt).toBe('Context: 40 %, Tool calls: 12, Code: +3 −1')
 })
 
-test('tiles and canisters follow light and dark mode', async () => {
-  const t = buildTiles([{ key: 'a', icon: '◷', label: 'Elapsed', value: '1 min', level: null, color: ['#fff', '#000'], title: '' }], 200, 3, false)
-  expect(t.source).toContain('prefers-color-scheme:dark')
-  expect(t.source).toContain('class="acg-lb"')
+test('the pictograms show their figure', async () => {
+  expect(warning(0)).toContain('#16a34a')
+  expect(warning(2)).toContain('#e11d48')
+  expect(perMinute([0, 30_000, 61_000, 400_000], 419_999)).toEqual([2, 1, 0, 0, 0, 0, 1])
+  expect(coins(1.2, 6)).toContain('#e11d48')
+  expect(cup('c1', 0.5, true, true)).toContain('id="c1"')
+  expect(clock(0.5, false)).not.toContain('<animate')
+  expect(hourglass(0.4, true)).toContain('<animate')
+  expect(tokenBars(10, 0)).toContain('#3b82f6')
 })
 
 test('the summary picture: a ring, the bars and one row per step', async () => {
@@ -193,4 +192,101 @@ test('the summary picture: a ring, the bars and one row per step', async () => {
   expect(pic.source).toContain('Research it')
   expect(pic.source).toContain('prefers-color-scheme:dark')
   expect(pic.alt).toContain('steps')
+})
+
+test('with the summary on screen the overview keeps only context and tokens; Code replaces Cubes', async ($, on) => {
+  world(on)
+  on('turn.complete', () => ({ text: '' }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.tool.call(PLAN)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  let alts = (await ui.findAll({ type: 'Svg' })).map(n => String(n.props.alt))
+  expect(alts.some(a => a.includes('Code: ') && a.startsWith('Elapsed:')), 'code tile while working').toBe(true)
+  expect(alts.some(a => a.includes('Cubes: ')), 'no cubes tile').toBe(false)
+  await $.turn.complete({ reason: 'answer', answer: 'done' } as never)
+  alts = (await ui.findAll({ type: 'Svg' })).map(n => String(n.props.alt))
+  expect(alts.some(a => a.startsWith('Summary:')), 'summary picture').toBe(true)
+  expect(alts.some(a => a === `Context: –, Tokens: ${a.split('Tokens: ')[1]}`), 'slim overview').toBe(true)
+  await ui.unmount()
+})
+
+test('phaseLock starts endless animations where the clock is; one-shot ones stay', async () => {
+  const src =
+    '<svg><circle><animate attributeName="r" values="1;2;1" dur="2s" repeatCount="indefinite"/></circle>' +
+    '<rect><animate attributeName="opacity" values="0;1" dur="3s" begin="0.5s" repeatCount="indefinite"/></rect>' +
+    '<rect><animate attributeName="x" values="0;9" dur="1s" begin="0.1s" fill="freeze"/></rect></svg>'
+  const out = phaseLock(src, 5_500)
+  expect(out).toContain('<animate begin="-1.50s" attributeName="r"')
+  expect(out).toContain('begin="-2.00s"')
+  expect(out).toContain('begin="0.1s" fill="freeze"')
+  expect(phaseLock('<svg/>', 1000)).toBe('<svg/>')
+})
+
+test('memo keeps a drawing while its key stays', async () => {
+  let made = 0
+  const a = memo('test-slot', 'k1', () => ++made)
+  const b = memo('test-slot', 'k1', () => ++made)
+  const c = memo('test-slot', 'k2', () => ++made)
+  expect([a, b, c, made]).toEqual([1, 1, 2, 2])
+})
+
+test('the tiles keep their very source from one second to the next', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  mock.store(on)
+  on('command.register', () => ({ value: { command: 'cubes' } }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('tool.call', () => ({ result: {} }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.tool.call(PLAN)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  const tileSrc = async () => String((await ui.findAll({ type: 'Svg' })).find(n => String(n.props.alt).startsWith('Elapsed:'))?.props.source)
+  await clock.advance(2_000)
+  const first = await tileSrc()
+  // The run is live: elapsed shows whole minutes, and the second that passed changes nothing visible.
+  expect(String((await ui.findAll({ type: 'Svg' })).find(n => String(n.props.alt).startsWith('Elapsed:'))?.props.alt)).toContain('Elapsed: < 1 min')
+  await clock.advance(1_000)
+  expect(await tileSrc()).toBe(first)
+  await ui.unmount()
+})
+
+test('NOW, AGENTS and LIVE are drawings; while work goes on they are images, so an update never flashes white', async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.tool.call(PLAN)
+  await $.tool.call({ tool: 'Read', file_path: '/p/a.ts' } as never)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  const svgs = await ui.findAll({ type: 'Svg' })
+  for (const start of ['Eins', 'Main agent', 'Read']) {
+    const pic = svgs.find(n => String(n.props.alt).startsWith(start) || String(n.props.alt).includes(`: ${start}`))
+    expect(pic, start).toBeDefined()
+  }
+  for (const n of svgs) expect(n.props.isInteractive, String(n.props.alt).slice(0, 30)).toBe(false)
+  expect(await ui.find({ key: 'view-main' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('the feed and the avatars carry what they show', async () => {
+  const live = buildLive([{ kind: 'write', status: 'error', letter: 'H', color: '#818cf8', tool: 'Edit', detail: 'a.ts' }], 360, true)
+  expect(live.source).toContain('Edit')
+  expect(live.alt).toBe('Edit a.ts (error)')
+  const agents = buildAgents([{ letter: 'R', color: '#f472b6', name: 'Reviewer', where: '→ Cube 02', doing: 'Read', kind: 'read', status: 'running' }], 360, true)
+  expect(agents.source).toContain('Reviewer')
+  expect(agents.source).toContain('<animate')
+  const now = buildNow({ cube: '03', color: '#3b82f6', title: 'Write the code', sub: 'for 2 min', progress: 0.4, agents: [{ letter: 'H', color: '#818cf8' }], state: 'running' }, 360, false)
+  expect(now.source).toContain('>03<')
+  expect(now.source).not.toContain('<animate')
+  expect(clip('a very long title indeed', 60, 12)).toMatch(/…$/)
+})
+
+test('every drawing is well-formed: no attribute twice on one element', async () => {
+  const live = buildLive([{ kind: 'run', status: 'done', letter: 'H', color: '#818cf8', tool: 'Bash', detail: 'npm test' }], 360, true)
+  const agents = buildAgents([{ letter: 'H', color: '#818cf8', name: 'Main agent', where: '', doing: 'Bash', kind: 'run', status: 'running' }], 360, true)
+  const now = buildNow({ cube: '', color: '#16a34a', title: 'Task complete', sub: '', progress: null, agents: [], state: 'done' }, 360, true)
+  for (const src of [live.source, agents.source, now.source]) {
+    for (const tag of src.match(/<[a-zA-Z][^>]*>/g) ?? []) {
+      const names = [...tag.matchAll(/\s([a-zA-Z:-]+)="/g)].map(m => m[1])
+      expect(new Set(names).size, tag.slice(0, 60)).toBe(names.length)
+    }
+  }
 })

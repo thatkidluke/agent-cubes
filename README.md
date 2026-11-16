@@ -23,12 +23,13 @@ steps that are stuck, shows how full the context window is, and comes in eight s
 - **Stuck detection**: failures in a row, the same call over and over, long silence, or far slower than usual
 - **Context tank** on the pedestal: amber from 70 %, red from 85 %
 - **Gauges** (optional): a row of glass canisters for progress, context, budget (or success rate) and waiting share
-- **Liquid figure tiles**: every figure in the overview has a symbol and a tile that fills to its level
-  (time, waiting share, context, error rate, budget, cubes done), coloured by its state, in light and dark mode
+- **Figure tiles** with a pictogram each (clock, hourglass, cup, tank, warning sign, activity chart, token
+  bars, coins, diff blocks) and a level bar, in light and dark mode
+- **Now, agents and live feed** as drawings: the current step with its progress, avatars with what each agent
+  does, the latest calls with an icon per kind of work
 - **Cube details**: time, tokens, cost share, lines changed, test runs, files and recent calls of one step
 - **Dependencies** between tasks as pipes with a padlock on the waiting cube
 - **Waiting time**: how long the agents waited for you, live and per task
-- **Timeline**: one lane per agent showing when it worked, waiting phases in amber
 - **Summary** when a task is done, as a picture: steps ring, time and kinds of work, code and tests, one bar
   per step; copied as Markdown with one click
 - **Cost budget** per task with a warning

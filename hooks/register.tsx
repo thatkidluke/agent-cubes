@@ -31,12 +31,14 @@ import {
   toolEnd,
   toolStart,
 } from './model'
-import { buildLanes } from './lanes'
 import { buildSummary } from './summary'
-import { buildGauges, buildTiles, warnColors, type Gauge } from './gauges'
+import { buildGauges, buildTiles, warnColors, type Gauge, type Tile } from './gauges'
+import { activity, AMBER as P_AMBER, BLUE as P_BLUE, clock, coins, cup, diffBlocks, GOLD as P_GOLD, GREEN as P_GREEN, hourglass, perMinute, RED as P_RED, tank, TEAL as P_TEAL, tokenBars, VIOLET as P_VIOLET, warning } from './pictos'
 import { agentRow, callColor, card, figures, glyphOf, whoCalled, type Els, type Figure } from './panel/blocks'
 import { cubeDetails, KINDS } from './panel/details'
-import { contextFrac, cubeNo, fileStamp, fmtDuration, fmtEta, fmtTokens, fmtUsd, joinPath, type ContextLike } from './panel/format'
+import { contextFrac, cubeNo, fileStamp, fmtDuration, fmtEta, fmtMinutes, fmtTokens, fmtUsd, joinPath, type ContextLike } from './panel/format'
+import { memo, phaseLock } from './svg'
+import { buildAgents, buildLive, buildNow, type AgentInfo, type CallInfo, type NowInfo } from './panel/live'
 import { readSettings } from './panel/settings'
 import { setLang, tr } from './i18n'
 import { CONTEXT_AMBER, CONTEXT_RED } from './overlays'
@@ -348,10 +350,14 @@ export const register: Register = (on, options) => {
     }
 
     // ── Overview ──
+    const linesAdded = r.tasks.reduce((t, x) => t + x.added, 0)
+    const linesRemoved = r.tasks.reduce((t, x) => t + x.removed, 0)
+    const GREEN_TEXT = '#16a34a'
     const overview: Figure[] = [
-      [`◷ ${tr('Laufzeit', 'Elapsed')}`, r.startedAt ? fmtDuration(elapsed) : '–'],
+      // While work goes on, times show whole minutes: a figure that changes every second redraws every second.
+      [`◷ ${tr('Laufzeit', 'Elapsed')}`, r.startedAt ? (active ? fmtMinutes(elapsed) : fmtDuration(elapsed)) : '–'],
       [`⧗ ${tr('Restzeit', 'Time left')}`, left === null ? '–' : `${fmtEta(left)}${exp.isMeasured ? '' : '*'}`],
-      [`‖ ${tr('Wartezeit', 'Waiting')}`, waitNow > 0 ? `≈ ${fmtDuration(waitNow)}` : '–', r.status === 'waiting' ? PALETTE.waiting[1] : undefined],
+      [`‖ ${tr('Wartezeit', 'Waiting')}`, waitNow > 0 ? `≈ ${active ? fmtMinutes(waitNow) : fmtDuration(waitNow)}` : '–', r.status === 'waiting' ? PALETTE.waiting[1] : undefined],
       [`◧ ${tr('Kontext', 'Context')}`, ctxFrac === null ? '–' : `${Math.round(ctxFrac * 100)} %`, ctxFrac === null ? undefined : warnColor(ctxFrac)],
       [`✕ ${tr('Fehler', 'Errors')}`, String(r.errors), r.errors > 0 ? PALETTE.error[1] : undefined],
       [`⌁ ${tr('Tool-Aufrufe', 'Tool calls')}`, String(r.toolCalls)],
@@ -361,18 +367,21 @@ export const register: Register = (on, options) => {
         runUsd === null ? '–' : `≈ ${fmtUsd(runUsd)}${settings.budgetUsd > 0 ? ` / ${fmtUsd(settings.budgetUsd)}` : ''}`,
         costColor,
       ],
-      [`▣ ${tr('Würfel', 'Cubes')}`, prog ? `${prog.done} / ${prog.total}` : '1'],
+      // The cubes done stand in the head already; the tile shows the lines changed instead.
+      [`± ${tr('Code', 'Code')}`, linesAdded + linesRemoved > 0 ? `+${linesAdded} −${linesRemoved}` : '–', linesAdded + linesRemoved > 0 ? GREEN_TEXT : undefined],
     ]
     // The canisters at the top of the overview: what to watch at a glance.
     const pctOf = (v: number) => `${Math.round(v * 100)} %`
     const callsOk = r.toolCalls > 0 ? 1 - r.errors / r.toolCalls : null
-    const waitShare = elapsed > 0 ? Math.min(1, waitNow / elapsed) : null
+    // Levels move in steps of 5 %, so a liquid only redraws when it visibly rises.
+    const step5 = (v: number | null) => (v === null ? null : Math.round(Math.max(0, Math.min(1, v)) * 20) / 20)
+    const waitShare = elapsed > 0 ? step5(Math.min(1, waitNow / elapsed)) : null
     const gaugeItems: Gauge[] = [
       {
         key: 'progress',
         label: tr('Fortschritt', 'Progress'),
         icon: '▲',
-        level: overall,
+        level: step5(overall),
         value: overall === null ? '–' : pctOf(overall),
         color: overall !== null && overall >= 1 ? ['#86efac', '#16a34a'] : ['#93c5fd', '#2563eb'],
         title: tr('Geschätzter Fortschritt des Auftrags', 'Estimated progress of the task'),
@@ -415,40 +424,56 @@ export const register: Register = (on, options) => {
         title: tr('Anteil der Laufzeit, in der auf dich gewartet wurde', 'Share of the time spent waiting for you'),
       },
     ]
-    const gauges = Svg && settings.gaugeRow ? buildGauges(gaugeItems, Math.max(240, Math.min(680, cols * 7.5)), settings.animations && active) : null
-    // The same figures as glass tiles with a liquid at each one's level, where the
-    // surface draws pictures; a figure without a natural level gets an empty tile.
+    const drawWidth = Math.max(240, Math.min(680, cols * 7.5))
+    const moving = settings.animations && active
+    // Each drawing is made anew only when what it shows changes, its endless animations locked to the clock.
+    const gauges =
+      Svg && settings.gaugeRow
+        ? memo('gauges', JSON.stringify([gaugeItems, drawWidth, moving]), () => {
+            const g = buildGauges(gaugeItems, drawWidth, moving)
+            return { ...g, source: phaseLock(g.source, now) }
+          })
+        : null
+    // The same figures as tiles: each with a pictogram that shows it and a level bar along its foot.
     const span = left === null ? null : elapsed + left
-    const BLUE: [string, string] = ['#93c5fd', '#2563eb']
-    const VIOLET: [string, string] = ['#c4b5fd', '#7c3aed']
-    const GREEN: [string, string] = ['#86efac', '#16a34a']
-    const GREY: [string, string] = ['#cbd5e1', '#64748b']
-    const tileSpec: Array<[key: string, level: number | null, color: [string, string], title: string]> = [
-      ['elapsed', span ? elapsed / span : null, BLUE, tr('Laufzeit im Verhältnis zur geschätzten Gesamtdauer', 'Elapsed against the estimated total')],
-      ['left', span ? (left ?? 0) / span : null, VIOLET, tr('Restzeit im Verhältnis zur geschätzten Gesamtdauer', 'Time left against the estimated total')],
-      ['waiting', waitShare, warnColors(waitShare, 0.25, 0.5), tr('Anteil der Laufzeit, in der auf dich gewartet wurde', 'Share of the time spent waiting for you')],
-      ['context', ctxFrac, warnColors(ctxFrac, CONTEXT_AMBER, CONTEXT_RED), tr('Füllstand des Kontextfensters', 'How full the context window is')],
-      ['errors', r.toolCalls > 0 ? r.errors / r.toolCalls : null, r.errors > 0 ? warnColors(r.errors / r.toolCalls, 0, 0.2) : GREY, tr('Anteil fehlgeschlagener Tool-Aufrufe', 'Share of failed tool calls')],
-      ['calls', null, GREY, tr('Tool-Aufrufe in diesem Auftrag', 'Tool calls in this task')],
-      ['tokens', null, GREY, tr('Tokens hinein und heraus', 'Tokens in and out')],
-      ['cost', budgetFrac, warnColors(budgetFrac, 0.8, 1), settings.budgetUsd > 0 ? tr('Kosten im Verhältnis zum Budget', 'Cost against the budget') : tr('Geschätzte Kosten; mit einem Budget füllt sich die Kachel', 'Estimated cost; with a budget set the tile fills up')],
-      ['cubes', prog ? prog.done / Math.max(1, prog.total) : null, GREEN, tr('Erledigte Würfel', 'Cubes done')],
+    const errRate = r.toolCalls > 0 ? r.errors / r.toolCalls : null
+    const ctxCols = warnColors(ctxFrac, CONTEXT_AMBER, CONTEXT_RED)
+    const tokSum = r.tokensIn + r.tokensOut
+    const codeSum = linesAdded + linesRemoved
+    // Calls per minute, read at the minute, so the chart moves once a minute or with a new call.
+    const minuteNow = Math.floor(now / 60_000) * 60_000 + 59_999
+    const tileSpec: Array<{ key: string; pic: string; level: number | null; color: string; rest?: string; valueHtml?: string; title: string }> = [
+      { key: 'elapsed', pic: clock(span ? step5(elapsed / span) : null, moving), level: span ? step5(elapsed / span) : null, color: P_BLUE, title: tr('Laufzeit im Verhältnis zur geschätzten Gesamtdauer', 'Elapsed against the estimated total') },
+      { key: 'left', pic: hourglass(span ? step5((left ?? 0) / span) : null, moving), level: span ? step5((left ?? 0) / span) : null, color: P_VIOLET, title: tr('Restzeit im Verhältnis zur geschätzten Gesamtdauer', 'Time left against the estimated total') },
+      { key: 'waiting', pic: cup('tile-cup', waitShare, r.status === 'waiting', settings.animations), level: waitShare, color: P_AMBER, title: tr('Anteil der Laufzeit, in der auf dich gewartet wurde', 'Share of the time spent waiting for you') },
+      { key: 'context', pic: tank(step5(ctxFrac), ctxCols, CONTEXT_AMBER, CONTEXT_RED), level: step5(ctxFrac), color: ctxCols[1], title: tr('Füllstand des Kontextfensters', 'How full the context window is') },
+      { key: 'errors', pic: warning(r.errors), level: errRate === null ? null : step5(errRate), color: r.errors > 0 ? P_RED : P_GREEN, title: tr('Anteil fehlgeschlagener Tool-Aufrufe', 'Share of failed tool calls') },
+      { key: 'calls', pic: activity(perMinute(r.calls.map(c => c.at), minuteNow), moving), level: null, color: P_TEAL, title: tr('Tool-Aufrufe pro Minute, die letzten sieben Minuten', 'Tool calls per minute, the last seven minutes') },
+      { key: 'tokens', pic: tokenBars(r.tokensIn, r.tokensOut), level: tokSum > 0 ? step5(r.tokensIn / tokSum) : null, color: P_BLUE, rest: P_VIOLET, title: tr('Tokens hinein (blau) und heraus (violett)', 'Tokens in (blue) and out (violet)') },
+      { key: 'cost', pic: coins(budgetFrac === null ? null : step5(budgetFrac), runUsd), level: budgetFrac === null ? null : step5(budgetFrac), color: budgetFrac !== null && budgetFrac >= 1 ? P_RED : P_GOLD, title: settings.budgetUsd > 0 ? tr('Kosten im Verhältnis zum Budget', 'Cost against the budget') : tr('Geschätzte Kosten', 'Estimated cost') },
+      {
+        key: 'code', pic: diffBlocks(linesAdded, linesRemoved), level: codeSum > 0 ? linesAdded / codeSum : null, color: P_GREEN, rest: P_RED,
+        valueHtml: codeSum > 0 ? `<tspan style="fill:${P_GREEN}">+${linesAdded}</tspan> <tspan style="fill:${P_RED}">−${linesRemoved}</tspan>` : undefined,
+        title: tr('Zeilen hinzugefügt und entfernt', 'Lines added and removed'),
+      },
     ]
-    const tiles = Svg
-      ? buildTiles(
-          overview.map(([label, value, color], k) => {
-            const [key, level, liquid, title] = tileSpec[k]!
-            const [icon, ...words] = label.split(' ')
-            return { key, icon: icon!, label: words.join(' '), value, level, color: liquid, valueColor: color, title }
-          }),
-          Math.max(240, Math.min(680, cols * 7.5)),
-          3,
-          settings.animations && active,
-        )
-      : null
-    const lanes = Svg ? buildLanes(r, now, Math.max(240, Math.min(680, cols * 7.5))) : null
     const summary = !active && r.status === 'done' && r.tasks.length > 0 ? summaryOf(r, runUsd) : null
-    const summaryPic = summary && Svg ? buildSummary(r, summary, Math.max(240, Math.min(680, cols * 7.5))) : null
+    // With the summary on screen, the overview keeps only what the summary does not show.
+    const SUMMARY_KEEPS = new Set(['context', 'tokens'])
+    const shownIdx = overview.map((_, k) => k).filter(k => !summary || SUMMARY_KEEPS.has(tileSpec[k]!.key))
+    const overviewShown = shownIdx.map(k => overview[k]!)
+    const tileItems: Tile[] = shownIdx.map(k => {
+      const [label, value, color] = overview[k]!
+      const spec = tileSpec[k]!
+      return { ...spec, label: label.split(' ').slice(1).join(' '), value, valueColor: color }
+    })
+    const tiles = Svg
+      ? memo('tiles', JSON.stringify([tileItems, drawWidth]), () => {
+          const t = buildTiles(tileItems, drawWidth, Math.min(3, tileItems.length))
+          return { ...t, source: phaseLock(t.source, now) }
+        })
+      : null
+    const summaryPic = summary && Svg ? memo('summary', JSON.stringify([summary, drawWidth, r.tasks.length, r.endedAt]), () => buildSummary(r, summary, drawWidth)) : null
 
     // ── Now: the current step, its time and estimate, the last error ──
     const nowLine = curTask
@@ -466,6 +491,61 @@ export const register: Register = (on, options) => {
     const details = sel >= 0 ? cubeDetails(blockEls, { r, i: sel, now, usd, cur, active, limits }) : null
 
     const ticker = r.calls.slice(-5).reverse()
+    // NOW, AGENTS and LIVE as drawings, each made anew only when what it shows changes.
+    const lastKind = (agentId: string) => [...r.calls].reverse().find(c => c.agentId === agentId)?.kind ?? null
+    const nowState: NowInfo['state'] = r.status === 'waiting' ? 'waiting' : curTask && active ? 'running' : r.status === 'done' ? 'done' : 'idle'
+    const nowColor = { running: PALETTE.running[1], waiting: PALETTE.waiting[1], done: PALETTE.done[1], idle: PALETTE.pending[1] }[nowState]
+    const nowInfo: NowInfo = {
+      cube: curTask && active ? cubeNo(cur) : '',
+      color: nowColor,
+      title: nowLine,
+      sub:
+        curTask && curTask.startedAt && active
+          ? `${tr('Würfel', 'Cube')} ${cubeNo(cur)} · ${tr('seit', 'for')} ${fmtMinutes(now - curTask.startedAt)} · ${tr('ca.', 'about')} ${Math.round((step5(stepProgress(r, cur, now)) ?? 0) * 100)} %`
+          : r.status === 'done'
+            ? `${r.tasks.length} ${tr('Würfel', 'cubes')} · ${fmtDuration(elapsed)}`
+            : '',
+      progress: curTask && active ? step5(stepProgress(r, cur, now)) : null,
+      agents: [
+        ...(active && curTask ? [{ letter: 'H', color: MAIN_COLOR }] : []),
+        ...r.agents
+          .map((a, k) => ({ a, k }))
+          .filter(({ a }) => a.status === 'running' && a.taskIndex === cur)
+          .map(({ a, k }) => ({ letter: agentInitial(a.name), color: agentColor(k) })),
+      ].slice(0, 4),
+      state: nowState,
+    }
+    const agentInfos: AgentInfo[] = [
+      {
+        letter: 'H',
+        color: active ? MAIN_COLOR : PALETTE.pending[2],
+        name: tr('Hauptagent', 'Main agent'),
+        where: active ? `→ ${tr('Würfel', 'Cube')} ${r.tasks.length > 0 ? (cur >= 0 ? cubeNo(cur) : '–') : '01'}` : '',
+        doing: active ? r.mainTool || tr('denkt nach', 'thinking') : tr('inaktiv', 'idle'),
+        kind: active && r.mainTool ? lastKind('') : null,
+        status: active ? 'running' : 'idle',
+      },
+      ...r.agents
+        .map((a, k) => ({ a, k }))
+        .slice(-6)
+        .map(({ a, k }): AgentInfo => ({
+          letter: agentInitial(a.name),
+          color: a.status === 'running' ? agentColor(k) : PALETTE[a.status][1],
+          name: a.name,
+          where: `→ ${tr('Würfel', 'Cube')} ${r.tasks.length > 0 ? cubeNo(a.taskIndex) : '01'}`,
+          doing: a.status === 'running' ? a.tool || tr('denkt nach', 'thinking') : STATUS_LABEL[a.status],
+          kind: a.status === 'running' && a.tool ? lastKind(a.id) : null,
+          status: a.status,
+        })),
+    ]
+    const callInfos: CallInfo[] = ticker.map(c => {
+      const who = whoCalled(r, c.agentId)
+      return { kind: c.kind, status: c.status, letter: who.letter, color: who.color, tool: c.tool, detail: c.detail }
+    })
+    const lock = <T extends { source: string }>(b: T): T => ({ ...b, source: phaseLock(b.source, now) })
+    const nowPic = Svg ? memo('now', JSON.stringify([nowInfo, drawWidth, moving]), () => lock(buildNow(nowInfo, drawWidth, moving))) : null
+    const agentsPic = Svg ? memo('agents', JSON.stringify([agentInfos, drawWidth, moving]), () => lock(buildAgents(agentInfos, drawWidth, moving))) : null
+    const livePic = Svg && callInfos.length > 0 ? memo('live', JSON.stringify([callInfos, drawWidth, moving]), () => lock(buildLive(callInfos, drawWidth, moving))) : null
     const skinPicker = Select ? (
       <Select
         key="skin"
@@ -515,7 +595,7 @@ export const register: Register = (on, options) => {
 
         {svg && Svg ? (
           <Box flexDirection="row" justifyContent="center">
-            <Svg source={svg.source} alt={svg.alt} width={svg.width} height={svg.height} isInteractive />
+            <Svg source={svg.source} alt={svg.alt} width={svg.width} height={svg.height} isInteractive={!active} />
           </Box>
         ) : (
           <Text>{r.tasks.map(t => (t.status === 'done' ? '■' : t.status === 'running' ? '▣' : '□')).join(' ')}</Text>
@@ -529,7 +609,7 @@ export const register: Register = (on, options) => {
             tr('ZUSAMMENFASSUNG', 'SUMMARY'),
             <Box flexDirection="column" gap={1}>
               {summaryPic && Svg ? (
-                <Svg key="sum-pic" source={summaryPic.source} alt={summaryPic.alt} width={summaryPic.width} height={summaryPic.height} isInteractive />
+                <Svg key="sum-pic" source={summaryPic.source} alt={summaryPic.alt} width={summaryPic.width} height={summaryPic.height} isInteractive={!active} />
               ) : figures(
                 blockEls,
                 'sum',
@@ -561,13 +641,13 @@ export const register: Register = (on, options) => {
           <Box flexDirection="column" gap={1}>
             {gauges && Svg && (
               <Box flexDirection="row" justifyContent="center">
-                <Svg source={gauges.source} alt={gauges.alt} width={gauges.width} height={gauges.height} isInteractive />
+                <Svg source={gauges.source} alt={gauges.alt} width={gauges.width} height={gauges.height} isInteractive={!active} />
               </Box>
             )}
             {tiles && Svg ? (
-              <Svg key="ov-tiles" source={tiles.source} alt={tiles.alt} width={tiles.width} height={tiles.height} isInteractive />
+              <Svg key="ov-tiles" source={tiles.source} alt={tiles.alt} width={tiles.width} height={tiles.height} isInteractive={!active} />
             ) : (
-              figures(blockEls, 'ov', overview, 3)
+              figures(blockEls, 'ov', overviewShown, 3)
             )}
             {left !== null && !exp.isMeasured && (
               <Text size="footnote" dimColor>
@@ -585,12 +665,18 @@ export const register: Register = (on, options) => {
           blockEls,
           'card-now',
           tr('JETZT', 'NOW'),
-          <Box flexDirection="column" gap={0}>
-            <Text weight="medium">{nowLine}</Text>
-            {nowMeta && (
-              <Text size="caption" dimColor>
-                {nowMeta}
-              </Text>
+          <Box flexDirection="column" gap={1}>
+            {nowPic && Svg ? (
+              <Svg key="now-pic" source={nowPic.source} alt={nowPic.alt} width={nowPic.width} height={nowPic.height} isInteractive={!active} />
+            ) : (
+              <Box flexDirection="column" gap={0}>
+                <Text weight="medium">{nowLine}</Text>
+                {nowMeta && (
+                  <Text size="caption" dimColor>
+                    {nowMeta}
+                  </Text>
+                )}
+              </Box>
             )}
             {r.lastError && (
               <Text size="footnote" color={PALETTE.error[1]}>
@@ -600,67 +686,85 @@ export const register: Register = (on, options) => {
           </Box>,
         )}
 
-        {/* 3. Agents */}
+        {/* 3. Agents: avatars with what they do; a button each opens its transcript */}
         {card(
           blockEls,
           'card-agents',
           'AGENTS',
-          <Box flexDirection="column" gap={0}>
-            {agentRow(blockEls, {
-              key: 'view-main',
-              letter: 'H',
-              color: active ? MAIN_COLOR : PALETTE.pending[2],
-              name: tr('Hauptagent', 'Main agent'),
-              where: active ? `→ ${tr('Würfel', 'Cube')} ${r.tasks.length > 0 ? (cur >= 0 ? cubeNo(cur) : '–') : '01'}` : '',
-              doing: active ? r.mainTool || tr('denkt nach', 'thinking') : tr('inaktiv', 'idle'),
-              dim: !active,
-              onView: () => viewAgent(undefined),
-            })}
-            {r.agents
-              .map((a, k) => ({ a, k }))
-              .slice(-6)
-              .map(({ a, k }) =>
-                agentRow(blockEls, {
+          agentsPic && Svg ? (
+            <Box flexDirection="column" gap={1}>
+              <Svg key="agents-pic" source={agentsPic.source} alt={agentsPic.alt} width={agentsPic.width} height={agentsPic.height} isInteractive={!active} />
+              <Box flexDirection="row" flexWrap="wrap" gap={1}>
+                <Button key="view-main" variant="secondary" onPress={() => viewAgent(undefined)}>
+                  {`↗ ${tr('Hauptagent', 'Main agent')}`}
+                </Button>
+                {r.agents.slice(-6).map(a => (
+                  <Button key={`view-${a.id}`} variant="secondary" onPress={() => viewAgent(a.id)}>
+                    {`↗ ${a.name.length > 18 ? a.name.slice(0, 17) + '…' : a.name}`}
+                  </Button>
+                ))}
+              </Box>
+            </Box>
+          ) : (
+            <Box flexDirection="column" gap={0}>
+              {agentRow(blockEls, {
+                key: 'view-main',
+                letter: 'H',
+                color: active ? MAIN_COLOR : PALETTE.pending[2],
+                name: tr('Hauptagent', 'Main agent'),
+                where: agentInfos[0]!.where,
+                doing: agentInfos[0]!.doing,
+                dim: !active,
+                onView: () => viewAgent(undefined),
+              })}
+              {r.agents.slice(-6).map((a, k) => {
+                const info = agentInfos[k + 1]!
+                return agentRow(blockEls, {
                   key: `view-${a.id}`,
-                  letter: agentInitial(a.name),
-                  color: a.status === 'running' ? agentColor(k) : PALETTE[a.status][1],
+                  letter: info.letter,
+                  color: info.color,
                   name: a.name,
-                  where: `→ ${tr('Würfel', 'Cube')} ${r.tasks.length > 0 ? cubeNo(a.taskIndex) : '01'}`,
-                  doing: a.status === 'running' ? a.tool || tr('denkt nach', 'thinking') : STATUS_LABEL[a.status],
+                  where: info.where,
+                  doing: info.doing,
                   dim: a.status !== 'running',
                   onView: () => viewAgent(a.id),
-                }),
-              )}
-          </Box>,
+                })
+              })}
+            </Box>
+          ),
         )}
 
-        {/* 4. Live ticker */}
+        {/* 4. Live: the latest calls */}
         {ticker.length > 0 &&
           card(
             blockEls,
             'card-live',
             'LIVE',
-            <Box flexDirection="column" gap={0}>
-              {ticker.map(c => {
-                const who = whoCalled(r, c.agentId)
-                return (
-                  <Box key={`tick-${c.id}`} flexDirection="row" gap={1}>
-                    <Text color={callColor(c)}>{glyphOf(c.status)}</Text>
-                    <Text color={who.color} weight="bold">
-                      {who.letter}
-                    </Text>
-                    <Box width={10}>
-                      <Text mono color={KIND_COLOR[c.kind]}>
-                        {c.tool}
+            livePic && Svg ? (
+              <Svg key="live-pic" source={livePic.source} alt={livePic.alt} width={livePic.width} height={livePic.height} isInteractive={!active} />
+            ) : (
+              <Box flexDirection="column" gap={0}>
+                {ticker.map(c => {
+                  const who = whoCalled(r, c.agentId)
+                  return (
+                    <Box key={`tick-${c.id}`} flexDirection="row" gap={1}>
+                      <Text color={callColor(c)}>{glyphOf(c.status)}</Text>
+                      <Text color={who.color} weight="bold">
+                        {who.letter}
                       </Text>
+                      <Box width={10}>
+                        <Text mono color={KIND_COLOR[c.kind]}>
+                          {c.tool}
+                        </Text>
+                      </Box>
+                      <Box flexGrow={1} flexShrink={1}>
+                        <Text dimColor>{c.detail}</Text>
+                      </Box>
                     </Box>
-                    <Box flexGrow={1} flexShrink={1}>
-                      <Text dimColor>{c.detail}</Text>
-                    </Box>
-                  </Box>
-                )
-              })}
-            </Box>,
+                  )
+                })}
+              </Box>
+            ),
           )}
 
         {/* 5. Cubes: pick one for its details */}
@@ -684,18 +788,6 @@ export const register: Register = (on, options) => {
                 ))}
               </Box>
               {details}
-            </Box>,
-          )}
-
-        {/* 5b. Who worked when: one lane per agent, waiting phases in amber */}
-        {lanes &&
-          Svg &&
-          card(
-            blockEls,
-            'card-lanes',
-            tr('ZEITSTRAHL', 'TIMELINE'),
-            <Box flexDirection="row" justifyContent="center">
-              <Svg source={lanes.source} alt={lanes.alt} width={lanes.width} height={lanes.height} isInteractive />
             </Box>,
           )}
 

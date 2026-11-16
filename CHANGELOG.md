@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.9.0
+
+- No white flash: while work goes on, every drawing in the panel is shown as an image instead of in a frame
+  of its own, which went blank for a moment each time it was replaced. Once the task is done the drawings
+  turn interactive again, tooltips included.
+- Overview tiles with a pictogram each, in a tinted badge: a clock, an hourglass, a cup, a glass cylinder, a
+  warning sign, an activity chart, token bars, a stack of coins and diff blocks; a level bar along each foot.
+- NOW, AGENTS and LIVE are drawings: the current step as a numbered badge with its progress and the agents
+  on it; the agents as avatars with the cube they work on and what they do; the latest calls as a feed with
+  an icon per kind of work and a mark for how each went. A button per agent still opens its transcript.
+- The timeline card is gone.
+
+## 0.8.2
+
+- No more flicker. The drawings were made anew every second while work went on, and every new drawing
+  restarted its animations. Now a drawing is only replaced when what it shows changes: times in the tiles
+  show whole minutes while work goes on, levels move in steps of 5 %, the timeline moves in steps of ten
+  seconds, and the agent badges no longer name the current tool.
+- Endless animations are locked to the clock, so a drawing that does replace another carries on where the
+  old one was.
+
+## 0.8.1
+
+- No figure twice: once a task is done and its summary shows, the overview keeps only context and tokens.
+- The Cubes tile, which repeated the head line, is now Code: lines added and removed while the work goes on.
+
 ## 0.8.0
 
 - The summary of a finished task is a picture now: a ring for the steps done beside time, cost, tool calls

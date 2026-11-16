@@ -58,3 +58,11 @@ export function joinPath(dir: string, name: string): string {
   const sep = dir.includes('\\') && !dir.includes('/') ? '\\' : '/'
   return dir + sep + name
 }
+
+/** A duration in whole minutes, for figures that should not change every second: "< 1 min", "12 min", "1 h 05 min". */
+export function fmtMinutes(ms: number): string {
+  const m = Math.floor(Math.max(0, ms) / 60_000)
+  if (m < 1) return tr('< 1 Min', '< 1 min')
+  if (m >= 60) return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} ${tr('Min', 'min')}`
+  return `${m} ${tr('Min', 'min')}`
+}

@@ -2,7 +2,7 @@ import type { CallKind, CubeCall, CubeRun, CubeStatus } from '../types'
 import { blockersOf, currentTaskIndex, isActive, isWorked, stepProgress, stuckReason } from './model'
 import { classic, CLASSIC_CAPTION_DARK } from './skins/classic'
 import type { CubeCtx, MiniKind, SceneCtx, Skin } from './skins/types'
-import { box, circle, esc, fmt, lin, line, mix, n1, pline, poly, seeded } from './svg'
+import { box, circle, esc, fmt, lin, line, mix, n1, phaseLock, pline, poly, seeded } from './svg'
 import type { Pt } from './svg'
 import { fmtDuration } from './panel/format'
 import { tr } from './i18n'
@@ -161,11 +161,11 @@ function layout(r: CubeRun, now: number): Big[] {
   return steps.map((t, i): Big => {
     const badges: Badge[] = []
     if (active && i === mainIndex) {
-      badges.push({ color: MAIN_COLOR, letter: 'H', title: `${tr('Hauptagent', 'Main agent')}${r.mainTool ? `, ${tr('nutzt', 'using')} ${r.mainTool}` : ''}`, isLive: true })
+      badges.push({ color: MAIN_COLOR, letter: 'H', title: tr('Hauptagent', 'Main agent'), isLive: true })
     }
     r.agents.forEach((a, k) => {
       if ((hasPlan ? a.taskIndex : 0) !== i || a.status !== 'running') return
-      badges.push({ color: agentColor(k), letter: agentInitial(a.name), title: `${a.name} (${a.kind})${a.tool ? `, ${tr('nutzt', 'using')} ${a.tool}` : ''}`, isLive: true })
+      badges.push({ color: agentColor(k), letter: agentInitial(a.name), title: `${a.name} (${a.kind})`, isLive: true })
     })
     const worked = t.worked || (t.status === 'pending' && badges.length > 0)
     const status: CubeStatus = worked ? (isWaiting && i === mainIndex ? 'waiting' : 'running') : t.status
@@ -832,7 +832,8 @@ export function buildSvg(
     const bare = render(sc, 0, skin)
     if (bare.source.length < out.source.length) out = bare
   }
-  const drawing: Drawing = { source: out.source, width: out.width, height: out.height, alt }
+  // Endless animations start where the clock says, so this drawing carries on from the one it replaces.
+  const drawing: Drawing = { source: phaseLock(out.source, now), width: out.width, height: out.height, alt }
   cache.unshift({ key, skin, out: drawing })
   if (cache.length > CACHE_SIZE) cache.length = CACHE_SIZE
   return drawing

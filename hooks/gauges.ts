@@ -30,15 +30,19 @@ export type Gauge = {
 
 export type Tile = {
   key: string
-  icon: string
   label: string
   value: string
-  /** How full the tile's liquid stands, 0..1, or null for a tile without liquid. */
-  level: number | null
-  /** Liquid colour: [top, bottom] of its gradient; also the symbol's colour. */
-  color: [string, string]
-  /** The value's colour where it signals something and no liquid is behind it. */
+  /** The value as SVG text markup when parts of it take their own colour (e.g. "+12 −3"); escaped by the caller. */
+  valueHtml?: string
+  /** The value's colour where it signals something. */
   valueColor?: string
+  /** The tile's colour: its badge's tint and its level bar. */
+  color: string
+  /** The pictogram, drawn in a 36 × 36 box (see `pictos.ts`). */
+  pic: string
+  /** The level bar along the tile's foot, 0..1; a second colour fills the rest (code: added, then removed). Null for none. */
+  level: number | null
+  rest?: string
   title: string
 }
 
@@ -55,11 +59,11 @@ export const STYLE =
   `.acg-gf{fill:#0f172a;fill-opacity:.045}.acg-ge{fill:none;stroke:#64748b;stroke-opacity:.45}.acg-gc{fill:#64748b}` +
   `.acg-lb{fill:#475569}.acg-vp{fill:#0f172a;stroke:#ffffff;stroke-opacity:.7;stroke-width:2.5px;paint-order:stroke}` +
   `.acg-mk{stroke:#64748b;stroke-opacity:.55}.acg-hl{fill:#ffffff;fill-opacity:.55}` +
-  `.acg-vw{fill:#ffffff;stroke:#0f172a;stroke-opacity:.55;stroke-width:2.5px;paint-order:stroke}` +
+  `.acg-vw{fill:#ffffff;stroke:#0f172a;stroke-opacity:.55;stroke-width:2.5px;paint-order:stroke}.acg-hand{stroke:#334155}` +
   `@media (prefers-color-scheme:dark){` +
   `.acg-gf{fill:#94a3b8;fill-opacity:.09}.acg-ge{stroke:#94a3b8;stroke-opacity:.5}.acg-gc{fill:#64748b}` +
   `.acg-lb{fill:#cbd5e1}.acg-vp{fill:#ffffff;stroke:#0f172a;stroke-opacity:.5}` +
-  `.acg-mk{stroke:#94a3b8;stroke-opacity:.6}.acg-hl{fill-opacity:.3}}` +
+  `.acg-mk{stroke:#94a3b8;stroke-opacity:.6}.acg-hl{fill-opacity:.3}.acg-hand{stroke:#e2e8f0}}` +
   `</style>`
 
 /** A wavy liquid surface at `top`, from `x0` to `x1`, filled down to `bottom`. */
@@ -152,60 +156,51 @@ export function buildGauges(items: Gauge[], width: number, animate: boolean): Bu
   return { source: wrap(width, height, defs, parts), width, height, alt }
 }
 
-const TILE_H = 60
+const TILE_H = 64
 const TILE_GAP = 8
 
 /**
- * The overview's figures as glass tiles, `perRow` to a row: symbol and label at
- * the top, the value below, and behind them a liquid filled to the figure's level
- * (progress, context, budget, waiting share...), with a moving surface while work
- * goes on. A figure without a natural level gets an empty tile.
+ * The overview's figures as tiles, `perRow` to a row: the label at the top, the
+ * value below, a pictogram that shows the figure in a tinted badge on the
+ * right, and a level bar along the foot.
  */
-export function buildTiles(items: Tile[], width: number, perRow: number, animate: boolean): Built {
+export function buildTiles(items: Tile[], width: number, perRow: number): Built {
   const rows = Math.ceil(items.length / perRow)
   const w = (width - (perRow - 1) * TILE_GAP) / perRow
   const height = rows * TILE_H + (rows - 1) * TILE_GAP
-  const defs: string[] = []
   const parts: string[] = []
   items.forEach((t, i) => {
     const x = (i % perRow) * (w + TILE_GAP)
     const y = Math.floor(i / perRow) * (TILE_H + TILE_GAP)
     const id = `tile-${t.key}`
-    const lvl = t.level === null ? 0 : Math.max(0, Math.min(1, t.level))
-    const top = y + TILE_H * (1 - lvl)
     parts.push(`<g><title>${esc(t.title)}</title>`)
-    parts.push(`<rect class="acg-gf" x="${n1(x)}" y="${y}" width="${n1(w)}" height="${TILE_H}" rx="10"/>`)
-    if (lvl > 0) {
-      defs.push(
-        `<clipPath id="${id}-clip"><rect x="${n1(x)}" y="${y}" width="${n1(w)}" height="${TILE_H}" rx="10"/></clipPath>`,
-        `<linearGradient id="${id}-liq" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.color[0]}" stop-opacity="0.6"/><stop offset="1" stop-color="${t.color[1]}" stop-opacity="0.85"/></linearGradient>`,
-      )
-      const amp = lvl >= 0.999 ? 0 : 1.8
-      const seg = 24
-      const moving = animate && amp > 0
+    parts.push(`<rect class="acg-gf" x="${n1(x)}" y="${y}" width="${n1(w)}" height="${TILE_H}" rx="11"/>`)
+    // The badge: a tinted rounded square with the pictogram.
+    const bx = x + w - 50
+    parts.push(`<rect x="${n1(bx)}" y="${y + 8}" width="42" height="42" rx="12" fill="${t.color}" fill-opacity="0.14"/>`)
+    parts.push(`<g transform="translate(${n1(bx + 3)} ${y + 11})">${t.pic}</g>`)
+    // The level bar along the foot, clipped to the tile's round corners.
+    const lvl = t.level === null ? null : Math.max(0, Math.min(1, t.level))
+    if (lvl !== null) {
       parts.push(
-        `<g clip-path="url(#${id}-clip)"><path d="${liquidPath(x, x + w, top, y + TILE_H, amp, seg)}" fill="url(#${id}-liq)">${moving ? drift(seg, 2.2) : ''}</path>` +
-          // A bright line on the surface, so the level reads even where the liquid is pale.
-          (amp ? `<line x1="${n1(x)}" y1="${n1(top)}" x2="${n1(x + w)}" y2="${n1(top)}" stroke="${t.color[0]}" stroke-opacity="0.7" stroke-width="1"/>` : '') +
+        `<clipPath id="${id}-clip"><rect x="${n1(x)}" y="${y}" width="${n1(w)}" height="${TILE_H}" rx="11"/></clipPath>` +
+          `<g clip-path="url(#${id}-clip)">` +
+          `<rect x="${n1(x)}" y="${y + TILE_H - 4}" width="${n1(w)}" height="4" fill="${t.rest ?? '#94a3b8'}" fill-opacity="${t.rest ? 1 : 0.2}"/>` +
+          (lvl > 0 ? `<rect x="${n1(x)}" y="${y + TILE_H - 4}" width="${n1(w * lvl)}" height="4" fill="${t.color}"/>` : '') +
           `</g>`,
       )
     }
-    parts.push(`<rect class="acg-ge" x="${n1(x + 0.5)}" y="${y + 0.5}" width="${n1(w - 1)}" height="${TILE_H - 1}" rx="10"/>`)
-    // Over liquid the value is white with a dark halo; over empty glass it takes its signal colour.
-    const valueY = y + 46
-    // Long values shrink to fit their tile instead of running into the next one.
-    const valueSize = n1(Math.max(11, Math.min(17, (w - 20) / (Math.max(1, [...t.value].length) * 0.6))))
-    const overLiquid = lvl > 0 && top < valueY - 6
-    const plainColor = !overLiquid && t.valueColor ? ` style="fill:${t.valueColor}"` : ''
-    const labelOverLiquid = lvl > 0 && top < y + 22
+    parts.push(`<rect class="acg-ge" x="${n1(x + 0.5)}" y="${y + 0.5}" width="${n1(w - 1)}" height="${TILE_H - 1}" rx="11"/>`)
+    // Label and value; a long value shrinks to keep clear of the badge.
+    const size = n1(Math.max(10.5, Math.min(17, (w - 70) / (Math.max(1, [...t.value].length) * 0.6))))
     parts.push(
-      `<text class="${labelOverLiquid ? 'acg-vw' : 'acg-lb'}" x="${n1(x + 11)}" y="${y + 20}" font-family="${FONT}" font-size="12"${labelOverLiquid ? ' font-weight="600"' : ''}><tspan fill="${t.color[1]}" font-size="13"${labelOverLiquid ? ' style="fill:#ffffff"' : ''}>${esc(t.icon)}</tspan> ${esc(t.label)}</text>`,
-      `<text class="${overLiquid ? 'acg-vw' : 'acg-vp'}"${plainColor} x="${n1(x + 11)}" y="${valueY}" font-family="${FONT}" font-size="${valueSize}" font-weight="700">${esc(t.value)}</text>`,
+      `<text class="acg-lb" x="${n1(x + 11)}" y="${y + 20}" font-family="${FONT}" font-size="11.5">${esc(t.label)}</text>`,
+      `<text class="acg-vp" x="${n1(x + 11)}" y="${y + 47}" font-family="${FONT}" font-size="${size}" font-weight="700"${t.valueColor ? ` style="fill:${t.valueColor}"` : ''}>${t.valueHtml ?? esc(t.value)}</text>`,
     )
     parts.push(`</g>`)
   })
   const alt = items.map(t => `${t.label}: ${t.value}`).join(', ')
-  return { source: wrap(width, height, defs, parts), width, height, alt }
+  return { source: wrap(width, height, [], parts), width, height, alt }
 }
 
 /** A liquid colour pair for a level where more is worse: calm, then amber, then red. */

@@ -60,3 +60,41 @@ export function seeded(seed: number): () => number {
     return s / 4294967296
   }
 }
+
+/**
+ * Locks every endlessly repeating animation to the clock: each starts as far
+ * into its cycle as `nowMs` says. A drawing that replaces an older one then
+ * carries on where the old one was, instead of every wave, spark and glow
+ * jumping back to its start. One-shot animations are left as they are.
+ */
+export function phaseLock(source: string, nowMs: number): string {
+  if (!source.includes('repeatCount="indefinite"')) return source
+  const t = nowMs / 1000
+  return source.replace(/<animate(?:Transform|Motion)?\b[^>]*>/g, tag => {
+    if (!tag.includes('repeatCount="indefinite"')) return tag
+    const dur = /\bdur="([\d.]+)s"/.exec(tag)
+    if (!dur) return tag
+    const d = Number(dur[1])
+    if (!(d > 0)) return tag
+    const begin = /\bbegin="(-?[\d.]+)s"/.exec(tag)
+    if (/\bbegin="/.test(tag) && !begin) return tag
+    const b = (begin ? Number(begin[1]) : 0) - (t % d)
+    const attr = `begin="${b.toFixed(2)}s"`
+    return begin ? tag.replace(begin[0], attr) : tag.replace(/<(animate(?:Transform|Motion)?)\b/, `<$1 ${attr}`)
+  })
+}
+
+const memoSlots = new Map<string, { key: string; value: unknown }>()
+
+/**
+ * The last drawing made in `slot`, while `key` stays the same; otherwise a new
+ * one from `make`. A drawing whose picture has not changed keeps its very
+ * source, so the pane has nothing to replace and nothing restarts.
+ */
+export function memo<T>(slot: string, key: string, make: () => T): T {
+  const hit = memoSlots.get(slot)
+  if (hit && hit.key === key) return hit.value as T
+  const value = make()
+  memoSlots.set(slot, { key, value })
+  return value
+}
