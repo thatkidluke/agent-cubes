@@ -22,14 +22,15 @@ steps that are stuck, shows how full the context window is, and comes in eight s
   from this task and from earlier ones
 - **Stuck detection**: failures in a row, the same call over and over, long silence, or far slower than usual
 - **Context tank** on the pedestal: amber from 70 %, red from 85 %
-- **Gauges**: glass canisters that fill up for progress, context, budget (or success rate) and waiting share
+- **Gauges** (optional): a row of glass canisters for progress, context, budget (or success rate) and waiting share
 - **Liquid figure tiles**: every figure in the overview has a symbol and a tile that fills to its level
-  (time, waiting share, context, error rate, budget, cubes done), coloured by its state
+  (time, waiting share, context, error rate, budget, cubes done), coloured by its state, in light and dark mode
 - **Cube details**: time, tokens, cost share, lines changed, test runs, files and recent calls of one step
 - **Dependencies** between tasks as pipes with a padlock on the waiting cube
 - **Waiting time**: how long the agents waited for you, live and per task
 - **Timeline**: one lane per agent showing when it worked, waiting phases in amber
-- **Summary** when a task is done, copied as Markdown with one click
+- **Summary** when a task is done, as a picture: steps ring, time and kinds of work, code and tests, one bar
+  per step; copied as Markdown with one click
 - **Cost budget** per task with a warning
 - **Eight skins**, from calm to playful
 - **Statistics** across your last twelve tasks, **data export** as CSV and JSON
@@ -81,6 +82,7 @@ The settings live in the config menu under Agent Cubes; a change reloads the plu
 | `defaultSkin`        | choice  | `classic` | Skin while none is picked in the panel; a pick in the panel wins. |
 | `autoOpen`           | yes/no  | yes       | Open the panel when a session starts; otherwise only via `/cubes`. |
 | `animations`         | yes/no  | yes       | Animation in the panel and the export; off draws a still picture. |
+| `gaugeRow`           | yes/no  | no        | A row of canisters above the overview; the figure tiles show the same values. |
 | `stuckSilentMinutes` | number  | 5         | Minutes without a tool call after which a cube counts as stuck (0.5–240). |
 | `stuckFailsInRow`    | number  | 3         | Failed calls in a row after which a cube is stuck (1–50). |
 | `stuckSlowFactor`    | number  | 3         | How many times longer than a usual step, at least 8 minutes (1.1–50). |

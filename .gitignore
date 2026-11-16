@@ -1,0 +1,5 @@
+
+# Exports from the panel land in the working folder
+/agent-cubes-*.svg
+/agent-cubes-history-*.csv
+/agent-cubes-history-*.json

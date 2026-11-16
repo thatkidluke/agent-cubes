@@ -1,6 +1,6 @@
 {
   "name": "agent-cubes",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "A live cube timeline of your agents' work beside the Claude Code chat: progress, agents, stuck steps, context gauges, eight skins",
   "author": {
     "name": "Agent Cubes contributors"
@@ -53,6 +53,12 @@
       "title": "Animations",
       "description": "Moving cubes and effects. Off: a calm still image, in exports too.",
       "default": true
+    },
+    "gaugeRow": {
+      "type": "boolean",
+      "title": "Canister row",
+      "description": "A row of glass canisters for progress, context, budget and waiting above the overview. The figure tiles below show the same values.",
+      "default": false
     },
     "stuckSilentMinutes": {
       "type": "number",

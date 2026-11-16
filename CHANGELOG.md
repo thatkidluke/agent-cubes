@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.0
+
+- The summary of a finished task is a picture now: a ring for the steps done beside time, cost, tool calls
+  and subagents; bars for working versus waiting and for the kinds of work; code added and removed and tests
+  passed and failed; and one bar per step, as long as it took and tinted by its kind (research, setup, work,
+  tests, review, docs, shipping).
+- The canister row is off by default, as the figure tiles show the same values; the new `gaugeRow` setting
+  brings it back. The tiles are a little larger.
+- Tiles and canisters follow the light or dark mode of the app: glass, labels and plain values switch colours,
+  values over liquid stay white with a dark halo.
+- Long values such as "≈ $1.20 / $5.00" shrink to fit their tile instead of running into the next one.
+
 ## 0.7.0
 
 - Gauges in the overview: glass canisters that fill with liquid for progress, context, budget (or the share of

@@ -32,6 +32,7 @@ import {
   toolStart,
 } from './model'
 import { buildLanes } from './lanes'
+import { buildSummary } from './summary'
 import { buildGauges, buildTiles, warnColors, type Gauge } from './gauges'
 import { agentRow, callColor, card, figures, glyphOf, whoCalled, type Els, type Figure } from './panel/blocks'
 import { cubeDetails, KINDS } from './panel/details'
@@ -414,7 +415,7 @@ export const register: Register = (on, options) => {
         title: tr('Anteil der Laufzeit, in der auf dich gewartet wurde', 'Share of the time spent waiting for you'),
       },
     ]
-    const gauges = Svg ? buildGauges(gaugeItems, Math.max(240, Math.min(680, cols * 7.5)), settings.animations && active) : null
+    const gauges = Svg && settings.gaugeRow ? buildGauges(gaugeItems, Math.max(240, Math.min(680, cols * 7.5)), settings.animations && active) : null
     // The same figures as glass tiles with a liquid at each one's level, where the
     // surface draws pictures; a figure without a natural level gets an empty tile.
     const span = left === null ? null : elapsed + left
@@ -447,6 +448,7 @@ export const register: Register = (on, options) => {
       : null
     const lanes = Svg ? buildLanes(r, now, Math.max(240, Math.min(680, cols * 7.5))) : null
     const summary = !active && r.status === 'done' && r.tasks.length > 0 ? summaryOf(r, runUsd) : null
+    const summaryPic = summary && Svg ? buildSummary(r, summary, Math.max(240, Math.min(680, cols * 7.5))) : null
 
     // ── Now: the current step, its time and estimate, the last error ──
     const nowLine = curTask
@@ -526,7 +528,9 @@ export const register: Register = (on, options) => {
             'card-summary',
             tr('ZUSAMMENFASSUNG', 'SUMMARY'),
             <Box flexDirection="column" gap={1}>
-              {figures(
+              {summaryPic && Svg ? (
+                <Svg key="sum-pic" source={summaryPic.source} alt={summaryPic.alt} width={summaryPic.width} height={summaryPic.height} isInteractive />
+              ) : figures(
                 blockEls,
                 'sum',
                 [

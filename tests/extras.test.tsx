@@ -15,6 +15,7 @@ import {
   toolStart,
 } from '../hooks/model'
 import { buildLanes } from '../hooks/lanes'
+import { buildSummary } from '../hooks/summary'
 import { buildGauges, buildTiles, warnColors } from '../hooks/gauges'
 import { readSettings } from '../hooks/panel/settings'
 
@@ -175,4 +176,21 @@ test('the figure tiles: liquid at each level, none for a figure without one', as
   expect(t.source).toContain('tile-ctx-clip')
   expect(t.source).not.toContain('tile-calls-clip')
   expect(t.alt).toBe('Context: 40 %, Tool calls: 12')
+})
+
+test('tiles and canisters follow light and dark mode', async () => {
+  const t = buildTiles([{ key: 'a', icon: '◷', label: 'Elapsed', value: '1 min', level: null, color: ['#fff', '#000'], title: '' }], 200, 3, false)
+  expect(t.source).toContain('prefers-color-scheme:dark')
+  expect(t.source).toContain('class="acg-lb"')
+})
+
+test('the summary picture: a ring, the bars and one row per step', async () => {
+  let r = startRun(emptyRun, 'Build it', 1000)
+  r = applyTaskTool(r, 'mcp__ccd_turn__update_plan', { items: [{ content: 'Research it', status: 'completed' }, { content: 'Run the tests', status: 'in_progress' }] }, undefined, 2000)
+  r = endRun(r, 'done', 60_000)
+  const pic = buildSummary(r, summaryOf(r, 0.5), 320)
+  expect(pic.source).toContain('stroke-dasharray')
+  expect(pic.source).toContain('Research it')
+  expect(pic.source).toContain('prefers-color-scheme:dark')
+  expect(pic.alt).toContain('steps')
 })

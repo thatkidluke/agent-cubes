@@ -167,3 +167,26 @@ test('a stuck step changes the status line instead of adding a box', { options: 
   expect(await ui.find({ type: 'Text', text: /is stuck:/ })).toBeDefined()
   await ui.unmount()
 })
+
+const svgAlts = async (ui: { findAll: (q: { type: string }) => Promise<Array<{ props: Record<string, unknown> }>> }) =>
+  (await ui.findAll({ type: 'Svg' })).map(n => String(n.props.alt))
+
+test('the canister row is off by default; the figure tiles are always there', async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.tool.call(PLAN)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  const alts = await svgAlts(ui as never)
+  expect(alts.some(a => a.startsWith('Progress:'))).toBe(false)
+  expect(alts.some(a => a.startsWith('Elapsed:'))).toBe(true)
+  await ui.unmount()
+})
+
+test('gaugeRow: true adds the canister row', { options: { gaugeRow: true } }, async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.tool.call(PLAN)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect((await svgAlts(ui as never)).some(a => a.startsWith('Progress:'))).toBe(true)
+  await ui.unmount()
+})

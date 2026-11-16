@@ -12,6 +12,8 @@ export type PanelSettings = {
   autoOpen: boolean
   /** false draws still pictures: buildSvg gets motion: false. */
   animations: boolean
+  /** Whether the row of canisters sits above the overview's figure tiles. */
+  gaugeRow: boolean
   /** The limits the stuck checks judge by. */
   stuck: StuckThresholds
   /** The panel's language. */
@@ -26,6 +28,7 @@ export const DEFAULTS = {
   budgetUsd: 0,
   autoOpen: true,
   animations: true,
+  gaugeRow: false,
   stuckSilentMinutes: STUCK.silentMs / 60_000,
   stuckFailsInRow: STUCK.failsInRow,
   stuckSlowFactor: STUCK.slowFactor,
@@ -54,6 +57,7 @@ export function readSettings(options: PluginOptions | undefined): PanelSettings 
     defaultSkin: skin,
     autoOpen: bool(o.autoOpen, DEFAULTS.autoOpen),
     animations: bool(o.animations, DEFAULTS.animations),
+    gaugeRow: bool(o.gaugeRow, DEFAULTS.gaugeRow),
     stuck: { ...STUCK, silentMs: Math.round(silentMin * 60_000), failsInRow: fails, slowFactor: slow },
     language: o.language === 'de' ? 'de' : 'en',
     budgetUsd: clampNum(o.budgetUsd, DEFAULTS.budgetUsd, 0, 10_000),
