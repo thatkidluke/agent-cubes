@@ -1,3 +1,4 @@
+import { tr } from '../i18n'
 // Formatting helpers for the panel: durations, tokens, money, paths, file stamps.
 
 export function fmtDuration(ms: number): string {
@@ -9,9 +10,9 @@ export function fmtDuration(ms: number): string {
 }
 
 export function fmtEta(ms: number): string {
-  if (ms < 60_000) return '< 1 Min'
+  if (ms < 60_000) return tr('< 1 Min', '< 1 min')
   const m = Math.round(ms / 60_000)
-  return m >= 60 ? `≈ ${Math.floor(m / 60)} h ${m % 60} Min` : `≈ ${m} Min`
+  return m >= 60 ? `≈ ${Math.floor(m / 60)} h ${m % 60} ${tr('Min', 'min')}` : `≈ ${m} ${tr('Min', 'min')}`
 }
 
 export function fmtTokens(n: number): string {

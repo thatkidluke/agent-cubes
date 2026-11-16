@@ -1,4 +1,5 @@
 import type { CallKind, CubeAgent, CubeCall, CubeRun, CubeStatus, CubeTask, HistRun } from '../types'
+import { tr } from './i18n'
 
 export const DEFAULT_PRIOR = { calls: 10, ms: 90_000 }
 
@@ -56,12 +57,13 @@ export function callKind(tool: string): CallKind {
   return 'other'
 }
 
+/** Kinds of work, read in the current language each time. */
 export const KIND_LABEL: Record<CallKind, string> = {
-  read: 'Lesen',
-  write: 'Schreiben',
-  run: 'Ausführen',
-  agent: 'Agents',
-  other: 'Sonstiges',
+  get read() { return tr('Lesen', 'Read') },
+  get write() { return tr('Schreiben', 'Write') },
+  get run() { return tr('Ausführen', 'Run') },
+  get agent() { return tr('Agents', 'Agents') },
+  get other() { return tr('Sonstiges', 'Other') },
 }
 
 export function currentTaskIndex(r: CubeRun): number {
@@ -78,7 +80,7 @@ export function startRun(
   r: CubeRun,
   prompt: string,
   now: number,
-  extra: { costAtStart?: number; prior?: { calls: number; ms: number } } = {},
+  extra: { costAtStart?: number; prior?: Prior } = {},
 ): CubeRun {
   if (isActive(r)) return prompt ? { ...r, prompt } : r
   const keepTasks = r.tasks.some(t => t.status !== 'done')
@@ -447,17 +449,61 @@ export function endRun(r: CubeRun, reason: string, now: number): CubeRun {
   }
 }
 
-/** What a finished step of this run took on average; the prior until one has finished. */
-export function expected(r: CubeRun): { calls: number; ms: number; isMeasured: boolean } {
-  const done = r.tasks.filter(t => t.status === 'done')
-  const withCalls = done.filter(t => t.calls > 0)
-  const timed = done.filter(t => t.startedAt && t.endedAt > t.startedAt)
-  const prior = r.prior ?? DEFAULT_PRIOR
+/** What a step usually takes, from earlier runs: overall and per kind of step. */
+export type Prior = CubeRun['prior']
+
+/** The kinds of step whose length is learned apart: a test run takes another time than writing code. */
+export type StepKind = 'test' | 'review' | 'research' | 'docs' | 'setup' | 'ship' | 'work'
+
+const STEP_KINDS: [StepKind, RegExp][] = [
+  ['docs', /(?:^|[^a-zäöü])(?:docs?|readme|changelog|dokument|beschreib|anleitung|guide)/i],
+  ['test', /(?:^|[^a-zäöü])(?:tests?|testen|teste|prüf|pruef|verif|check|qa|lint|typecheck|type-check)/i],
+  ['review', /(?:^|[^a-zäöü])(?:review|überprüf|ueberpruef|begutacht|feedback|polish|feinschliff|verfeiner|refin|clean ?up|aufräum)/i],
+  ['ship', /(?:^|[^a-zäöü])(?:deploy|release|publish|veröffentlich|push|commit|merge|ship|build|bundle|export)/i],
+  ['setup', /(?:^|[^a-zäöü])(?:setup|set up|install|einricht|konfig|config|scaffold|grundlage|foundation|vorbereit|prepare)/i],
+  ['research', /(?:^|[^a-zäöü])(?:research|recherch|analy|untersuch|investigat|explor|erkund|lies|lesen|read|look|find|such|understand|versteh)/i],
+]
+
+/** The kind of a step, read from its title; 'work' when no keyword says otherwise. */
+export function stepKind(title: string): StepKind {
+  for (const [kind, re] of STEP_KINDS) if (re.test(title)) return kind
+  return 'work'
+}
+
+/** Calls and time of finished, timed steps, averaged; null without any. */
+function averageOf(steps: { calls: number; ms: number }[]): { calls: number; ms: number } | null {
+  if (steps.length === 0) return null
   return {
-    calls: withCalls.length ? withCalls.reduce((s, t) => s + t.calls, 0) / withCalls.length : prior.calls,
-    ms: timed.length ? timed.reduce((s, t) => s + (t.endedAt - t.startedAt), 0) / timed.length : prior.ms,
-    isMeasured: timed.length > 0,
+    calls: Math.max(1, steps.reduce((s, t) => s + t.calls, 0) / steps.length),
+    ms: steps.reduce((s, t) => s + t.ms, 0) / steps.length,
   }
+}
+
+const timedOf = (r: CubeRun) =>
+  r.tasks
+    .filter(t => t.status === 'done' && t.startedAt && t.endedAt > t.startedAt)
+    .map(t => ({ title: t.title, calls: t.calls, ms: t.endedAt - t.startedAt }))
+
+/**
+ * What a step is expected to take. For step i, the best evidence first: finished
+ * steps of the same kind in this run, then that kind in earlier runs (from two
+ * steps on), then every finished step of this run, then earlier runs overall.
+ * Without i, the run-wide figure.
+ */
+export function expected(r: CubeRun, i?: number): { calls: number; ms: number; isMeasured: boolean; basis: 'kind' | 'history-kind' | 'run' | 'prior' } {
+  const timed = timedOf(r)
+  const prior = r.prior ?? DEFAULT_PRIOR
+  const t = i === undefined ? undefined : r.tasks[i]
+  if (t) {
+    const kind = stepKind(t.title)
+    const same = averageOf(timed.filter(x => stepKind(x.title) === kind))
+    if (same) return { ...same, isMeasured: true, basis: 'kind' }
+    const past = prior.byKind?.[kind]
+    if (past && past.n >= 2) return { calls: Math.max(1, past.calls), ms: past.ms, isMeasured: false, basis: 'history-kind' }
+  }
+  const run = averageOf(timed)
+  if (run) return { ...run, isMeasured: true, basis: 'run' }
+  return { calls: prior.calls, ms: prior.ms, isMeasured: false, basis: 'prior' }
 }
 
 /** Is someone working on step i right now: the plan says so, or a running agent sits on it. */
@@ -479,7 +525,7 @@ export function stepProgress(r: CubeRun, i: number, now: number): number {
   if (!t) return 0
   if (t.status === 'done') return 1
   if (!isWorked(r, i)) return 0
-  const exp = expected(r)
+  const exp = expected(r, i)
   const elapsed = t.startedAt && now > t.startedAt ? now - t.startedAt : 0
   const effort = 0.5 * (t.calls / exp.calls) + 0.5 * (elapsed / exp.ms)
   return 0.96 * (1 - Math.exp(-1.4 * effort))
@@ -499,17 +545,17 @@ export function overallProgress(r: CubeRun, now: number): number | null {
  */
 export function eta(r: CubeRun, now: number): number | null {
   if (r.tasks.length === 0 || !isActive(r)) return null
-  const exp = expected(r)
   let inWork = 0
   let pending = 0
   r.tasks.forEach((t, i) => {
     if (t.status === 'done') return
+    const exp = expected(r, i)
     if (isWorked(r, i)) {
       const elapsed = t.startedAt ? now - t.startedAt : 0
       inWork = Math.max(inWork, Math.max(exp.ms - elapsed, exp.ms * 0.1))
-    } else pending++
+    } else pending += exp.ms
   })
-  return inWork + pending * exp.ms
+  return inWork + pending
 }
 
 /** The run's cost share of step i, in USD, from the session's cost since the run began. */
@@ -539,14 +585,18 @@ export function toHistory(r: CubeRun, usd: number): HistRun {
   }
 }
 
-/** What a step takes, averaged over past runs' timed steps; the default without any. */
-export function priorFrom(history: HistRun[]): { calls: number; ms: number } {
+/** What a step takes, averaged over past runs' timed steps, overall and per kind; the default without any. */
+export function priorFrom(history: HistRun[]): Prior {
   const steps = history.flatMap(h => h.tasks).filter(t => t.ms > 0)
-  if (steps.length === 0) return DEFAULT_PRIOR
-  return {
-    calls: Math.max(1, steps.reduce((s, t) => s + t.calls, 0) / steps.length),
-    ms: steps.reduce((s, t) => s + t.ms, 0) / steps.length,
+  const all = averageOf(steps)
+  if (!all) return DEFAULT_PRIOR
+  const byKind: NonNullable<Prior['byKind']> = {}
+  for (const kind of new Set(steps.map(t => stepKind(t.title)))) {
+    const same = steps.filter(t => stepKind(t.title) === kind)
+    const avg = averageOf(same)
+    if (avg) byKind[kind] = { ...avg, n: same.length }
   }
+  return { ...all, byKind }
 }
 
 /** Indices of the unfinished steps that step i waits for. */
@@ -587,26 +637,26 @@ export function stuckReason(r: CubeRun, i: number, now: number, limits: StuckThr
   const tail = done.slice(-limits.failsInRow)
   if (tail.length === limits.failsInRow && tail.every(c => c.status === 'error')) {
     const tools = [...new Set(tail.map(c => c.tool))].join('/')
-    return `${limits.failsInRow}× hintereinander fehlgeschlagen (${tools})`
+    return tr(`${limits.failsInRow}× hintereinander fehlgeschlagen (${tools})`, `failed ${limits.failsInRow}× in a row (${tools})`)
   }
 
   const same = calls.slice(-limits.sameInRow)
   const key = (c: CubeCall) => `${c.tool}|${c.detail}`
   if (same.length === limits.sameInRow && same[0] && same.every(c => key(c) === key(same[0]!))) {
     const c = same[0]
-    return `${limits.sameInRow}× derselbe Aufruf: ${c.tool}${c.detail ? ` ${c.detail}` : ''}`
+    return `${tr(`${limits.sameInRow}× derselbe Aufruf`, `the same call ${limits.sameInRow}×`)}: ${c.tool}${c.detail ? ` ${c.detail}` : ''}`
   }
 
   const last = calls[calls.length - 1]
   const quietSince = last ? (last.status === 'running' ? 0 : last.at + last.ms) : t.startedAt
   if (quietSince && now - quietSince > limits.silentMs) {
-    return `seit ${Math.round((now - quietSince) / 60_000)} Min keine Aktivität`
+    return tr(`seit ${Math.round((now - quietSince) / 60_000)} Min keine Aktivität`, `no activity for ${Math.round((now - quietSince) / 60_000)} min`)
   }
 
   const exp = expected(r)
   const elapsed = t.startedAt ? now - t.startedAt : 0
   if (elapsed > Math.max(limits.minMs, limits.slowFactor * exp.ms)) {
-    return `läuft ${Math.round(elapsed / exp.ms)}× länger als ein üblicher Schritt`
+    return tr(`läuft ${Math.round(elapsed / exp.ms)}× länger als ein üblicher Schritt`, `running ${Math.round(elapsed / exp.ms)}× longer than a usual step`)
   }
   return ''
 }

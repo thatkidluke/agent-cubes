@@ -3,6 +3,7 @@ import type { PluginOptions } from 'claude-code'
 
 import { STUCK, type StuckThresholds } from '../model'
 import { SKINS } from '../skins'
+import type { Lang } from '../i18n'
 
 export type PanelSettings = {
   /** The skin used while the person has not picked one in the panel. */
@@ -13,10 +14,13 @@ export type PanelSettings = {
   animations: boolean
   /** The limits the stuck checks judge by. */
   stuck: StuckThresholds
+  /** The panel's language. */
+  language: Lang
 }
 
 export const DEFAULTS = {
   defaultSkin: 'classic',
+  language: 'de',
   autoOpen: true,
   animations: true,
   stuckSilentMinutes: STUCK.silentMs / 60_000,
@@ -48,5 +52,6 @@ export function readSettings(options: PluginOptions | undefined): PanelSettings 
     autoOpen: bool(o.autoOpen, DEFAULTS.autoOpen),
     animations: bool(o.animations, DEFAULTS.animations),
     stuck: { ...STUCK, silentMs: Math.round(silentMin * 60_000), failsInRow: fails, slowFactor: slow },
+    language: o.language === 'en' ? 'en' : 'de',
   }
 }

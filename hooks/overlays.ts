@@ -4,11 +4,16 @@
  * returns SVG markup from the scene's projection and the skin's colours.
  */
 import type { CubeCtx, Skin } from './skins/types'
+import { tr } from './i18n'
 import { box, circle, esc, line, mix, n1, pline, poly, seeded } from './svg'
 import type { Pt } from './svg'
 
 /** How much ornament to draw: 2 full, 1 reduced, 0 bare. */
 export type Detail = 2 | 1 | 0
+
+/** Context fill from which the tank and the panel's figure turn amber, and red. One pair for both. */
+export const CONTEXT_AMBER = 0.7
+export const CONTEXT_RED = 0.85
 /** What a dependency pipe needs of a cube: the steps it waits for, where it stands, its plaque label. */
 export type DependentCube = { blockedBy: number[]; pos: number; label: string }
 
@@ -26,13 +31,13 @@ export function contextTank(fill: number, P: Proj, S: number, uEnd: number, pedH
   const wB = -pedH + 0.1
   const wT = -0.08
   const pct = Math.round(fill * 100)
-  const col = fill >= 0.8 ? skin.status.error[1] : fill >= 0.6 ? skin.status.waiting[1] : skin.track.from
+  const col = fill >= CONTEXT_RED ? skin.status.error[1] : fill >= CONTEXT_AMBER ? skin.status.waiting[1] : skin.track.from
   const g = box(P, u0, u1, v0, v1, wB, wT)
-  let s = `<g><title>Kontextfenster zu ${pct} % gefüllt</title>`
+  let s = `<g><title>${tr(`Kontextfenster zu ${pct} % gefüllt`, `Context window ${pct} % full`)}</title>`
   s += poly(g.back, `fill="#0f172a" fill-opacity="0.4"`)
   if (fill > 0) {
     const lq = box(P, u0 + 0.025, u1 - 0.025, v0 + 0.04, v1 - 0.04, wB + 0.01, wB + 0.01 + (wT - wB - 0.02) * fill)
-    const pulse = fill >= 0.8 && detail > 0 && !still ?'<animate attributeName="opacity" values="1;0.5;1" dur="1.1s" repeatCount="indefinite"/>' : ''
+    const pulse = fill >= CONTEXT_RED && detail > 0 && !still ?'<animate attributeName="opacity" values="1;0.5;1" dur="1.1s" repeatCount="indefinite"/>' : ''
     s +=
       `<g>${pulse}` +
       poly(lq.front, `fill="${col}" fill-opacity="0.9"`) +
@@ -41,7 +46,7 @@ export function contextTank(fill: number, P: Proj, S: number, uEnd: number, pedH
       `</g>`
   }
   // Marks at 60 % and 80 %.
-  for (const m of [0.6, 0.8]) {
+  for (const m of [CONTEXT_AMBER, CONTEXT_RED]) {
     const w = wB + (wT - wB) * m
     s += line(P(u0, v0, w), P(u0 + 0.08, v0, w), `stroke="${skin.pedestal.light}" stroke-opacity="0.7" stroke-width="0.8"`)
   }
@@ -83,7 +88,7 @@ export function dependencies(bigs: readonly DependentCube[], posOf: number[], P:
       const al = Math.max(4, S * 0.1)
       const flow = detail > 0 && !still ? '<animate attributeName="stroke-dashoffset" values="6;0" dur="0.7s" repeatCount="indefinite"/>' : ''
       s +=
-        `<g><title>Schritt ${big.label} wartet auf Schritt ${nums}</title>` +
+        `<g><title>${tr(`Schritt ${big.label} wartet auf Schritt ${nums}`, `Step ${big.label} waits for step ${nums}`)}</title>` +
         `<path d="${d}" fill="none" stroke="#0f172a" stroke-opacity="0.25" stroke-width="2.6" stroke-linecap="round"/>` +
         `<path d="${d}" fill="none" stroke="${col}" stroke-opacity="0.9" stroke-width="1.2" stroke-dasharray="3 3" stroke-linecap="round">${flow}</path>` +
         circle([ax, ay], 1.8, `fill="${col}"`) +
@@ -95,7 +100,7 @@ export function dependencies(bigs: readonly DependentCube[], posOf: number[], P:
     const by = top - lk * 1.05
     const sw = n1(Math.max(1.1, lk * 0.24))
     s +=
-      `<g><title>Wartet auf Schritt ${steps.map(j => j + 1).join(', ')}</title>` +
+      `<g><title>${tr('Wartet auf Schritt', 'Waits for step')} ${steps.map(j => j + 1).join(', ')}</title>` +
       `<path d="M${n1(ex - lk * 0.38)} ${n1(by)}v${n1(-lk * 0.32)}a${n1(lk * 0.38)} ${n1(lk * 0.38)} 0 0 1 ${n1(lk * 0.76)} 0v${n1(lk * 0.32)}" fill="none" stroke="${skin.pedestal.footSide}" stroke-width="${sw}"/>` +
       `<rect x="${n1(ex - bw / 2)}" y="${n1(by)}" width="${n1(bw)}" height="${n1(lk)}" rx="${n1(lk * 0.18)}" fill="${col}" stroke="#ffffff" stroke-opacity="0.85" stroke-width="0.8"/>` +
       circle([ex, by + lk * 0.45], Math.max(0.8, lk * 0.15), `fill="#0f172a"`) +
@@ -112,7 +117,7 @@ export function testSeal(test: 'pass' | 'fail' | '', at: Pt, S: number, skin: Sk
   const ok = test === 'pass'
   const mk = `fill="none" stroke="#ffffff" stroke-width="${n1(Math.max(1.2, r * 0.28))}" stroke-linecap="round" stroke-linejoin="round"`
   return (
-    `<g><title>${ok ? 'Letzter Testlauf bestanden' : 'Letzter Testlauf fehlgeschlagen'}</title>` +
+    `<g><title>${ok ? tr('Letzter Testlauf bestanden', 'Last test run passed') : tr('Letzter Testlauf fehlgeschlagen', 'Last test run failed')}</title>` +
     circle([x + 0.8, y + 1.2], r, `fill="#0f172a" opacity="0.3"`) +
     circle([x, y], r, `fill="${ok ? skin.status.done[1] : skin.status.error[1]}" stroke="#ffffff" stroke-width="1.2"`) +
     circle([x, y], r * 0.74, `fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="0.6" stroke-dasharray="1 1.2"`) +
@@ -152,7 +157,7 @@ export function cracks(c: CubeCtx, P: Proj, S: number, why: string): string {
   const dark = `fill="none" stroke="#0b0f17" stroke-opacity="0.75" stroke-width="${n1(Math.max(0.9, S * 0.025))}" stroke-linejoin="round" stroke-linecap="round"`
   const lit = `fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="0.7" stroke-linejoin="round"`
   const one = (ps: Pt[]) => pline(ps.map(([x, y]): Pt => [x + 0.8, y + 0.7]), lit) + pline(ps, dark)
-  return `<g><title>Hängt: ${esc(why)}</title>${one([...top, ...down.slice(1)])}${one(branch)}${one(side)}</g>`
+  return `<g><title>${tr('Hängt', 'Stuck')}: ${esc(why)}</title>${one([...top, ...down.slice(1)])}${one(branch)}${one(side)}</g>`
 }
 
 /** Grey wisps rising from a stuck cube's top and fading. */

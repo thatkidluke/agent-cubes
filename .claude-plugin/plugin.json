@@ -1,11 +1,18 @@
 {
   "name": "agent-cubes",
-  "version": "0.2.0",
-  "description": "A cube timeline beside the chat that shows how far the agents' current task has progressed",
+  "version": "0.3.0",
+  "description": "A live cube timeline of your agents' work beside the Claude Code chat: progress, agents, stuck steps, context, six skins",
   "author": { "name": "Agent Cubes contributors" },
   "license": "MIT",
   "types": "./types/index.d.ts",
   "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Sprache / Language",
+      "description": "Sprache des Panels: de (Deutsch) oder en (English). / Panel language: de (German) or en (English).",
+      "options": ["de", "en"],
+      "default": "de"
+    },
     "defaultSkin": {
       "type": "string",
       "title": "Standard-Skin",

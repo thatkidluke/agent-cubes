@@ -127,3 +127,17 @@ test('autoOpen defaults to opening the pane', async ($, on) => {
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   expect(opened.count).toBe(1)
 })
+
+test('language: en draws the panel in English', { options: { language: 'en' } }, async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.tool.call(PLAN)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  for (const text of [/OVERVIEW/, /NOW/, /CUBE DETAILS/, /cubes done/]) {
+    expect(await ui.find({ type: 'Text', text }), String(text)).toBeDefined()
+  }
+  expect(await ui.find({ type: 'Button', text: /Save as image/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /ÜBERSICHT/ })).toBeUndefined()
+  expect(String((await ui.find({ type: 'Svg' }))?.props.alt)).toContain('Cube timeline')
+  await ui.unmount()
+})

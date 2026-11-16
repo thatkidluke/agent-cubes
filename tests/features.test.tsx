@@ -207,3 +207,58 @@ test('every skin renders stuck steps, blockers, diffs, tests and context', async
     expect(svg.source.length).toBeLessThan(131_073)
   }
 })
+
+// 10. Estimates per kind of step
+import * as kinds from '../hooks/model'
+
+test('steps are sorted into kinds by their titles, in German and English', async () => {
+  expect(kinds.stepKind('Tests schreiben')).toBe('test')
+  expect(kinds.stepKind('Run npm test')).toBe('test')
+  expect(kinds.stepKind('Code-Review')).toBe('review')
+  expect(kinds.stepKind('README aktualisieren')).toBe('docs')
+  expect(kinds.stepKind('Recherche zu APIs')).toBe('research')
+  expect(kinds.stepKind('Grundlage legen')).toBe('setup')
+  expect(kinds.stepKind('Deploy to staging')).toBe('ship')
+  expect(kinds.stepKind('Renderer bauen')).toBe('work')
+  // A word only containing a keyword in its middle does not count: "contest" is no test.
+  expect(kinds.stepKind('Contest entry')).toBe('work')
+})
+
+test('a step is estimated from finished steps of its own kind first', async () => {
+  let r = kinds.startRun(kinds.emptyRun, 'x', 1)
+  r = kinds.applyTaskTool(r, 'mcp__ccd_turn__update_plan', {
+    items: [
+      { content: 'Code schreiben', status: 'in_progress' },
+      { content: 'Tests laufen lassen', status: 'pending' },
+      { content: 'Mehr Code schreiben', status: 'pending' },
+      { content: 'Tests erneut', status: 'pending' },
+    ],
+  }, undefined, 1)
+  // Code took 100 s, the first test run 10 s.
+  r = kinds.applyTaskTool(r, 'mcp__ccd_turn__update_plan', { advance: true }, undefined, 100_001)
+  r = kinds.applyTaskTool(r, 'mcp__ccd_turn__update_plan', { advance: true }, undefined, 110_001)
+  const code = kinds.expected(r, 2)
+  const tests = kinds.expected(r, 3)
+  expect(code.basis).toBe('kind')
+  expect(code.ms).toBe(100_000)
+  expect(tests.ms).toBe(10_000)
+  // Time left: step 3 (code, running for 0 s) plus step 4 (tests) waiting.
+  expect(kinds.eta(r, 110_001)).toBe(100_000 + 10_000)
+})
+
+test('earlier runs teach a kind once they hold two such steps', async () => {
+  const hist = (tasks: [string, number][]): HistRun => ({
+    at: 1, prompt: '', ms: 0, tokens: 0, usd: 0, errors: 0, calls: 0,
+    tasks: tasks.map(([title, ms]) => ({ title, ms, calls: 4, tokens: 0, errors: 0 })),
+  })
+  const prior = kinds.priorFrom([hist([['Review A', 20_000], ['Code', 200_000]]), hist([['Review B', 40_000]])])
+  expect(prior.byKind?.review?.n).toBe(2)
+  expect(prior.byKind?.review?.ms).toBe(30_000)
+  let r = kinds.startRun(kinds.emptyRun, 'x', 1, { prior })
+  r = kinds.applyTaskTool(r, 'mcp__ccd_turn__update_plan', { items: [{ content: 'Review C', status: 'in_progress' }, { content: 'Code', status: 'pending' }] }, undefined, 1)
+  const review = kinds.expected(r, 0)
+  expect(review.basis).toBe('history-kind')
+  expect(review.ms).toBe(30_000)
+  // Code was seen once only: the overall prior stands in.
+  expect(kinds.expected(r, 1).basis).toBe('prior')
+})

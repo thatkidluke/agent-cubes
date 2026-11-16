@@ -32,6 +32,8 @@ import { agentRow, callColor, card, figures, glyphOf, whoCalled, type Els, type 
 import { cubeDetails, KINDS } from './panel/details'
 import { contextFrac, cubeNo, fileStamp, fmtDuration, fmtEta, fmtTokens, fmtUsd, joinPath, type ContextLike } from './panel/format'
 import { readSettings } from './panel/settings'
+import { setLang, tr } from './i18n'
+import { CONTEXT_AMBER, CONTEXT_RED } from './overlays'
 import { statsCard } from './panel/stats'
 
 const PANE = 'agent-cubes'
@@ -50,19 +52,17 @@ const skinPick = atom({ plugin: 'agent-cubes', key: 'skin' } as const, '')
 const exported = atom({ plugin: 'agent-cubes', key: 'exported' } as const, '')
 const SKIN_KEY = 'skin'
 
-/** Context fill from which the stats row warns. */
-const CONTEXT_WARN = 0.8
 
 /** Whether the STATISTIK section is unfolded. */
 const statsOpenAtom = atom({ plugin: 'agent-cubes', key: 'statsOpen' } as const, false)
 
 const RUN_LABEL: Record<CubeRun['status'], string> = {
-  idle: 'Bereit',
-  running: 'Läuft',
-  waiting: 'Wartet auf dich',
-  done: 'Fertig',
-  error: 'Fehler',
-  aborted: 'Abgebrochen',
+  get idle() { return tr('Bereit', 'Ready') },
+  get running() { return tr('Läuft', 'Running') },
+  get waiting() { return tr('Wartet auf dich', 'Waiting for you') },
+  get done() { return tr('Fertig', 'Done') },
+  get error() { return tr('Fehler', 'Error') },
+  get aborted() { return tr('Abgebrochen', 'Aborted') },
 }
 const RUN_COLOR: Record<CubeRun['status'], string> = {
   idle: PALETTE.pending[2],
@@ -105,10 +105,11 @@ function isHistRun(v: unknown): v is HistRun {
 
 export const register: Register = (on, options) => {
   const settings = readSettings(options)
+  setLang(settings.language)
   const limits = settings.stuck
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'cubes', description: 'Zeigt das Agent-Cubes-Panel neben dem Chat' })
+    await $.command.register({ name: 'cubes', description: tr('Zeigt das Agent-Cubes-Panel neben dem Chat', 'Shows the Agent Cubes panel beside the chat') })
     // Past runs live in the store across sessions.
     const stored = await $.store.get(HISTORY_KEY).catch(() => undefined)
     if (Array.isArray(stored)) {
@@ -129,7 +130,7 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'cubes' }, async $ => {
     await $.ui.open({ id: PANE, title: TITLE })
-    return { text: 'Agent-Cubes-Panel geöffnet.' }
+    return { text: tr('Agent-Cubes-Panel geöffnet.', 'Agent Cubes panel opened.') }
   })
 
   on('turn.start', async ($, e, next) => {
@@ -266,7 +267,7 @@ export const register: Register = (on, options) => {
 
     const left = eta(r, now)
     const exp = expected(r)
-    const warnColor = (frac: number) => (frac >= 0.92 ? PALETTE.error[1] : frac >= CONTEXT_WARN ? PALETTE.waiting[1] : undefined)
+    const warnColor = (frac: number) => (frac >= CONTEXT_RED ? PALETTE.error[1] : frac >= CONTEXT_AMBER ? PALETTE.waiting[1] : undefined)
     const stuck = r.tasks.map((_t, i) => ({ i, why: stuckReason(r, i, now, limits) })).filter(s => s.why)
     const stats2 = statsFrom(hist)
 
@@ -277,9 +278,9 @@ export const register: Register = (on, options) => {
         const path = joinPath(await $.session.cwd(), `agent-cubes-${fileStamp(at)}.svg`)
         await $.fs.write(path, pic.source)
         await update($, exported, () => path)
-        $.ui.toast(`Gespeichert: ${path}`)
+        $.ui.toast(`${tr('Gespeichert', 'Saved')}: ${path}`)
       } catch (err) {
-        $.ui.toast(`Speichern fehlgeschlagen: ${err instanceof Error ? err.message : String(err)}`)
+        $.ui.toast(`${tr('Speichern fehlgeschlagen', 'Saving failed')}: ${err instanceof Error ? err.message : String(err)}`)
       }
     }
     const viewAgent = async (agentId: string | undefined) => {
@@ -294,27 +295,27 @@ export const register: Register = (on, options) => {
 
     // ── Overview ──
     const overview: Figure[] = [
-      ['Laufzeit', r.startedAt ? fmtDuration(elapsed) : '–'],
-      ['Restzeit', left === null ? '–' : `${fmtEta(left)}${exp.isMeasured ? '' : '*'}`],
-      ['Kontext', ctxFrac === null ? '–' : `${Math.round(ctxFrac * 100)} %`, ctxFrac === null ? undefined : warnColor(ctxFrac)],
-      ['Fehler', String(r.errors), r.errors > 0 ? PALETTE.error[1] : undefined],
-      ['Tokens', `${fmtTokens(r.tokensIn)} ↓ ${fmtTokens(r.tokensOut)} ↑`],
-      ['Kosten', runUsd === null ? '–' : `≈ ${fmtUsd(runUsd)}`],
-      ['Tool-Aufrufe', String(r.toolCalls)],
-      ['Würfel', prog ? `${prog.done} / ${prog.total}` : '1'],
+      [tr('Laufzeit', 'Elapsed'), r.startedAt ? fmtDuration(elapsed) : '–'],
+      [tr('Restzeit', 'Time left'), left === null ? '–' : `${fmtEta(left)}${exp.isMeasured ? '' : '*'}`],
+      [tr('Kontext', 'Context'), ctxFrac === null ? '–' : `${Math.round(ctxFrac * 100)} %`, ctxFrac === null ? undefined : warnColor(ctxFrac)],
+      [tr('Fehler', 'Errors'), String(r.errors), r.errors > 0 ? PALETTE.error[1] : undefined],
+      [tr('Tokens', 'Tokens'), `${fmtTokens(r.tokensIn)} ↓ ${fmtTokens(r.tokensOut)} ↑`],
+      [tr('Kosten', 'Cost'), runUsd === null ? '–' : `≈ ${fmtUsd(runUsd)}`],
+      [tr('Tool-Aufrufe', 'Tool calls'), String(r.toolCalls)],
+      [tr('Würfel', 'Cubes'), prog ? `${prog.done} / ${prog.total}` : '1'],
     ]
 
     // ── Now: the current step, its time and estimate, the last error ──
     const nowLine = curTask
       ? curTask.active || curTask.title
       : r.status === 'done'
-        ? 'Auftrag abgeschlossen'
+        ? tr('Auftrag abgeschlossen', 'Task complete')
         : r.prompt
           ? r.prompt.replace(/\s+/g, ' ').slice(0, 140)
-          : 'Warte auf den nächsten Auftrag'
+          : tr('Warte auf den nächsten Auftrag', 'Waiting for the next task')
     const nowMeta =
       curTask && curTask.startedAt && active
-        ? `Würfel ${cubeNo(cur)} · seit ${fmtDuration(now - curTask.startedAt)} · ca. ${Math.floor(stepProgress(r, cur, now) * 100)} %`
+        ? `${tr('Würfel', 'Cube')} ${cubeNo(cur)} · ${tr('seit', 'for')} ${fmtDuration(now - curTask.startedAt)} · ${tr('ca.', 'about')} ${Math.floor(stepProgress(r, cur, now) * 100)} %`
         : ''
 
     const details = sel >= 0 ? cubeDetails(blockEls, { r, i: sel, now, usd, cur, active, limits }) : null
@@ -325,7 +326,7 @@ export const register: Register = (on, options) => {
         key="skin"
         label="Skin"
         value={skin.id}
-        options={SKINS.map(s => ({ value: s.id, label: s.name }))}
+        options={SKINS.map(s => ({ value: s.id, label: s.id === 'classic' ? tr('Klassisch', 'Classic') : s.name }))}
         onSelect={value => pickSkin(value)}
       />
     ) : (
@@ -341,7 +342,7 @@ export const register: Register = (on, options) => {
               {pct !== null ? `${pct} %` : '–'}
             </Text>
             <Text dimColor>
-              {prog ? `${prog.done} von ${prog.total} Würfeln erledigt` : 'Noch kein Plan: 1 Würfel für den ganzen Auftrag'}
+              {prog ? tr(`${prog.done} von ${prog.total} Würfeln erledigt`, `${prog.done} of ${prog.total} cubes done`) : tr('Noch kein Plan: 1 Würfel für den ganzen Auftrag', 'No plan yet: 1 cube for the whole task')}
             </Text>
           </Box>
           <Box flexDirection="column" alignItems="flex-end" gap={0}>
@@ -361,7 +362,7 @@ export const register: Register = (on, options) => {
         {r.status === 'waiting' && (
           <Box borderStyle="round" borderColor={PALETTE.waiting[1]} paddingX={1}>
             <Text color={PALETTE.waiting[1]} weight="semibold">
-              ⏸ Wartet auf deine Antwort{r.waitingFor ? `: ${r.waitingFor}` : ''}
+              ⏸ {tr('Wartet auf deine Antwort', 'Waiting for your answer')}{r.waitingFor ? `: ${r.waitingFor}` : ''}
             </Text>
           </Box>
         )}
@@ -387,12 +388,15 @@ export const register: Register = (on, options) => {
         {card(
           blockEls,
           'card-overview',
-          'ÜBERSICHT',
+          tr('ÜBERSICHT', 'OVERVIEW'),
           <Box flexDirection="column" gap={1}>
             {figures(blockEls, 'ov', overview)}
             {left !== null && !exp.isMeasured && (
               <Text size="footnote" dimColor>
-                * Restzeit geschätzt aus {hist.length > 0 ? 'früheren Aufträgen' : 'Standardwerten'}, bis der erste Würfel fertig ist.
+                {tr(
+                  `* Restzeit geschätzt aus ${hist.length > 0 ? 'früheren Aufträgen' : 'Standardwerten'}, bis der erste Würfel fertig ist.`,
+                  `* Time left estimated from ${hist.length > 0 ? 'earlier tasks' : 'defaults'} until the first cube is done.`,
+                )}
               </Text>
             )}
           </Box>,
@@ -402,7 +406,7 @@ export const register: Register = (on, options) => {
         {card(
           blockEls,
           'card-now',
-          'JETZT',
+          tr('JETZT', 'NOW'),
           <Box flexDirection="column" gap={0}>
             <Text weight="medium">{nowLine}</Text>
             {nowMeta && (
@@ -412,7 +416,7 @@ export const register: Register = (on, options) => {
             )}
             {r.lastError && (
               <Text size="footnote" color={PALETTE.error[1]}>
-                Letzter Fehler: {r.lastError}
+                {tr('Letzter Fehler', 'Last error')}: {r.lastError}
               </Text>
             )}
           </Box>,
@@ -428,9 +432,9 @@ export const register: Register = (on, options) => {
               key: 'view-main',
               letter: 'H',
               color: active ? MAIN_COLOR : PALETTE.pending[2],
-              name: 'Hauptagent',
-              where: active ? `→ Würfel ${r.tasks.length > 0 ? (cur >= 0 ? cubeNo(cur) : '–') : '01'}` : '',
-              doing: active ? r.mainTool || 'denkt nach' : 'inaktiv',
+              name: tr('Hauptagent', 'Main agent'),
+              where: active ? `→ ${tr('Würfel', 'Cube')} ${r.tasks.length > 0 ? (cur >= 0 ? cubeNo(cur) : '–') : '01'}` : '',
+              doing: active ? r.mainTool || tr('denkt nach', 'thinking') : tr('inaktiv', 'idle'),
               dim: !active,
               onView: () => viewAgent(undefined),
             })}
@@ -443,8 +447,8 @@ export const register: Register = (on, options) => {
                   letter: agentInitial(a.name),
                   color: a.status === 'running' ? agentColor(k) : PALETTE[a.status][1],
                   name: a.name,
-                  where: `→ Würfel ${r.tasks.length > 0 ? cubeNo(a.taskIndex) : '01'}`,
-                  doing: a.status === 'running' ? a.tool || 'denkt nach' : STATUS_LABEL[a.status],
+                  where: `→ ${tr('Würfel', 'Cube')} ${r.tasks.length > 0 ? cubeNo(a.taskIndex) : '01'}`,
+                  doing: a.status === 'running' ? a.tool || tr('denkt nach', 'thinking') : STATUS_LABEL[a.status],
                   dim: a.status !== 'running',
                   onView: () => viewAgent(a.id),
                 }),
@@ -486,7 +490,7 @@ export const register: Register = (on, options) => {
           card(
             blockEls,
             'card-cubes',
-            'WÜRFEL-DETAILS',
+            tr('WÜRFEL-DETAILS', 'CUBE DETAILS'),
             <Box flexDirection="column" gap={1}>
               <Box flexDirection="row" flexWrap="wrap" gap={1}>
                 {r.tasks.map((_t, i) => (
@@ -531,11 +535,11 @@ export const register: Register = (on, options) => {
         </Box>
         <Box flexDirection="row" alignItems="center" gap={1} flexWrap="wrap">
           <Button key="export" variant="secondary" onPress={exportSvg}>
-            Als Bild speichern
+            {tr('Als Bild speichern', 'Save as image')}
           </Button>
           {savedTo && (
             <Text size="footnote" dimColor>
-              Gespeichert: {savedTo}
+              {tr('Gespeichert', 'Saved')}: {savedTo}
             </Text>
           )}
         </Box>

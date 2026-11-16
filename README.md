@@ -1,81 +1,86 @@
-# Agent Cubes
+<p align="center"><img src=".claude-plugin/icon.png" width="96" alt="Agent Cubes icon"></p>
 
-Agent Cubes zeigt neben dem Chat, wie weit die aktuelle Aufgabe deiner Agents ist: als
-Würfel-Zeitleiste in Seitenansicht. Jeder Schritt des Plans (`update_plan`, `TodoWrite`,
-`TaskCreate`/`TaskUpdate`) wird ein Würfel, der sich mit der Arbeit füllt. Kleine Würfel
-darin stehen für die einzelnen Tool-Aufrufe, eingefärbt nach Art (lesen, schreiben,
-ausführen, Agent).
+<h1 align="center">Agent Cubes</h1>
 
-Subagents erscheinen mit eigenem Buchstaben und eigener Farbe auf dem Würfel, an dem sie
-arbeiten. Das Panel schätzt Fortschritt und Restzeit, erkennt hängende Schritte, zeigt im
-Kontext-Tank, wie voll das Kontextfenster ist, und lässt sich in sechs Skins darstellen.
-Mit einem Klick speicherst du das Bild als SVG.
+<p align="center">A live cube timeline of your agents' work, right beside the Claude Code chat.<br>
+<a href="README.de.md">Deutsche Fassung</a></p>
 
-## Funktionen
+![Agent Cubes, classic skin](docs/skin-classic.svg)
 
-- **Würfel-Zeitleiste**: ein Würfel pro Planschritt, animiert, mit Status (offen, läuft,
-  fertig, wartet, Fehler)
-- **Agents**: Hauptagent und Subagents mit aktuellem Werkzeug und Würfel; „Ansehen“
-  springt zur Ansicht des Agents
-- **Fortschritt und Restzeit**: geschätzt aus Zeit und Aufrufen der fertigen Schritte und
-  früherer Aufträge
-- **Hängt-Erkennung**: Fehler in Folge, wiederholt derselbe Aufruf, lange Stille oder
-  ungewöhnlich lange Dauer
-- **Kontext-Tank**: Füllstand des Kontextfensters, gelb ab 80 %, rot ab 92 %
-- **Würfel-Details**: Dauer, Tokens, Kosten, Codezeilen, Tests, Dateien und letzte
-  Aufrufe eines Schritts
-- **Statistik**: Durchschnittswerte über die letzten zwölf Aufträge
-- **Skins**: Classic, Cyber, Stellar, Retro, Steampunk, Minimal
-- **Export**: „Als Bild speichern“ legt eine SVG-Datei im Arbeitsordner ab
-- **Terminal**: ohne SVG-Unterstützung zeigt das Panel eine Textleiste statt der Grafik
+Every step of the agents' plan (`update_plan`, `TodoWrite`, `TaskCreate`/`TaskUpdate`) becomes a glass cube on a
+timeline. While a step is worked on, its cube fills with small cubes, one slice of the step's real tool calls each,
+tinted by kind of work: reading, writing, running, agents. A finished step turns into a solid cube with a tick.
 
-Das Panel öffnet sich beim Sitzungsstart (abschaltbar) oder jederzeit mit `/cubes`.
+Subagents show up as coloured badges on the cube they work on. The panel estimates progress and time left, spots
+steps that are stuck, shows how full the context window is, and comes in six skins.
 
-## Installation
+## Features
 
-Im Terminal, an der Eingabe einer Claude-Code-Sitzung:
+- **Cube timeline** with status per step: open, running, done, waiting for you, error, plus a symbol for each so
+  colour is never the only cue
+- **Agents**: main agent and subagents with their current tool and cube; **View** jumps to an agent's transcript
+- **Progress and time left**, learned per kind of step (tests, review, research, docs, setup, shipping, other work)
+  from this task and from earlier ones
+- **Stuck detection**: failures in a row, the same call over and over, long silence, or far slower than usual
+- **Context tank** on the pedestal: amber from 70 %, red from 85 %
+- **Cube details**: time, tokens, cost share, lines changed, test runs, files and recent calls of one step
+- **Dependencies** between tasks as pipes with a padlock on the waiting cube
+- **Statistics** across your last twelve tasks
+- **Compact mode** for long plans, **still mode** without animation, **export** of the timeline as an SVG file
+- **German and English** user interface
+
+## Skins
+
+| Classic | Cyber | Stellar |
+| --- | --- | --- |
+| ![Classic](docs/skin-classic.svg) | ![Cyber](docs/skin-cyber.svg) | ![Stellar](docs/skin-stellar.svg) |
+| **Retro** | **Steampunk** | **Minimal** |
+| ![Retro](docs/skin-retro.svg) | ![Steampunk](docs/skin-steampunk.svg) | ![Minimal](docs/skin-minimal.svg) |
+
+Pick a skin from the dropdown at the top of the panel.
+
+## Install
+
+In a terminal, at the prompt of a Claude Code session:
 
 ```
 /plugin install agent-cubes --marketplace thatkidluke/agent-cubes
 ```
 
-Bestätige das Hinzufügen des Marketplace mit `y` und wähle dann den Geltungsbereich.
+Confirm adding the marketplace with `y`, then choose a scope.
 
-Oder direkt in der Shell:
+From a shell:
 
 ```
 claude plugin install agent-cubes --marketplace thatkidluke/agent-cubes
 ```
 
-In der Desktop-App: Klicke auf **+** neben dem Eingabefeld, dann auf **Plugins**, wähle
-**Add marketplace** und gib `thatkidluke/agent-cubes` ein, danach **Add plugin** bei Agent Cubes.
+In the desktop app: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with
+`thatkidluke/agent-cubes`, then **Add plugin** for Agent Cubes.
 
-## Einstellungen
+The panel opens when a session starts (you can turn that off), or any time with `/cubes`.
 
-Die Einstellungen stehen im Konfigurationsmenü (`/config`) unter Agent Cubes. Eine
-Änderung lädt das Plugin sofort neu.
+## Settings
 
-| Einstellung          | Typ    | Standard  | Bedeutung |
-| -------------------- | ------ | --------- | --------- |
-| `defaultSkin`        | Auswahl | `classic` | Skin, solange im Panel keiner gewählt ist. Eine Wahl im Panel hat Vorrang. |
-| `autoOpen`           | Ja/Nein | ja        | Panel beim Start jeder Sitzung öffnen. Sonst nur über `/cubes`. |
-| `animations`         | Ja/Nein | ja        | Animationen in Panel und Export. Aus: ruhiges Standbild. |
-| `stuckSilentMinutes` | Zahl   | 5         | Minuten ohne Tool-Aufruf, ab denen ein Würfel als hängend gilt (0,5–240). |
-| `stuckFailsInRow`    | Zahl   | 3         | Fehlgeschlagene Aufrufe in Folge, ab denen ein Würfel hängt (1–50). |
-| `stuckSlowFactor`    | Zahl   | 3         | So viel länger als ein üblicher Schritt, mindestens 8 Minuten (1,1–50). |
+The settings live in the config menu under Agent Cubes; a change reloads the plugin at once.
 
-Werte außerhalb der Grenzen werden auf die nächste Grenze gesetzt, ungültige Werte durch
-den Standard ersetzt.
+| Setting              | Type    | Default   | Meaning |
+| -------------------- | ------- | --------- | ------- |
+| `language`           | choice  | `de`      | Panel language: `de` or `en`. |
+| `defaultSkin`        | choice  | `classic` | Skin while none is picked in the panel; a pick in the panel wins. |
+| `autoOpen`           | yes/no  | yes       | Open the panel when a session starts; otherwise only via `/cubes`. |
+| `animations`         | yes/no  | yes       | Animation in the panel and the export; off draws a still picture. |
+| `stuckSilentMinutes` | number  | 5         | Minutes without a tool call after which a cube counts as stuck (0.5–240). |
+| `stuckFailsInRow`    | number  | 3         | Failed calls in a row after which a cube is stuck (1–50). |
+| `stuckSlowFactor`    | number  | 3         | How many times longer than a usual step, at least 8 minutes (1.1–50). |
 
-## Wie genau sind die Zahlen?
+## How exact are the numbers?
 
-Fortschritt, Restzeit und Kosten sind **Schätzungen**. Ein Schritt in Arbeit füllt sich
-nach Zeit und Aufrufen im Vergleich zu den bereits fertigen Schritten (oder, bis einer
-fertig ist, zu früheren Aufträgen); voll wird er erst, wenn er abgehakt ist. Die Kosten
-eines Auftrags sind die Differenz der Sitzungskosten seit Auftragsbeginn, auf die Schritte
-verteilt nach ihren preisgewichteten Tokens. Wo die Sitzung keine Kosten meldet, steht „–“.
-Verbindlich sind nur die Angaben deines Kontos.
+Progress, time left and cost are **estimates**. A step in work fills by its time and calls compared with finished
+steps of the same kind, or, until there are some, with earlier tasks; it only becomes full once it is checked off.
+A task's cost is the session's cost since the task began, shared out across its steps by their price-weighted
+tokens. Where the session reports no cost, the panel shows "–". Only your account's figures are binding.
 
-## Lizenz
+## License
 
-MIT, siehe [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). Changes are listed in [CHANGELOG.md](CHANGELOG.md).

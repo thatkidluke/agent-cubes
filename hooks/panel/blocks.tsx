@@ -1,6 +1,7 @@
 // Building blocks of the panel: a titled card, a fixed grid of figures, an agent row,
 // and how a call is labelled. Every function takes the surface's element table (`els`),
 // since the constructors come from $.ui.resolve(e). No name here may be `h` or `Fragment`.
+import { tr } from '../i18n'
 import type { BoxProps, ButtonProps, ElementConstructor, RenderChildren, TextProps } from 'claude-code'
 
 import type { CallKind, CubeRun, CubeStatus } from '../../types'
@@ -89,7 +90,7 @@ export function agentRow(els: Els, a: AgentRowProps) {
         <Text dimColor>{a.doing}</Text>
       </Box>
       <Button key={`${a.key}-btn`} variant="secondary" onPress={a.onView}>
-        Ansehen
+        {tr('Ansehen', 'View')}
       </Button>
     </Box>
   )

@@ -6,6 +6,7 @@ import { agentColor, agentInitial, KIND_COLOR, MAIN_COLOR, PALETTE, STATUS_LABEL
 import { blockersOf, isWorked, KIND_LABEL, stepCost, stepProgress, stuckReason, type StuckThresholds } from '../model'
 import { callColor, figures, glyphOf, whoCalled, type Els } from './blocks'
 import { baseName, cubeNo, fmtDuration, fmtTokens, fmtUsd } from './format'
+import { tr } from '../i18n'
 
 export const KINDS: CallKind[] = ['read', 'write', 'run', 'agent', 'other']
 
@@ -45,11 +46,11 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
   const facts: [string, RenderChildren][] = []
   if (mainOn || agentsOn.length > 0) {
     facts.push([
-      'Agents',
+      tr('Agents', 'Agents'),
       <Box key="f-agents" flexDirection="row" flexWrap="wrap" columnGap={2}>
         {mainOn && (
           <Text color={MAIN_COLOR} weight="bold">
-            H Hauptagent
+            H {tr('Hauptagent', 'Main agent')}
           </Text>
         )}
         {agentsOn.map(({ a, k }) => (
@@ -62,7 +63,7 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
   }
   if (byKind.length > 0) {
     facts.push([
-      'Arbeit',
+      tr('Arbeit', 'Work'),
       <Box key="f-kinds" flexDirection="row" flexWrap="wrap" columnGap={2}>
         {byKind.map(([k, n]) => (
           <Box key={`fk-${k}`} flexDirection="row" gap={1}>
@@ -77,7 +78,7 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
   }
   if (task.added > 0 || task.removed > 0) {
     facts.push([
-      'Code',
+      tr('Code', 'Code'),
       <Box key="f-code" flexDirection="row" gap={1}>
         <Text tabular color={PALETTE.done[1]}>
           +{task.added}
@@ -90,22 +91,22 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
   }
   if (tests > 0) {
     facts.push([
-      'Tests',
+      tr('Tests', 'Tests'),
       <Text key="f-tests" tabular>
-        {task.testsPassed} ✓ {task.testsFailed} ✕{task.lastTest ? ` · zuletzt ${task.lastTest === 'pass' ? '✓' : '✕'}` : ''}
+        {task.testsPassed} ✓ {task.testsFailed} ✕{task.lastTest ? ` · ${tr('zuletzt', 'last')} ${task.lastTest === 'pass' ? '✓' : '✕'}` : ''}
       </Text>,
     ])
   }
   if (blockers.length > 0) {
-    facts.push(['Wartet auf', <Text key="f-wait" color={PALETTE.waiting[1]}>Würfel {blockers.map(cubeNo).join(', ')}</Text>])
+    facts.push([tr('Wartet auf', 'Waits for'), <Text key="f-wait" color={PALETTE.waiting[1]}>{tr('Würfel', 'Cube')} {blockers.map(cubeNo).join(', ')}</Text>])
   }
-  if (files.length > 0) facts.push(['Dateien', <Text key="f-files" dimColor>{files.map(baseName).join(', ')}</Text>])
+  if (files.length > 0) facts.push([tr('Dateien', 'Files'), <Text key="f-files" dimColor>{files.map(baseName).join(', ')}</Text>])
 
   return (
     <Box flexDirection="column" gap={1} borderStyle="round" borderColor="#fbbf24" paddingX={1}>
       <Box flexDirection="row" justifyContent="space-between">
         <Text weight="bold">
-          Würfel {cubeNo(i)} · {task.title}
+          {tr('Würfel', 'Cube')} {cubeNo(i)} · {task.title}
         </Text>
         <Text color={PALETTE[status][1]} weight="semibold">
           ● {STATUS_LABEL[status]}
@@ -113,16 +114,16 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
       </Box>
       {hangs && (
         <Text color={PALETTE.error[1]} weight="semibold">
-          ⚠ Hängt: {hangs}
+          ⚠ {tr('Hängt', 'Stuck')}: {hangs}
         </Text>
       )}
       {figures(els, 'det', [
-        ['Dauer', took ? fmtDuration(took) : since ? `seit ${fmtDuration(since)}` : '–'],
-        ['Fortschritt', `≈ ${Math.floor(stepProgress(r, i, now) * 100)} %`],
+        [tr('Dauer', 'Time'), took ? fmtDuration(took) : since ? `${tr('seit', 'for')} ${fmtDuration(since)}` : '–'],
+        [tr('Fortschritt', 'Progress'), `≈ ${Math.floor(stepProgress(r, i, now) * 100)} %`],
         ['Tokens', fmtTokens(task.tokens)],
-        ['Kosten', cost === null ? '–' : `≈ ${fmtUsd(cost)}`],
-        ['Tool-Aufrufe', String(task.calls)],
-        ['Fehler', String(task.errors), task.errors > 0 ? PALETTE.error[1] : undefined],
+        [tr('Kosten', 'Cost'), cost === null ? '–' : `≈ ${fmtUsd(cost)}`],
+        [tr('Tool-Aufrufe', 'Tool calls'), String(task.calls)],
+        [tr('Fehler', 'Errors'), String(task.errors), task.errors > 0 ? PALETTE.error[1] : undefined],
       ], 3)}
       {facts.length > 0 && (
         <Box flexDirection="column">
@@ -143,7 +144,7 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
       {recent.length > 0 && (
         <Box flexDirection="column">
           <Text size="caption" dimColor>
-            Letzte Aufrufe
+            {tr('Letzte Aufrufe', 'Recent calls')}
           </Text>
           {recent.map(c => {
             const who = whoCalled(r, c.agentId)
@@ -157,7 +158,7 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
                   <Text mono>{c.tool}</Text>
                 </Box>
                 <Text dimColor tabular>
-                  {c.ms ? `${(c.ms / 1000).toFixed(1)} s` : c.status === 'running' ? 'läuft' : ''}
+                  {c.ms ? `${(c.ms / 1000).toFixed(1)} s` : c.status === 'running' ? tr('läuft', 'running') : ''}
                   {c.detail ? ` · ${c.detail}` : ''}
                 </Text>
               </Box>

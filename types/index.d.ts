@@ -81,7 +81,7 @@ export type CubeRun = {
   /** The session's cost in USD when the run began. */
   costAtStart: number
   /** What a step takes, from earlier runs: the yardstick until a step of this run is done. */
-  prior: { calls: number; ms: number }
+  prior: { calls: number; ms: number; byKind?: Record<string, { calls: number; ms: number; n: number }> }
 }
 
 export type HistTask = { title: string; ms: number; calls: number; tokens: number; errors: number }

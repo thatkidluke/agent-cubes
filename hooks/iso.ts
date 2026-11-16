@@ -5,18 +5,20 @@ import type { CubeCtx, MiniKind, SceneCtx, Skin } from './skins/types'
 import { box, circle, esc, fmt, lin, line, mix, n1, pline, poly, seeded } from './svg'
 import type { Pt } from './svg'
 import { fmtDuration } from './panel/format'
+import { tr } from './i18n'
 import { contextTank, cracks, dependencies, smoke, testSeal } from './overlays'
 import type { Detail } from './overlays'
 
 /** Status colours for the panel's text (the classic skin's): top, front, side. */
 export const PALETTE: Record<CubeStatus, [string, string, string]> = classic.status
 
+/** Status words, read in the current language each time. */
 export const STATUS_LABEL: Record<CubeStatus, string> = {
-  pending: 'offen',
-  running: 'läuft',
-  done: 'erledigt',
-  error: 'Fehler',
-  waiting: 'wartet auf dich',
+  get pending() { return tr('offen', 'open') },
+  get running() { return tr('läuft', 'running') },
+  get done() { return tr('erledigt', 'done') },
+  get error() { return tr('Fehler', 'error') },
+  get waiting() { return tr('wartet auf dich', 'waiting for you') },
 }
 
 export const KIND_COLOR: Record<CallKind, string> = {
@@ -136,7 +138,7 @@ function layout(r: CubeRun, now: number): Big[] {
       }))
     : [
         {
-          title: 'Auftrag',
+          title: tr('Auftrag', 'Task'),
           status: (r.status === 'done' ? 'done' : r.status === 'error' ? 'error' : active ? 'running' : 'pending') as CubeStatus,
           calls: r.toolCalls,
           worked: active,
@@ -156,11 +158,11 @@ function layout(r: CubeRun, now: number): Big[] {
   return steps.map((t, i): Big => {
     const badges: Badge[] = []
     if (active && i === mainIndex) {
-      badges.push({ color: MAIN_COLOR, letter: 'H', title: `Hauptagent${r.mainTool ? `, nutzt ${r.mainTool}` : ''}`, isLive: true })
+      badges.push({ color: MAIN_COLOR, letter: 'H', title: `${tr('Hauptagent', 'Main agent')}${r.mainTool ? `, ${tr('nutzt', 'using')} ${r.mainTool}` : ''}`, isLive: true })
     }
     r.agents.forEach((a, k) => {
       if ((hasPlan ? a.taskIndex : 0) !== i || a.status !== 'running') return
-      badges.push({ color: agentColor(k), letter: agentInitial(a.name), title: `${a.name} (${a.kind})${a.tool ? `, nutzt ${a.tool}` : ''}`, isLive: true })
+      badges.push({ color: agentColor(k), letter: agentInitial(a.name), title: `${a.name} (${a.kind})${a.tool ? `, ${tr('nutzt', 'using')} ${a.tool}` : ''}`, isLive: true })
     })
     const worked = t.worked || (t.status === 'pending' && badges.length > 0)
     const status: CubeStatus = worked ? (isWaiting && i === mainIndex ? 'waiting' : 'running') : t.status
@@ -184,9 +186,9 @@ function layout(r: CubeRun, now: number): Big[] {
       added: t.added,
       removed: t.removed,
       test: t.test,
-      title: `Würfel ${i + 1} von ${steps.length}: ${t.title} (${STATUS_LABEL[status]}${worked ? `, ca. ${pct} %` : ''}, ${t.calls} Tool-Aufrufe)`,
+      title: `${tr('Würfel', 'Cube')} ${i + 1} ${tr('von', 'of')} ${steps.length}: ${t.title} (${STATUS_LABEL[status]}${worked ? `, ${tr('ca.', 'about')} ${pct} %` : ''}, ${t.calls} ${tr('Tool-Aufrufe', 'tool calls')})`,
       badges,
-      caption: status === 'done' ? (t.took ? fmtDuration(t.took) : '✓') : worked ? `≈ ${pct} %` : status === 'error' ? 'Fehler' : '–',
+      caption: status === 'done' ? (t.took ? fmtDuration(t.took) : '✓') : worked ? `≈ ${pct} %` : status === 'error' ? tr('Fehler', 'Error') : '–',
       kinds: miniKinds(t.callList, Math.min(fill, SLOTS)),
       errors: t.errors,
     }
@@ -221,7 +223,7 @@ function stackOf(members: Big[], total: number): Big {
     removed: sum(m => m.removed),
     test: [...members].reverse().find(m => m.test)?.test ?? '',
     title:
-      `Würfel ${label} von ${total}: ${members.length} Schritte ${STATUS_LABEL[first.status]}` +
+      `${tr('Würfel', 'Cube')} ${label} ${tr('von', 'of')} ${total}: ${members.length} ${tr('Schritte', 'steps')} ${STATUS_LABEL[first.status]}` +
       members.map(m => `\n${pad2(m.index + 1)} ${m.name}`).join(''),
     badges: members.flatMap(m => m.badges),
     caption: `${members.length} ${done ? '✓' : '○'}`,
@@ -554,7 +556,7 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
     if (big.errors > 0) {
       const er = Math.max(5, S * 0.12)
       parts.push(
-        `<g><title>${big.errors} fehlgeschlagene Tool-Aufrufe</title>` +
+        `<g><title>${big.errors} ${tr('fehlgeschlagene Tool-Aufrufe', 'failed tool calls')}</title>` +
           `<circle cx="${n1(lx + 1)}" cy="${n1(ly + 1)}" r="${n1(er)}" fill="#ef4444" stroke="#ffffff" stroke-width="1"/>` +
           `<text class="t" x="${n1(lx + 1)}" y="${n1(ly + 1 + er * 0.4)}" font-size="${n1(er * 1.1)}" fill="#ffffff" text-anchor="middle">${big.errors > 9 ? '9+' : big.errors}</text></g>`,
       )
@@ -573,13 +575,13 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
     }
     if (big.stuck) {
       // A warning triangle right of the plaque.
-      const tr = Math.max(5, S * 0.14)
-      const tx = lx + w + tr * 0.35 + 2
+      const triR = Math.max(5, S * 0.14)
+      const tx = lx + w + triR * 0.35 + 2
       const ty = ly + 1
       parts.push(
-        `<g><title>Hängt: ${esc(big.stuck)}</title>` +
-          poly([[tx + tr, ty], [tx + tr * 2, ty + tr * 1.75], [tx, ty + tr * 1.75]], `fill="${skin.status.waiting[1]}" stroke="#0f172a" stroke-opacity="0.6" stroke-width="0.8" stroke-linejoin="round"`) +
-          `<text class="t" x="${n1(tx + tr)}" y="${n1(ty + tr * 1.55)}" font-size="${n1(tr * 1.25)}" fill="#0f172a" text-anchor="middle">!</text></g>`,
+        `<g><title>${tr('Hängt', 'Stuck')}: ${esc(big.stuck)}</title>` +
+          poly([[tx + triR, ty], [tx + triR * 2, ty + triR * 1.75], [tx, ty + triR * 1.75]], `fill="${skin.status.waiting[1]}" stroke="#0f172a" stroke-opacity="0.6" stroke-width="0.8" stroke-linejoin="round"`) +
+          `<text class="t" x="${n1(tx + triR)}" y="${n1(ty + triR * 1.55)}" font-size="${n1(triR * 1.25)}" fill="#0f172a" text-anchor="middle">!</text></g>`,
       )
     }
   }
@@ -785,7 +787,10 @@ export function buildSvg(
   const steps = layout(r, now)
   const done = steps.filter(b => b.status === 'done').length
   const working = steps.filter(b => b.badges.length > 0).map(b => b.index + 1)
-  const alt = `Würfel-Zeitleiste: ${done} von ${steps.length} Würfeln erledigt${working.length ? `, gearbeitet wird an Würfel ${working.join(', ')}` : ''}`
+  const alt = tr(
+    `Würfel-Zeitleiste: ${done} von ${steps.length} Würfeln erledigt${working.length ? `, gearbeitet wird an Würfel ${working.join(', ')}` : ''}`,
+    `Cube timeline: ${done} of ${steps.length} cubes done${working.length ? `, working on cube ${working.join(', ')}` : ''}`,
+  )
 
   const bigs = fold(steps)
   const posOf: number[] = []
