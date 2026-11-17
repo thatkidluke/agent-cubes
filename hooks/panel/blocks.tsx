@@ -4,8 +4,8 @@
 import { tr } from '../i18n'
 import type { BoxProps, ButtonProps, ElementConstructor, RenderChildren, TextProps } from 'claude-code'
 
-import type { CallKind, CubeRun, CubeStatus } from '../../types'
-import { agentColor, agentInitial, KIND_COLOR, MAIN_COLOR, PALETTE } from '../iso'
+import type { CallKind, CubeRun, CubeStatus, WorkKind } from '../../types'
+import { agentColor, agentInitial, MAIN_COLOR, PALETTE, WORK_COLOR } from '../iso'
 
 /** The elements the panel's blocks draw with: every surface has these. */
 export type Els = {
@@ -81,13 +81,15 @@ export function agentRow(els: Els, a: AgentRowProps) {
       <Box flexGrow={1} flexShrink={1}>
         <Text dimColor={a.dim}>{a.name}</Text>
       </Box>
-      <Box width={11}>
-        <Text dimColor tabular>
-          {a.where}
-        </Text>
-      </Box>
-      <Box width={14}>
-        <Text dimColor>{a.doing}</Text>
+      {a.where ? (
+        <Box flexShrink={0}>
+          <Text dimColor tabular>
+            {a.where}
+          </Text>
+        </Box>
+      ) : null}
+      <Box flexShrink={1}>
+        <Text dimColor>{a.doing.length > 22 ? a.doing.slice(0, 21) + '…' : a.doing}</Text>
       </Box>
       <Button key={`${a.key}-btn`} variant="secondary" onPress={a.onView}>
         {tr('Ansehen', 'View')}
@@ -106,5 +108,8 @@ export function whoCalled(r: CubeRun, agentId: string): { letter: string; color:
 
 export const glyphOf = (status: CubeStatus) => (status === 'error' ? '✕' : status === 'done' ? '■' : '▶')
 
-export const callColor = (c: { status: CubeStatus; kind: CallKind }) =>
-  c.status === 'error' ? PALETTE.error[1] : c.status === 'done' ? KIND_COLOR[c.kind] : PALETTE.running[1]
+/** A call's kind of work: the finer one read when it started, else its call kind. */
+export const workOf = (c: { kind: CallKind; work?: WorkKind }): WorkKind => c.work ?? c.kind
+
+export const callColor = (c: { status: CubeStatus; kind: CallKind; work?: WorkKind }) =>
+  c.status === 'error' ? PALETTE.error[1] : c.status === 'done' ? WORK_COLOR[workOf(c)] : PALETTE.running[1]

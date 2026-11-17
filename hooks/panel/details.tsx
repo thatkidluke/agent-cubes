@@ -1,14 +1,12 @@
 // The details of the cube picked in the WÜRFEL-DETAILS card.
 import type { RenderChildren } from 'claude-code'
 
-import type { CallKind, CubeRun, CubeStatus } from '../../types'
-import { agentColor, agentInitial, KIND_COLOR, MAIN_COLOR, PALETTE, STATUS_LABEL } from '../iso'
-import { blockersOf, isWorked, KIND_LABEL, stepCost, stepProgress, stuckReason, type StuckThresholds } from '../model'
-import { callColor, figures, glyphOf, whoCalled, type Els } from './blocks'
+import type { CubeRun, CubeStatus } from '../../types'
+import { agentColor, agentInitial, MAIN_COLOR, PALETTE, STATUS_LABEL, WORK_COLOR } from '../iso'
+import { blockersOf, isWorked, stepCost, stepProgress, stuckReason, WORK_KINDS, WORK_LABEL, type StuckThresholds } from '../model'
+import { callColor, figures, glyphOf, whoCalled, workOf, type Els } from './blocks'
 import { baseName, cubeNo, fmtDuration, fmtTokens, fmtUsd } from './format'
 import { tr } from '../i18n'
-
-export const KINDS: CallKind[] = ['read', 'write', 'run', 'agent', 'other']
 
 export type DetailsInput = {
   r: CubeRun
@@ -36,7 +34,7 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
   const cost = stepCost(r, i, usd)
   const agentsOn = r.agents.map((a, k) => ({ a, k })).filter(({ a }) => a.taskIndex === i)
   const mainOn = calls.some(c => c.agentId === '') || (i === cur && active)
-  const byKind = KINDS.map(k => [k, calls.filter(c => c.kind === k).length] as const).filter(([, n]) => n > 0)
+  const byKind = WORK_KINDS.map(k => [k, calls.filter(c => workOf(c) === k).length] as const).filter(([, n]) => n > 0)
   const files = [...new Set(calls.map(c => c.file).filter(Boolean))].slice(-6)
   const recent = calls.slice(-6).reverse()
   const hangs = stuckReason(r, i, now, limits)
@@ -67,9 +65,9 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
       <Box key="f-kinds" flexDirection="row" flexWrap="wrap" columnGap={2}>
         {byKind.map(([k, n]) => (
           <Box key={`fk-${k}`} flexDirection="row" gap={1}>
-            <Text color={KIND_COLOR[k]}>■</Text>
+            <Text color={WORK_COLOR[k]}>■</Text>
             <Text>
-              {KIND_LABEL[k]} {n}
+              {WORK_LABEL[k]} {n}
             </Text>
           </Box>
         ))}
@@ -155,7 +153,9 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
                   {who.letter}
                 </Text>
                 <Box width={10}>
-                  <Text mono>{c.tool}</Text>
+                  <Text mono color={WORK_COLOR[workOf(c)]}>
+                    {c.tool}
+                  </Text>
                 </Box>
                 <Text dimColor tabular>
                   {c.ms ? `${(c.ms / 1000).toFixed(1)} s` : c.status === 'running' ? tr('läuft', 'running') : ''}

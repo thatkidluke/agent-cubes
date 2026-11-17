@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.2
+
+- The finer kinds of work (browser, planning, tools of connected servers) now show everywhere, not only in the
+  summary: the live feed has an icon for each, and the mini cubes, the board's LEDs, the cube details and the
+  legend use the same colours.
+- In the text version of the agents list, what an agent does takes the room that is left and is cut with an
+  ellipsis; it had a fixed width.
+
 ## 0.14.1
 
 - The progress bar's label follows the language; it was German in every language.

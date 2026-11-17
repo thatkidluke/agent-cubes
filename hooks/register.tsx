@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { CubeRun, CubeStatus, HistRun } from '../types'
-import { buildSvg, KIND_COLOR, MAIN_COLOR, PALETTE, STATUS_LABEL } from './iso'
+import { buildSvg, MAIN_COLOR, PALETTE, STATUS_LABEL, WORK_COLOR } from './iso'
 import { SKINS, skinById } from './skins'
 import {
   addAgent,
@@ -15,7 +15,8 @@ import {
   eta,
   expected,
   isActive,
-  KIND_LABEL,
+  WORK_KINDS,
+  WORK_LABEL,
   markWaiting,
   overallProgress,
   priorFrom,
@@ -35,8 +36,8 @@ import { buildSummary } from './summary'
 import { BOARD_THEMES, boardThemeById, buildBoard } from './board'
 import { buildBoardSummary } from './board-summary'
 import { buildGauges, buildTiles, type Tile } from './gauges'
-import { agentRow, callColor, card, figures, glyphOf, whoCalled, type Els } from './panel/blocks'
-import { cubeDetails, KINDS } from './panel/details'
+import { agentRow, callColor, card, figures, glyphOf, whoCalled, workOf, type Els } from './panel/blocks'
+import { cubeDetails } from './panel/details'
 import { contextFrac, cubeNo, fileStamp, fmtDuration, fmtEta, fmtUsd, joinPath, type ContextLike } from './panel/format'
 import { memo, phaseLock } from './svg'
 import { overviewOf } from './panel/overview'
@@ -687,7 +688,7 @@ export const register: Register = (on, options) => {
                         {who.letter}
                       </Text>
                       <Box width={10}>
-                        <Text mono color={KIND_COLOR[c.kind]}>
+                        <Text mono color={WORK_COLOR[workOf(c)]}>
                           {c.tool}
                         </Text>
                       </Box>
@@ -741,11 +742,11 @@ export const register: Register = (on, options) => {
             ))}
           </Box>
           <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-            {KINDS.map(k => (
+            {WORK_KINDS.map(k => (
               <Box key={`lk-${k}`} flexDirection="row" gap={1}>
-                <Text color={KIND_COLOR[k]}>■</Text>
+                <Text color={WORK_COLOR[k]}>■</Text>
                 <Text size="caption" dimColor>
-                  {KIND_LABEL[k]}
+                  {WORK_LABEL[k]}
                 </Text>
               </Box>
             ))}

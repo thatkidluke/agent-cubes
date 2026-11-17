@@ -1,8 +1,8 @@
-import type { CallKind, CubeStatus } from '../../types'
+import type { CallKind, CubeStatus, WorkKind } from '../../types'
 import type { Box, Pt } from '../svg'
 
 /** A mini cube's look: the kind of work of the call it stands for, or a failed call. */
-export type MiniKind = CallKind | 'err'
+export type MiniKind = WorkKind | 'err'
 
 /** Everything about the scene a skin's decoration may need. */
 export type SceneCtx = {
@@ -85,7 +85,7 @@ export type Skin = {
   /** The mini cubes' base faces, each a gradient [from, to], a highlight line, and the glint that runs over them. */
   mini: { top: [string, string]; front: [string, string]; side: [string, string]; highlight: string; glint: string }
   /** Tint mixed into a mini cube per kind of work: [colour, amount 0..1]. */
-  tint: Record<MiniKind, [string, number]>
+  tint: Record<CallKind | 'err', [string, number]> & Partial<Record<MiniKind, [string, number]>>
   pedestal: {
     /** Gradients, top to bottom. */
     front: [string, string, string]

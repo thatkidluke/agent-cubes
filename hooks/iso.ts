@@ -12,10 +12,10 @@ import { pipeBandPx, pipeDefs, progressPipe, type PipeGeometry } from './pipe'
 import { tr } from './i18n'
 import { contextTank, cracks, dependencies, smoke, testSeal } from './overlays'
 import type { Detail } from './overlays'
-import { fold, layout, MAX_POS, MAX_POS_TWO_ROWS, N, SLOTS, STATUS_GLYPH, TWO_ROWS_FROM, type Big } from './scene'
+import { fold, layout, MAX_POS, MAX_POS_TWO_ROWS, N, SLOTS, STATUS_GLYPH, TWO_ROWS_FROM, WORK_COLOR, type Big } from './scene'
 
 // The scene's colours and words, for those who have always found them here.
-export { agentColor, agentInitial, KIND_COLOR, MAIN_COLOR, PALETTE, STATUS_GLYPH, STATUS_LABEL } from './scene'
+export { agentColor, agentInitial, KIND_COLOR, WORK_COLOR, MAIN_COLOR, PALETTE, STATUS_GLYPH, STATUS_LABEL } from './scene'
 
 /** The Svg element's limit on its markup. */
 const MAX_SOURCE = 131072
@@ -194,7 +194,8 @@ function render(sc: Scene, detail: Detail, skin: Skin, row: RowOptions = {}) {
   const mi = skin.mini
   const usedKinds = new Set<MiniKind>(['other', ...bigs.flatMap(b => b.kinds)])
   for (const k of usedKinds) {
-    const [tint, amount] = skin.tint[k]
+    // A skin that names no tint for a finer kind of work gets the panel's colour, as strong as its own.
+    const [tint, amount] = skin.tint[k] ?? [k === 'err' ? '#ef4444' : WORK_COLOR[k], skin.tint.read[1]]
     const tc = (c: string) => (amount ? mix(c, tint, amount) : c)
     defs.push(lin(`mT-${k}`, 1, 1, [[0, tc(mi.top[0])], [1, tc(mi.top[1])]]))
     defs.push(lin(`mF-${k}`, 0, 1, [[0, tc(mi.front[0])], [1, tc(mi.front[1])]]))

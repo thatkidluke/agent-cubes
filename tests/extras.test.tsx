@@ -22,6 +22,8 @@ import { buildGauges, buildTiles, warnColors } from '../hooks/gauges'
 import { buildAgents, buildLive, buildNow, clip } from '../hooks/panel/live'
 import { activity, clock, coins, cup, diffBlocks, hourglass, perMinute, tank, tokenBars, warning } from '../hooks/pictos'
 import { readSettings } from '../hooks/panel/settings'
+import { callColor } from '../hooks/panel/blocks'
+import { buildSvg } from '../hooks/iso'
 
 const PANE = {
   plugin: 'agent-cubes',
@@ -372,4 +374,17 @@ test('defaultView: board starts on the circuit board, with a picker for its sold
   const scene = (await ui.findAll({ type: 'Svg' })).find(n => String(n.props.alt).startsWith('Circuit board'))
   expect(String(scene?.props.source)).toContain('#1c1c22')
   await ui.unmount()
+})
+
+test('the live feed, the scene and the board colour a browser call like the summary does', async () => {
+  let r = applyTaskTool(startRun(emptyRun, 'x', 1), 'mcp__ccd_turn__update_plan', {
+    items: [{ content: 'Look it up', status: 'in_progress' }, { content: 'Write', status: 'pending' }],
+  }, undefined, 1)
+  r = toolStart(r, { id: 'b', tool: 'mcp__Claude_Browser__navigate', agentId: undefined, input: {} }, 1000)
+  r = toolEnd(r, { id: 'b', tool: 'mcp__Claude_Browser__navigate', agentId: undefined, isError: false, errorText: '' }, 2000)
+  const pink = '#ec4899'
+  expect(callColor(r.calls[0]!)).toBe(pink)
+  expect(buildLive([{ kind: 'browser', status: 'done', letter: 'H', color: '#818cf8', tool: 'navigate', detail: '' }], 360, true).source.includes(pink), 'feed icon').toBe(true)
+  expect(buildBoard(r, 560, 3000).source.includes(pink), 'board LED').toBe(true)
+  expect(buildSvg(r, 600, 3000).source.includes('m-browser'), 'mini cube').toBe(true)
 })

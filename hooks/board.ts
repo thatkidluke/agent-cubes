@@ -13,7 +13,7 @@
  * solder mask comes in a few colours.
  */
 import type { CubeRun, CubeStatus } from '../types'
-import { foldSteps, KIND_COLOR, sceneSteps, SLOTS, STATUS_GLYPH, stripSmil, type Big, type DrawOptions } from './iso'
+import { foldSteps, WORK_COLOR, sceneSteps, SLOTS, STATUS_GLYPH, stripSmil, type Big, type DrawOptions } from './iso'
 import { expected, stepKind, type StepKind } from './model'
 import { CONTEXT_AMBER, CONTEXT_RED } from './overlays'
 import { perMinute } from './pictos'
@@ -482,7 +482,7 @@ function chip(big: Big, g: Geo, part: { kind: StepKind; size: Size }, flights: F
     const base = `x="${n1(x)}" y="${n1(by)}" width="${n1(bw - 1.6 * u)}" height="${n1(8 * u)}" rx="${n1(1.2 * u)}"`
     if (k < lit) {
       const kind = big.kinds.length > 0 ? big.kinds[Math.min(big.kinds.length - 1, Math.floor((k * big.kinds.length) / lit))] : undefined
-      const c = big.status === 'done' ? ST.done : big.status === 'error' ? ST.error : kind === 'err' ? '#ef4444' : kind ? KIND_COLOR[kind] : col
+      const c = big.status === 'done' ? ST.done : big.status === 'error' ? ST.error : kind === 'err' ? '#ef4444' : kind ? WORK_COLOR[kind] : col
       // The newest LED flickers on as its call ends.
       const land = big.landing && !still && k === lit - 1 ? `<animate attributeName="opacity" values="0.1;1;0.3;1" dur="0.6s" fill="freeze"/>` : ''
       s += `<rect ${base} fill="${c}">${land}</rect>`

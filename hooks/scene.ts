@@ -32,7 +32,7 @@ export const KIND_COLOR: Record<CallKind, string> = {
   other: '#94a3b8',
 }
 
-/** The summaries' finer kinds of work: the call kinds' colours and three more. */
+/** The finer kinds of work: the call kinds' colours and three more. */
 export const WORK_COLOR: Record<WorkKind, string> = { ...KIND_COLOR, browser: '#ec4899', plan: '#84cc16', tools: '#06b6d4' }
 
 /** The main agent's marker color, then one per subagent in spawn order. */
@@ -106,7 +106,7 @@ function miniKinds(calls: CubeCall[], fill: number): MiniKind[] {
   if (calls.length === 0) return Array.from({ length: fill }, () => 'other')
   return Array.from({ length: fill }, (_, k) => {
     const c = calls[Math.min(calls.length - 1, Math.floor((k * calls.length) / fill))]
-    return !c ? 'other' : c.status === 'error' ? 'err' : c.kind
+    return !c ? 'other' : c.status === 'error' ? 'err' : (c.work ?? c.kind)
   })
 }
 

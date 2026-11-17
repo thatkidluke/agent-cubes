@@ -7,13 +7,12 @@
  */
 import { esc, n1 } from '../svg'
 import { FONT, STYLE } from '../gauges'
-import type { CallKind, CubeStatus } from '../../types'
+import type { CubeStatus, WorkKind } from '../../types'
 import { unitWord } from '../i18n'
-import { STATUS_LABEL } from '../iso'
+import { STATUS_LABEL, WORK_COLOR as KIND } from '../iso'
 
 type Built = { source: string; width: number; height: number; alt: string }
 
-const KIND: Record<CallKind, string> = { read: '#3b82f6', write: '#f59e0b', run: '#8b5cf6', agent: '#14b8a6', other: '#94a3b8' }
 const OK = '#16a34a'
 const BAD = '#e11d48'
 const WAIT = '#f59e0b'
@@ -43,7 +42,7 @@ function avatar(cx: number, cy: number, r: number, letter: string, color: string
 }
 
 /** A small icon for a kind of work, in a tinted rounded square. */
-function kindIcon(x: number, y: number, kind: CallKind): string {
+function kindIcon(x: number, y: number, kind: WorkKind): string {
   const c = KIND[kind]
   let s = `<rect x="${n1(x)}" y="${n1(y)}" width="20" height="20" rx="6" fill="${c}" fill-opacity="0.16"/>`
   const p = (d: string) => `<path d="${d}" fill="none" stroke="${c}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`
@@ -53,6 +52,10 @@ function kindIcon(x: number, y: number, kind: CallKind): string {
   else if (kind === 'write') s += p(`M${X(5.5)} ${Y(14.5)}L${X(6.5)} ${Y(11)}L${X(12.5)} ${Y(5)}L${X(15)} ${Y(7.5)}L${X(9)} ${Y(13.5)}Z`) + p(`M${X(11)} ${Y(6.5)}L${X(13.5)} ${Y(9)}`)
   else if (kind === 'run') s += p(`M${X(5.5)} ${Y(7)}L${X(9)} ${Y(10)}L${X(5.5)} ${Y(13)}`) + p(`M${X(10.5)} ${Y(14)}H${X(15)}`)
   else if (kind === 'agent') s += `<circle cx="${X(8)}" cy="${Y(8)}" r="2.3" fill="${c}"/><circle cx="${X(13)}" cy="${Y(8)}" r="2.3" fill="${c}" fill-opacity="0.6"/>` + p(`M${X(4.5)} ${Y(15)}C${X(5)} ${Y(11.5)} ${X(11)} ${Y(11.5)} ${X(11.5)} ${Y(15)}`)
+  // A globe, a ticked list, a plug: the browser, the plan, a connected server's tools.
+  else if (kind === 'browser') s += `<circle cx="${X(10)}" cy="${Y(10)}" r="5.5" fill="none" stroke="${c}" stroke-width="1.5"/>` + p(`M${X(4.5)} ${Y(10)}H${X(15.5)}M${X(10)} ${Y(4.5)}C${X(7)} ${Y(8)} ${X(7)} ${Y(12)} ${X(10)} ${Y(15.5)}C${X(13)} ${Y(12)} ${X(13)} ${Y(8)} ${X(10)} ${Y(4.5)}`)
+  else if (kind === 'plan') s += p(`M${X(5)} ${Y(7)}l1.3 1.3l2.2 -2.6M${X(5)} ${Y(12.5)}l1.3 1.3l2.2 -2.6`) + p(`M${X(11)} ${Y(7)}H${X(15.5)}M${X(11)} ${Y(12.5)}H${X(15.5)}`)
+  else if (kind === 'tools') s += p(`M${X(8)} ${Y(4.5)}V${Y(7.5)}M${X(12)} ${Y(4.5)}V${Y(7.5)}M${X(6)} ${Y(7.5)}H${X(14)}V${Y(10)}C${X(14)} ${Y(13.5)} ${X(6)} ${Y(13.5)} ${X(6)} ${Y(10)}Z`) + p(`M${X(10)} ${Y(12.7)}V${Y(15.5)}`)
   else s += `<circle cx="${X(10)}" cy="${Y(10)}" r="2.5" fill="${c}"/>`
   return s
 }
@@ -120,7 +123,7 @@ export type AgentInfo = {
   where: string
   /** The tool it uses, "thinking", or its state. */
   doing: string
-  kind: CallKind | null
+  kind: WorkKind | null
   status: 'running' | 'done' | 'error' | 'idle'
 }
 
@@ -149,7 +152,7 @@ export function buildAgents(agents: AgentInfo[], width: number, animate: boolean
   return { source: svg(width, height, s), width, height, alt }
 }
 
-export type CallInfo = { kind: CallKind; status: CubeStatus; letter: string; color: string; tool: string; detail: string }
+export type CallInfo = { kind: WorkKind; status: CubeStatus; letter: string; color: string; tool: string; detail: string }
 
 /** LIVE: the latest calls as a feed: kind icon, who made it, the tool, what it touched, how it went. */
 export function buildLive(calls: CallInfo[], width: number, animate: boolean): Built {

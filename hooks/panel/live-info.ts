@@ -7,7 +7,7 @@ import type { CubeCall, CubeRun, CubeTask } from '../../types'
 import { tr, unitWord, unitWords } from '../i18n'
 import { agentColor, agentInitial, MAIN_COLOR, PALETTE, STATUS_LABEL } from '../iso'
 import { stepProgress } from '../model'
-import { whoCalled } from './blocks'
+import { whoCalled, workOf } from './blocks'
 import { cubeNo, fmtDuration, fmtMinutes } from './format'
 import type { AgentInfo, CallInfo, NowInfo } from './live'
 import { step5 } from './overview'
@@ -28,7 +28,10 @@ export type LiveInput = {
 
 export function liveInfoOf(i: LiveInput): { nowInfo: NowInfo; agentInfos: AgentInfo[]; callInfos: CallInfo[] } {
   const { r, now, cur, curTask, active, elapsed, nowLine, ticker } = i
-  const lastKind = (agentId: string) => [...r.calls].reverse().find(c => c.agentId === agentId)?.kind ?? null
+  const lastKind = (agentId: string) => {
+    const c = [...r.calls].reverse().find(c => c.agentId === agentId)
+    return c ? workOf(c) : null
+  }
   const nowState: NowInfo['state'] = r.status === 'waiting' ? 'waiting' : curTask && active ? 'running' : r.status === 'done' ? 'done' : 'idle'
   const nowColor = { running: PALETTE.running[1], waiting: PALETTE.waiting[1], done: PALETTE.done[1], idle: PALETTE.pending[1] }[nowState]
   const nowInfo: NowInfo = {
@@ -76,7 +79,7 @@ export function liveInfoOf(i: LiveInput): { nowInfo: NowInfo; agentInfos: AgentI
   ]
   const callInfos: CallInfo[] = ticker.map(c => {
     const who = whoCalled(r, c.agentId)
-    return { kind: c.kind, status: c.status, letter: who.letter, color: who.color, tool: c.tool, detail: c.detail }
+    return { kind: workOf(c), status: c.status, letter: who.letter, color: who.color, tool: c.tool, detail: c.detail }
   })
   return { nowInfo, agentInfos, callInfos }
 }
