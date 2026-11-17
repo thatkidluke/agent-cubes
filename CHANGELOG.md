@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.1
+
+- README: a section on the scene and what each part of the drawing tells; features, skins and settings brought
+  up to date. Plugin and marketplace descriptions to match.
+
 ## 0.11.0
 
 - Mood lights: a warm spot falls on a step that waits for you, a stuck step glows red with a faint red edge

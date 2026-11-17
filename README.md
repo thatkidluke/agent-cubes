@@ -16,6 +16,7 @@
 
 <p align="center">
   <a href="#install">Install</a> ·
+  <a href="#the-scene">The scene</a> ·
   <a href="#the-panel">The panel</a> ·
   <a href="#skins">Skins</a> ·
   <a href="#settings">Settings</a> ·
@@ -49,11 +50,31 @@ The panel opens when a session starts, or any time with `/cubes`.
 <p align="center"><img src="docs/demo.svg" width="640" alt="A sample task playing out: cubes fill, agents move from step to step, finished steps turn solid"></p>
 
 Every step of the agents' plan (`update_plan`, `TodoWrite`, `TaskCreate` / `TaskUpdate`) becomes a glass cube on a
-timeline. While a step is worked on, its cube fills with small cubes, one slice of the step's real tool calls each,
+pedestal. While a step is worked on, its cube fills with small cubes, one slice of the step's real tool calls each,
 tinted by the kind of work: reading, writing, running, agents. A finished step turns into a solid cube with a tick.
 
 Subagents show up as coloured badges on the cube they work on. The panel estimates progress and time left, spots
-steps that are stuck, and shows how full the context window is.
+steps that are stuck, shows how full the context window is and what it all costs, and sums the task up once it
+is done.
+
+## The scene
+
+The drawing tells what happens before you read a number:
+
+- **Cubes** fill with mini cubes as calls end; the newest drops in as its call finishes. A finished step fuses into a
+  solid block, a light edge runs round it and its plaque flips like a split-flap sign.
+- **The progress pipe** in its own band of the pedestal fills from the left for the whole task, with a coupling at
+  every step. What flows in it suits the skin: glowing energy, a liquid with bubbles, pixel blocks or a flat fill.
+- **The context tank** on the pedestal's side fills with the same liquid; amber from 70 %, red from 85 %.
+- **Agents** are badges over their cube. The main agent flies over to the step it starts; a new subagent flies from
+  the main agent's step to its own.
+- **Mood lights:** a warm spot falls on a step that waits for you, a stuck step glows red with a faint red edge
+  round the scene, and the light turns calm once every step is done.
+- **Dependencies** run as pipes between the cubes, with a padlock on the waiting one that springs open when it is
+  free.
+- **Long plans** stand in two rows, the earlier steps raised at the back; past sixteen cubes, finished runs fold
+  into stacks.
+- **Light and dark:** the dark skins switch to a day version of their backdrop when the app is light.
 
 ## The panel
 
@@ -91,14 +112,12 @@ copies it as Markdown, ready for a pull request.
 
 **See what happens**
 
-- Cube timeline with a status per step: open, running, done, waiting for you, error, each with its own symbol
-- A progress pipe in its own band of the pedestal, filled with energy, liquid or pixels to suit the skin
-- Mood lights, mini cubes landing as calls end, agents flying between steps, steps fusing when done
-- Two rows of cubes for long plans, and day versions of the dark skins in light mode
-- Subagents as badges on the cube they work on
-- Live feed of the latest tool calls
-- Context tank on the pedestal: amber from 70 %, red from 85 %
-- Dependencies between tasks as pipes, a padlock on the waiting cube
+- A cube per step with a status: open, running, done, waiting for you, error, each with its own symbol
+- A progress pipe and a context tank, filled to suit the skin
+- Mood lights for waiting, stuck and finished steps
+- Agents as badges that move with their work; a live feed of the latest calls
+- Dependencies as pipes, with padlocks that spring open
+- Two rows for long plans
 
 </td>
 <td width="50%" valign="top">
@@ -118,8 +137,8 @@ copies it as Markdown, ready for a pull request.
 
 **Make it yours**
 
-- Eight skins, from calm to playful
-- Compact mode for long plans, still mode without animation
+- Eight skins, from calm to playful; the dark ones with a day version
+- Still mode without animation, for calm or slow machines
 - English and German interface
 
 </td>
@@ -137,7 +156,8 @@ copies it as Markdown, ready for a pull request.
 
 ## Skins
 
-Pick a skin from the dropdown at the top of the panel.
+Pick a skin from the dropdown at the top of the panel. Each brings its own pedestal, cubes, pipe filling and
+backdrop; in light mode the dark ones show a day version.
 
 <table>
 <tr>
@@ -168,7 +188,7 @@ Find them under **Agent Cubes** in the plugin settings; a change applies at once
 | `defaultSkin` | `classic` | The skin while none is picked in the panel; a pick in the panel wins. |
 | `budgetUsd` | `0` | Cost budget per task in USD: amber from 80 %, a warning once passed. `0` turns it off. |
 | `autoOpen` | on | Open the panel when a session starts; otherwise only via `/cubes`. |
-| `animations` | on | Animation in the panel and the export; off draws still pictures. |
+| `animations` | on | Animation in the panel and the export: filling, flights, mood lights, the pipe's flow. Off draws still pictures. |
 | `gaugeRow` | off | A row of glass canisters above the overview; the tiles show the same values. |
 | `stuckSilentMinutes` | `5` | Minutes without a tool call after which a cube counts as stuck (0.5–240). |
 | `stuckFailsInRow` | `3` | Failed calls in a row after which a cube is stuck (1–50). |
@@ -204,7 +224,7 @@ how full the context window is. It reads no credentials, environment variables o
 | `session.start` | Loads the stored history and skin pick, opens the panel if `autoOpen` is on, starts a once-a-second refresh while a task runs. |
 | `command.run` for `/cubes` | Opens the panel. |
 | `turn.start`, `turn.step`, `turn.complete` | Start and end a task, count each model request's tokens. They pass everything on unchanged. |
-| `agent.spawn` | Reads a new subagent's description to name its badge. The spawn itself is unchanged. |
+| `agent.spawn` | Reads a new subagent's description to name its badge and notes when it started, for its flight to its step. The spawn itself is unchanged. |
 | `tool.check` | Notes when a call needs your permission, to measure how long the agents wait for you. It passes the decision on exactly as it came and never makes one. |
 | `tool.call` | Notes each call's start, end and outcome to fill the cubes. The call and its result are unchanged. |
 | `ui.render` | Draws the panel. |

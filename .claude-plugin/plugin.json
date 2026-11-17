@@ -1,7 +1,7 @@
 {
   "name": "agent-cubes",
-  "version": "0.11.0",
-  "description": "A live cube timeline of your agents' work beside the Claude Code chat: progress, agents, stuck steps, context gauges, eight skins",
+  "version": "0.11.1",
+  "description": "A live cube timeline of your agents' work beside the Claude Code chat: a cube per step, a progress pipe, agents, a live feed, stuck detection, context and cost, eight skins",
   "author": {
     "name": "Agent Cubes contributors"
   },
@@ -51,7 +51,7 @@
     "animations": {
       "type": "boolean",
       "title": "Animations",
-      "description": "Moving cubes and effects. Off: a calm still image, in exports too.",
+      "description": "Filling cubes, flying agents, mood lights and the flow in the pipe. Off: a calm still image, in exports too.",
       "default": true
     },
     "gaugeRow": {

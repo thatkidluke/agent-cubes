@@ -1,6 +1,6 @@
 {
   "name": "agent-cubes",
-  "description": "Agent Cubes: a live cube timeline of your agents' work beside the Claude Code chat.",
+  "description": "Agent Cubes: a live cube timeline of your agents' work beside the Claude Code chat, with a progress pipe, agents, a live feed and eight skins.",
   "owner": { "name": "Agent Cubes contributors" },
   "plugins": [{ "name": "agent-cubes", "source": "./" }]
 }
