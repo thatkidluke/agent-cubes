@@ -1,5 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
+import { buildSummary } from '../hooks/summary'
 import {
   applyTaskTool,
   blockersOf,
@@ -13,6 +14,10 @@ import {
   stuckReason,
   toolEnd,
   toolStart,
+  workKind,
+  endRun,
+  summaryOf,
+  summaryMarkdown,
 } from '../hooks/model'
 import { buildSvg } from '../hooks/iso'
 import { SKINS } from '../hooks/skins/index'
@@ -261,4 +266,23 @@ test('earlier runs teach a kind once they hold two such steps', async () => {
   expect(review.ms).toBe(30_000)
   // Code was seen once only: the overall prior stands in.
   expect(kinds.expected(r, 1).basis).toBe('prior')
+})
+
+test('a summary tells browser work, planning and connected tools apart, and leaves out empty code and tests', async () => {
+  expect(workKind('mcp__Claude_Browser__navigate')).toBe('browser')
+  expect(workKind('mcp__Claude_Browser__get_page_text')).toBe('browser')
+  expect(workKind('mcp__ccd_turn__update_plan')).toBe('plan')
+  expect(workKind('mcp__visualize__show_widget')).toBe('tools')
+  expect(workKind('Read')).toBe('read')
+  expect(workKind('Skill')).toBe('other')
+  let r = startRun(emptyRun, 'Browse', 1)
+  r = applyTaskTool(r, 'mcp__ccd_turn__update_plan', { items: [{ content: 'Look it up', status: 'in_progress' }] }, undefined, 2)
+  r = toolStart(r, { id: 'b', tool: 'mcp__Claude_Browser__navigate', agentId: undefined, input: {} }, 1000)
+  r = toolEnd(r, { id: 'b', tool: 'mcp__Claude_Browser__navigate', agentId: undefined, isError: false, errorText: '' }, 2000)
+  r = applyTaskTool(r, 'mcp__ccd_turn__update_plan', { items: [{ content: 'Look it up', status: 'completed' }] }, undefined, 3000)
+  r = endRun(r, 'answer', 4000)
+  const pic = buildSummary(r, summaryOf(r, null), 480).source
+  expect(pic.includes('Browser 100 %'), 'the browser call is named').toBe(true)
+  expect(pic.includes('>Code<') || pic.includes('>Tests<'), 'no empty code or tests section').toBe(false)
+  expect(summaryMarkdown(r, null).includes('| Code |'), 'no empty code row').toBe(false)
 })

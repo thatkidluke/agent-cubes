@@ -1,6 +1,6 @@
 {
   "name": "agent-cubes",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "A live view of your agents' work beside the Claude Code chat, as glass cubes or as a circuit board: a step each, progress, agents, a live feed, stuck detection, context and cost, eight skins, five solder masks",
   "author": {
     "name": "Agent Cubes contributors"

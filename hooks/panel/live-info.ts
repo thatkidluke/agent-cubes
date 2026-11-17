@@ -4,7 +4,7 @@
  * tool, and the latest calls. Pure: the same input gives the same infos.
  */
 import type { CubeCall, CubeRun, CubeTask } from '../../types'
-import { tr } from '../i18n'
+import { tr, unitWord, unitWords } from '../i18n'
 import { agentColor, agentInitial, MAIN_COLOR, PALETTE, STATUS_LABEL } from '../iso'
 import { stepProgress } from '../model'
 import { whoCalled } from './blocks'
@@ -37,9 +37,9 @@ export function liveInfoOf(i: LiveInput): { nowInfo: NowInfo; agentInfos: AgentI
     title: nowLine,
     sub:
       curTask && curTask.startedAt && active
-        ? `${tr('Würfel', 'Cube')} ${cubeNo(cur)} · ${tr('seit', 'for')} ${fmtMinutes(now - curTask.startedAt)} · ${tr('ca.', 'about')} ${Math.round((step5(stepProgress(r, cur, now)) ?? 0) * 100)} %`
+        ? `${unitWord()} ${cubeNo(cur)} · ${tr('seit', 'for')} ${fmtMinutes(now - curTask.startedAt)} · ${tr('ca.', 'about')} ${Math.round((step5(stepProgress(r, cur, now)) ?? 0) * 100)} %`
         : r.status === 'done'
-          ? `${r.tasks.length} ${tr('Würfel', 'cubes')} · ${fmtDuration(elapsed)}`
+          ? `${r.tasks.length} ${unitWords()} · ${fmtDuration(elapsed)}`
           : '',
     progress: curTask && active ? step5(stepProgress(r, cur, now)) : null,
     agents: [
@@ -56,7 +56,7 @@ export function liveInfoOf(i: LiveInput): { nowInfo: NowInfo; agentInfos: AgentI
       letter: 'H',
       color: active ? MAIN_COLOR : PALETTE.pending[2],
       name: tr('Hauptagent', 'Main agent'),
-      where: active ? `→ ${tr('Würfel', 'Cube')} ${r.tasks.length > 0 ? (cur >= 0 ? cubeNo(cur) : '–') : '01'}` : '',
+      where: active ? `→ ${unitWord()} ${r.tasks.length > 0 ? (cur >= 0 ? cubeNo(cur) : '–') : '01'}` : '',
       doing: active ? r.mainTool || tr('denkt nach', 'thinking') : tr('inaktiv', 'idle'),
       kind: active && r.mainTool ? lastKind('') : null,
       status: active ? 'running' : 'idle',
@@ -68,7 +68,7 @@ export function liveInfoOf(i: LiveInput): { nowInfo: NowInfo; agentInfos: AgentI
         letter: agentInitial(a.name),
         color: a.status === 'running' ? agentColor(k) : PALETTE[a.status][1],
         name: a.name,
-        where: `→ ${tr('Würfel', 'Cube')} ${r.tasks.length > 0 ? cubeNo(a.taskIndex) : '01'}`,
+        where: `→ ${unitWord()} ${r.tasks.length > 0 ? cubeNo(a.taskIndex) : '01'}`,
         doing: a.status === 'running' ? a.tool || tr('denkt nach', 'thinking') : STATUS_LABEL[a.status],
         kind: a.status === 'running' && a.tool ? lastKind(a.id) : null,
         status: a.status,

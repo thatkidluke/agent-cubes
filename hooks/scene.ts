@@ -5,6 +5,7 @@
  * and the circuit board both draw from here.
  */
 import type { CallKind, CubeCall, CubeRun, CubeStatus } from '../types'
+import type { WorkKind } from './model'
 import { blockersOf, currentTaskIndex, isActive, isWorked, stepProgress, stuckReason, unlockedRecently } from './model'
 import { classic } from './skins/classic'
 import type { MiniKind } from './skins/types'
@@ -30,6 +31,9 @@ export const KIND_COLOR: Record<CallKind, string> = {
   agent: '#14b8a6',
   other: '#94a3b8',
 }
+
+/** The summaries' finer kinds of work: the call kinds' colours and three more. */
+export const WORK_COLOR: Record<WorkKind, string> = { ...KIND_COLOR, browser: '#ec4899', plan: '#84cc16', tools: '#06b6d4' }
 
 /** The main agent's marker color, then one per subagent in spawn order. */
 export const MAIN_COLOR = '#818cf8'

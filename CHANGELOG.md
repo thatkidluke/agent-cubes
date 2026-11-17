@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.1
+
+- The progress bar's label follows the language; it was German in every language.
+- With the circuit board as the view the panel speaks of chips, not cubes.
+- The summary's kinds of work tell three more apart, so "Other" is no longer most of the bar: work in a browser,
+  planning, and the tools of connected servers.
+- The summary leaves out Code and Tests when the task changed no lines and ran no tests.
+
 ## 0.14.0
 
 - The scenes stand free: no skin draws a backdrop any more, so the cube machine sits directly on the pane and the

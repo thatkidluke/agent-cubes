@@ -4,10 +4,10 @@
  * strip, LED bars for working versus waiting, the kinds of work, code and
  * tests, and a bar per step as long as it took.
  */
-import type { CallKind, CubeRun } from '../types'
+import type { CubeRun } from '../types'
 import { boardThemeById } from './board'
-import { KIND_COLOR } from './iso'
-import { KIND_LABEL, stepKind, type RunSummary } from './model'
+import { WORK_COLOR } from './scene'
+import { stepKind, WORK_KINDS, WORK_LABEL, type RunSummary, type WorkKind } from './model'
 import { tr } from './i18n'
 import { fmtDuration } from './panel/format'
 import { esc, n1 } from './svg'
@@ -83,12 +83,12 @@ export function buildBoardSummary(r: CubeRun, s: RunSummary, width: number, them
   const work = Math.max(0, s.ms - s.waitMs)
   const dot = (c: string) => `<tspan fill="${c}">●</tspan> `
   bar(tr('ZEIT', 'TIME'), [[work, BLUE], [s.waitMs, AMBER]], `${dot(BLUE)}${tr('Arbeit', 'Working')} ${fmtDuration(work)}   ${dot(AMBER)}${tr('Warten', 'Waiting')} ${s.waitMs > 0 ? '≈ ' + fmtDuration(s.waitMs) : '0:00'}`)
-  const byKind = new Map<CallKind, number>()
-  for (const c of r.calls) byKind.set(c.kind, (byKind.get(c.kind) ?? 0) + 1)
-  const kinds = (['read', 'write', 'run', 'agent', 'other'] as CallKind[]).filter(k => (byKind.get(k) ?? 0) > 0)
+  const byKind = new Map<WorkKind, number>()
+  for (const c of r.calls) byKind.set(c.work ?? c.kind, (byKind.get(c.work ?? c.kind) ?? 0) + 1)
+  const kinds = WORK_KINDS.filter(k => (byKind.get(k) ?? 0) > 0)
   if (kinds.length > 0) {
     const total = kinds.reduce((t, k) => t + (byKind.get(k) ?? 0), 0)
-    bar(tr('ARBEITSARTEN', 'KINDS OF WORK'), kinds.map(k => [byKind.get(k) ?? 0, KIND_COLOR[k]]), kinds.map(k => `${dot(KIND_COLOR[k])}${esc(KIND_LABEL[k])} ${Math.round(((byKind.get(k) ?? 0) / total) * 100)}%`).join('  '))
+    bar(tr('ARBEITSARTEN', 'KINDS OF WORK'), kinds.map(k => [byKind.get(k) ?? 0, WORK_COLOR[k]]), kinds.map(k => `${dot(WORK_COLOR[k])}${esc(WORK_LABEL[k])} ${Math.round(((byKind.get(k) ?? 0) / total) * 100)}%`).join('  '))
   }
   if (s.added + s.removed > 0) bar('CODE', [[s.added, GREEN], [s.removed, RED]], `<tspan fill="${GREEN}" font-weight="700">+${s.added}</tspan>  <tspan fill="${RED}" font-weight="700">−${s.removed}</tspan>`)
   if (s.testsPassed + s.testsFailed > 0) bar('TESTS', [[s.testsPassed, GREEN], [s.testsFailed, RED]], `<tspan fill="${GREEN}" font-weight="700">${s.testsPassed} ✓</tspan>  <tspan fill="${RED}" font-weight="700">${s.testsFailed} ✕</tspan>`)

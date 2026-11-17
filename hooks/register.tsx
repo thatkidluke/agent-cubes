@@ -43,7 +43,7 @@ import { overviewOf } from './panel/overview'
 import { liveInfoOf } from './panel/live-info'
 import { buildAgents, buildLive, buildNow } from './panel/live'
 import { readSettings } from './panel/settings'
-import { setLang, tr } from './i18n'
+import { setLang, tr, setUnit, unitWord, unitWords } from './i18n'
 import { statsCard } from './panel/stats'
 
 const PANE = 'agent-cubes'
@@ -278,6 +278,7 @@ export const register: Register = (on, options) => {
 
     const drawOpts = { context: ctxFrac, motion: settings.animations }
     const view: View = ((await read($, viewPick)) || settings.defaultView) === 'board' ? 'board' : 'cubes'
+    setUnit(view === 'board' ? 'chip' : 'cube')
     const boardTheme = boardThemeById(await read($, boardPick))
     const sceneWidth = isWidget ? 180 : Math.max(260, Math.min(680, cols * 7.5))
     // The board's display also shows cost and time left: in tenths of a dollar and whole minutes, so it stays calm.
@@ -320,7 +321,7 @@ export const register: Register = (on, options) => {
         : firstStuck
           ? {
               text: clip(
-                `⚠ ${tr('Würfel', 'Cube')} ${cubeNo(firstStuck.i)} ${tr('hängt', 'is stuck')}: ${firstStuck.why}` +
+                `⚠ ${unitWord()} ${cubeNo(firstStuck.i)} ${tr('hängt', 'is stuck')}: ${firstStuck.why}` +
                   (stuck.length > 1 ? ` (+${stuck.length - 1})` : ''),
               ),
               color: PALETTE.error[1],
@@ -434,7 +435,7 @@ export const register: Register = (on, options) => {
           : tr('Warte auf den nächsten Auftrag', 'Waiting for the next task')
     const nowMeta =
       curTask && curTask.startedAt && active
-        ? `${tr('Würfel', 'Cube')} ${cubeNo(cur)} · ${tr('seit', 'for')} ${fmtDuration(now - curTask.startedAt)} · ${tr('ca.', 'about')} ${Math.floor(stepProgress(r, cur, now) * 100)} %`
+        ? `${unitWord()} ${cubeNo(cur)} · ${tr('seit', 'for')} ${fmtDuration(now - curTask.startedAt)} · ${tr('ca.', 'about')} ${Math.floor(stepProgress(r, cur, now) * 100)} %`
         : ''
 
     const details = sel >= 0 ? cubeDetails(blockEls, { r, i: sel, now, usd, cur, active, limits }) : null
@@ -485,7 +486,7 @@ export const register: Register = (on, options) => {
               {pct !== null ? `${pct} %` : '–'}
             </Text>
             <Text dimColor>
-              {prog ? tr(`${prog.done} von ${prog.total} Würfeln erledigt`, `${prog.done} of ${prog.total} cubes done`) : tr('Noch kein Plan: 1 Würfel für den ganzen Auftrag', 'No plan yet: 1 cube for the whole task')}
+              {prog ? tr(`${prog.done} von ${prog.total} ${view === 'board' ? 'Chips' : 'Würfeln'} erledigt`, `${prog.done} of ${prog.total} ${unitWords()} done`) : tr(`Noch kein Plan: 1 ${unitWord()} für den ganzen Auftrag`, `No plan yet: 1 ${unitWord().toLowerCase()} for the whole task`)}
             </Text>
           </Box>
           <Box flexDirection="column" alignItems="flex-end" gap={0}>
@@ -501,7 +502,7 @@ export const register: Register = (on, options) => {
           </Box>
         </Box>
         <Progress
-          label="Fortschritt"
+          label={tr('Fortschritt', 'Progress')}
           {...(prog && overall !== null ? { value: overall, max: 1, valueText: `${prog.done}/${prog.total}` } : {})}
           color={runColor}
         />
@@ -579,8 +580,8 @@ export const register: Register = (on, options) => {
             {left !== null && !exp.isMeasured && (
               <Text size="footnote" dimColor>
                 {tr(
-                  `* Restzeit geschätzt aus ${hist.length > 0 ? 'früheren Aufträgen' : 'Standardwerten'}, bis der erste Würfel fertig ist.`,
-                  `* Time left estimated from ${hist.length > 0 ? 'earlier tasks' : 'defaults'} until the first cube is done.`,
+                  `* Restzeit geschätzt aus ${hist.length > 0 ? 'früheren Aufträgen' : 'Standardwerten'}, bis der erste ${unitWord()} fertig ist.`,
+                  `* Time left estimated from ${hist.length > 0 ? 'earlier tasks' : 'defaults'} until the first ${unitWord().toLowerCase()} is done.`,
                 )}
               </Text>
             )}

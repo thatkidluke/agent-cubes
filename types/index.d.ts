@@ -2,6 +2,8 @@ export type CubeStatus = 'pending' | 'running' | 'done' | 'error' | 'waiting'
 
 /** What kind of work a tool call is: it tints its silver cube. */
 export type CallKind = 'read' | 'write' | 'run' | 'agent' | 'other'
+/** The finer kinds a summary tells apart: the call kinds, and browser work, planning and connected tools cut out of them. */
+export type WorkKind = CallKind | 'browser' | 'plan' | 'tools'
 
 export type CubeTask = {
   id: string
@@ -45,6 +47,8 @@ export type CubeCall = {
   status: CubeStatus
   tool: string
   kind: CallKind
+  /** Its finer kind for the summary; absent on calls stored before it existed, which count by `kind`. */
+  work?: WorkKind
   /** '' for the main agent. */
   agentId: string
   /** The step the call counted towards; -1 for none. */

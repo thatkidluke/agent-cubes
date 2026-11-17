@@ -1,3 +1,4 @@
+import type { WorkKind } from '../types'
 import type { CallKind, CubeAgent, CubeCall, CubeRun, CubeStatus, CubeTask, HistRun } from '../types'
 import { tr } from './i18n'
 
@@ -67,6 +68,36 @@ export const KIND_LABEL: Record<CallKind, string> = {
   get run() { return tr('Ausführen', 'Run') },
   get agent() { return tr('Agents', 'Agents') },
   get other() { return tr('Sonstiges', 'Other') },
+}
+
+/**
+ * The kinds of work a summary tells apart: the call kinds, and three more cut
+ * out of them, so "other" is not most of the bar: work in a browser or on the
+ * desktop, keeping the plan, and the tools of connected servers.
+ */
+export type { WorkKind }
+
+export const WORK_KINDS: WorkKind[] = ['read', 'write', 'run', 'browser', 'tools', 'agent', 'plan', 'other']
+
+const PLAN = new Set(['TaskCreate', 'TaskUpdate', 'TodoWrite', 'ExitPlanMode', 'EnterPlanMode'])
+
+/** Read from the tool's full name, when the call starts. */
+export function workKind(t: string): WorkKind {
+  if (/^mcp__(Claude_Browser|claude-in-chrome|computer-use|remote-devices)__/.test(t)) return 'browser'
+  if (PLAN.has(t) || t.startsWith('mcp__ccd_turn__') || t === 'mcp__ccd_session__mark_chapter') return 'plan'
+  const kind = callKind(t)
+  return kind === 'other' && t.startsWith('mcp__') ? 'tools' : kind
+}
+
+export const WORK_LABEL: Record<WorkKind, string> = {
+  get read() { return KIND_LABEL.read },
+  get write() { return KIND_LABEL.write },
+  get run() { return KIND_LABEL.run },
+  get agent() { return KIND_LABEL.agent },
+  get other() { return KIND_LABEL.other },
+  get browser() { return tr('Browser', 'Browser') },
+  get plan() { return tr('Planung', 'Planning') },
+  get tools() { return tr('Tools', 'Tools') },
 }
 
 export function currentTaskIndex(r: CubeRun): number {
@@ -177,6 +208,7 @@ export function toolStart(
         status: (isWaiting ? 'waiting' : 'running') as CubeStatus,
         tool: label,
         kind: callKind(c.tool),
+        work: workKind(c.tool),
         agentId: c.agentId ?? '',
         taskIndex: idx,
         at: now,
@@ -781,7 +813,7 @@ export function summaryMarkdown(r: CubeRun, usd: number | null): string {
     `| ${tr('Wartezeit auf dich', 'Waiting for you')} | ≈ ${mmss(s.waitMs)} |`,
     `| ${tr('Subagents', 'Subagents')} | ${s.agents} |`,
     `| ${tr('Tool-Aufrufe', 'Tool calls')} | ${s.calls} (${s.errors} ${tr('Fehler', 'errors')}) |`,
-    `| Code | +${s.added} −${s.removed} |`,
+    s.added + s.removed > 0 ? `| Code | +${s.added} −${s.removed} |` : '',
     s.testsPassed + s.testsFailed > 0
       ? `| Tests | ${s.testsPassed} ✓ ${s.testsFailed} ✕${s.lastTest ? ` (${tr('zuletzt', 'last')} ${s.lastTest === 'pass' ? '✓' : '✕'})` : ''} |`
       : '',

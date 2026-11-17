@@ -7,11 +7,11 @@
  */
 import { esc, n1 } from './svg'
 import { FONT, STYLE } from './gauges'
-import { KIND_COLOR } from './iso'
-import { KIND_LABEL, stepKind, type RunSummary, type StepKind } from './model'
+import { WORK_COLOR } from './scene'
+import { stepKind, WORK_KINDS, WORK_LABEL, type RunSummary, type StepKind, type WorkKind } from './model'
 import { tr } from './i18n'
 import { fmtDuration } from './panel/format'
-import type { CallKind, CubeRun } from '../types'
+import type { CubeRun } from '../types'
 
 const STEP_COLOR: Record<StepKind, string> = {
   research: '#3b82f6',
@@ -137,45 +137,42 @@ export function buildSummary(r: CubeRun, s: RunSummary, width: number): { source
   }
 
   // ── Kinds of work, from the calls ──
-  const byKind = new Map<CallKind, number>()
-  for (const c of r.calls) byKind.set(c.kind, (byKind.get(c.kind) ?? 0) + 1)
-  const kinds = (['read', 'write', 'run', 'agent', 'other'] as CallKind[]).filter(k => (byKind.get(k) ?? 0) > 0)
+  const byKind = new Map<WorkKind, number>()
+  for (const c of r.calls) byKind.set(c.work ?? c.kind, (byKind.get(c.work ?? c.kind) ?? 0) + 1)
+  const kinds = WORK_KINDS.filter(k => (byKind.get(k) ?? 0) > 0)
   if (kinds.length > 0) {
     const total = kinds.reduce((t, k) => t + (byKind.get(k) ?? 0), 0)
     parts.push(section(0, y, tr('Arbeitsarten', 'Kinds of work')))
     y += 8
-    parts.push(stackedBar(0, y, W, 12, kinds.map(k => [byKind.get(k) ?? 0, KIND_COLOR[k]])))
+    parts.push(stackedBar(0, y, W, 12, kinds.map(k => [byKind.get(k) ?? 0, WORK_COLOR[k]])))
     y += 28
-    const l = legend(0, y, W, kinds.map(k => [KIND_COLOR[k], `${KIND_LABEL[k]} ${Math.round(((byKind.get(k) ?? 0) / total) * 100)} %`]))
+    const l = legend(0, y, W, kinds.map(k => [WORK_COLOR[k], `${WORK_LABEL[k]} ${Math.round(((byKind.get(k) ?? 0) / total) * 100)} %`]))
     parts.push(l.svg)
     y += l.height + 10
   }
 
-  // ── Code and tests side by side ──
-  const half = (W - 16) / 2
-  parts.push(section(0, y, 'Code'), section(half + 16, y, tr('Tests', 'Tests')))
-  y += 8
+  // ── Code and tests side by side: each only when the task changed lines or ran tests ──
   {
+    const half = (W - 16) / 2
     const lines = s.added + s.removed
-    parts.push(stackedBar(0, y, half, 12, lines > 0 ? [[s.added, GREEN], [s.removed, RED]] : []))
     const runs = s.testsPassed + s.testsFailed
-    parts.push(stackedBar(half + 16, y, half, 12, runs > 0 ? [[s.testsPassed, GREEN], [s.testsFailed, RED]] : []))
-    y += 30
-    parts.push(
-      text(0, y, 15, 'acg-vp', `<tspan style="fill:${GREEN}">+${s.added}</tspan>  <tspan style="fill:${RED}">−${s.removed}</tspan>`, ' font-weight="700"'),
-      text(
-        half + 16,
-        y,
-        15,
-        'acg-vp',
-        runs > 0
-          ? `<tspan style="fill:${GREEN}">${s.testsPassed} ✓</tspan>  <tspan style="fill:${RED}">${s.testsFailed} ✕</tspan>`
-          : '–',
-        ' font-weight="700"',
-      ),
-    )
-    if (s.lastTest) parts.push(text(half + 16 + 96, y, 11, 'acg-lb', esc(`${tr('zuletzt', 'last')} ${s.lastTest === 'pass' ? '✓' : '✕'}`)))
-    y += 22
+    const cols: Array<{ title: string; bar: [number, string][]; value: string; note: string }> = []
+    if (lines > 0) cols.push({ title: 'Code', bar: [[s.added, GREEN], [s.removed, RED]], value: `<tspan style="fill:${GREEN}">+${s.added}</tspan>  <tspan style="fill:${RED}">−${s.removed}</tspan>`, note: '' })
+    if (runs > 0)
+      cols.push({
+        title: tr('Tests', 'Tests'),
+        bar: [[s.testsPassed, GREEN], [s.testsFailed, RED]],
+        value: `<tspan style="fill:${GREEN}">${s.testsPassed} ✓</tspan>  <tspan style="fill:${RED}">${s.testsFailed} ✕</tspan>`,
+        note: s.lastTest ? `${tr('zuletzt', 'last')} ${s.lastTest === 'pass' ? '✓' : '✕'}` : '',
+      })
+    if (cols.length > 0) {
+      cols.forEach((c, k) => {
+        const x = k * (half + 16)
+        parts.push(section(x, y, c.title), stackedBar(x, y + 8, half, 12, c.bar), text(x, y + 38, 15, 'acg-vp', c.value, ' font-weight="700"'))
+        if (c.note) parts.push(text(x + 96, y + 38, 11, 'acg-lb', esc(c.note)))
+      })
+      y += 60
+    }
   }
 
   // ── One bar per step: as long as it took, tinted by its kind ──
