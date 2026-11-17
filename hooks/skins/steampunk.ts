@@ -255,7 +255,7 @@ export const steampunk: Skin = {
     text: { pending: '#5a4320', running: '#5a1e02', done: '#2a1a06', error: '#7a1a10', waiting: '#1e4a3e' },
     caption: '#ecc77e',
   },
-  track: { groove: '#120a04', from: '#b87333', to: '#f3d27a', head: '#ffb347' },
+  track: { groove: '#120a04' },
   pipe: { fill: 'liquid', colors: ['#6a3410', '#c8781e', '#ffd27a'], metal: '#b8862f' },
   day: { sky: ['#f7ead0', '#e9d3a8'], ink: '#8a5a24', pattern: 'grain' },
   font: "Georgia,'Times New Roman',serif",

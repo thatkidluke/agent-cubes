@@ -165,7 +165,7 @@ export const cyberpunk: Skin = {
     text: { pending: '#7c6f9f', running: '#f0abfc', done: '#67e8f9', error: '#fb7185', waiting: '#fde047' },
     caption: '#f5d0fe',
   },
-  track: { groove: '#05030a', from: PINK, to: CYAN, head: YELLOW },
+  track: { groove: '#05030a' },
   pipe: { fill: 'energy', colors: [VIOLET, PINK, CYAN], metal: '#3b2a5e' },
   day: { sky: ['#fde7f3', '#e7dcfb'], ink: '#7c3aed', pattern: 'skyline' },
   font: 'ui-monospace,Consolas,monospace',

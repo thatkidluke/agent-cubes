@@ -18,8 +18,8 @@ export type PipeGeometry = {
   joints: number[]
 }
 
-export function pipeStyle(skin: Skin): NonNullable<Skin['pipe']> {
-  return skin.pipe ?? { fill: 'energy', colors: [skin.track.from, skin.track.to, skin.track.head], metal: '#64748b' }
+export function pipeStyle(skin: Skin): Skin['pipe'] {
+  return skin.pipe
 }
 
 /** The band's height in px for a tube of radius r: the recess around it. */

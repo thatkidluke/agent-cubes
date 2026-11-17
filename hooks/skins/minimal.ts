@@ -119,11 +119,11 @@ export const minimal: Skin = {
     text: { pending: '#64748b', running: ACCENT, done: '#16a34a', error: '#dc2626', waiting: '#d97706' },
     caption: '#64748b',
   },
-  track: { groove: HAIR, from: ACCENT, to: GREEN, head: ACCENT },
+  track: { groove: HAIR },
   pipe: { fill: 'flat', colors: [ACCENT, '#4f9fd8', GREEN], metal: '#cbd5e1' },
   font: 'Inter, system-ui, -apple-system, Segoe UI, sans-serif',
   // Calm: the skin's own breathing tint is the one live effect.
-  effects: { glint: false, sparks: false, glow: false, pulse: false, sweep: false, flag: false, plaqueShadow: false },
+  effects: { glint: false, sparks: false, glow: false, pulse: false, sweep: false, plaqueShadow: false },
   backdrop: safe(backdrop),
   pedestalDecor: safe(pedestalDecor),
   cubeOverlay: safe(cubeOverlay),

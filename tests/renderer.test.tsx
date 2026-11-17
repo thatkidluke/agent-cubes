@@ -84,16 +84,19 @@ test('renderer: an unchanged picture is the very same result, a changed one is n
 
 test('renderer: many steps fold the finished ones into a stack', async () => {
   const r14 = finished(14, 7)
+  const r20f = finished(20, 7)
+  // Fourteen steps all have a place of their own in two rows: nothing folds.
+  expect(buildSvg(r14, 640, 100_100).source.includes('01–06'), 'fourteen steps do not fold').toBe(false)
   for (const skin of SKINS) {
-    const src = buildSvg(r14, 640, 100_100, -1, skin).source
+    const src = buildSvg(r20f, 640, 100_100, -1, skin).source
     expect(src.includes('01–06'), `${skin.id}: range label`).toBe(true)
     expect(src.includes('6 ✓'), `${skin.id}: stack caption`).toBe(true)
     expect(src.includes('Step alpha 0') && src.includes('Step foxtrot 5'), `${skin.id}: folded titles in the tooltip`).toBe(true)
     // Step 7 stays a cube of its own, the arc still names the real steps.
     expect(src.includes('> 07<'), `${skin.id}: last finished step kept`).toBe(true)
-    expect(src.includes('Step 14 waits for step 8'), `${skin.id}: dependency mapped`).toBe(true)
+    expect(buildSvg(r14, 640, 100_100, -1, skin).source.includes('Step 14 waits for step 8'), `${skin.id}: dependency mapped`).toBe(true)
   }
-  // Ten steps or fewer never fold.
+  // Sixteen steps or fewer never fold.
   expect(buildSvg(finished(10, 7), 640, 100_100).source.includes('–0')).toBe(false)
   // 20 steps: the finished run and the trailing pending run fold, at most 12 cubes are drawn.
   const r20 = finished(20, 3)

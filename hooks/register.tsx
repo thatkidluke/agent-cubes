@@ -444,7 +444,7 @@ export const register: Register = (on, options) => {
     // Calls per minute, read at the minute, so the chart moves once a minute or with a new call.
     const minuteNow = Math.floor(now / 60_000) * 60_000 + 59_999
     const tileSpec: Array<{ key: string; pic: string; level: number | null; color: string; rest?: string; valueHtml?: string; title: string }> = [
-      { key: 'elapsed', pic: clock(span ? step5(elapsed / span) : null, moving), level: span ? step5(elapsed / span) : null, color: P_BLUE, title: tr('Laufzeit im Verhältnis zur geschätzten Gesamtdauer', 'Elapsed against the estimated total') },
+      { key: 'elapsed', pic: clock(span ? step5(elapsed / span) : null), level: span ? step5(elapsed / span) : null, color: P_BLUE, title: tr('Laufzeit im Verhältnis zur geschätzten Gesamtdauer', 'Elapsed against the estimated total') },
       { key: 'left', pic: hourglass(span ? step5((left ?? 0) / span) : null, moving), level: span ? step5((left ?? 0) / span) : null, color: P_VIOLET, title: tr('Restzeit im Verhältnis zur geschätzten Gesamtdauer', 'Time left against the estimated total') },
       { key: 'waiting', pic: cup('tile-cup', waitShare, r.status === 'waiting', settings.animations), level: waitShare, color: P_AMBER, title: tr('Anteil der Laufzeit, in der auf dich gewartet wurde', 'Share of the time spent waiting for you') },
       { key: 'context', pic: tank(step5(ctxFrac), ctxCols, CONTEXT_AMBER, CONTEXT_RED), level: step5(ctxFrac), color: ctxCols[1], title: tr('Füllstand des Kontextfensters', 'How full the context window is') },

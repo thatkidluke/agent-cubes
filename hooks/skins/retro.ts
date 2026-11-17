@@ -222,7 +222,7 @@ export const retro: Skin = {
     text: { pending: '#6b7089', running: AMBER, done: PHOS, error: ROSE, waiting: SKY },
     caption: SOFT,
   },
-  track: { groove: '#05060c', from: AMBER, to: PHOS, head: '#ffffff' },
+  track: { groove: '#05060c' },
   pipe: { fill: 'pixel', colors: [AMBER, PHOS, '#d9ffe9'], metal: '#4b5070' },
   day: { sky: ['#fff8ee', '#ffe9cc'], ink: '#c2410c', pattern: 'scan' },
   font: '"Courier New",Consolas,ui-monospace,monospace',

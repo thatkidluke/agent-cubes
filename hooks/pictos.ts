@@ -21,8 +21,8 @@ const stroke = (d: string, col: string, w = SW, extra = '') =>
   `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"${extra}/>`
 const clamp = (v: number) => Math.max(0, Math.min(1, v))
 
-/** Elapsed: a clock; its ring fills with the share of the estimated total, the hand turns while work goes on. */
-export function clock(frac: number | null, _animate = false): string {
+/** Elapsed: a clock; its ring fills with the share of the estimated total, its hand points where the ring ends. */
+export function clock(frac: number | null): string {
   const cx = 18, cy = 18, r = 15
   const f = clamp(frac ?? 0)
   let s = `<circle class="acg-gf" cx="${cx}" cy="${cy}" r="${r}"/>`

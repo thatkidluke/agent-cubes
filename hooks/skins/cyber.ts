@@ -256,7 +256,7 @@ export const cyber: Skin = {
     text: { pending: '#64748b', running: '#67e8f9', done: '#6ee7b7', error: '#fb7185', waiting: '#fcd34d' },
     caption: '#7dd3fc',
   },
-  track: { groove: '#020409', from: CYAN, to: '#34d399', head: CYAN },
+  track: { groove: '#020409' },
   pipe: { fill: 'energy', colors: ['#0891b2', CYAN, '#a7f3d0'], metal: '#1e3a4a' },
   day: { sky: ['#f0fdff', '#cff6fb'], ink: '#0891b2', pattern: 'grid' },
   font: 'ui-monospace,SFMono-Regular,Consolas,monospace',

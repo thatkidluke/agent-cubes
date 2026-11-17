@@ -107,26 +107,26 @@ export type Skin = {
     /** The duration / percentage under each plaque. */
     caption: string
   }
-  track: { groove: string; from: string; to: string; head: string }
-  /**
-   * The progress pipe in its own band at the pedestal's foot: what flows in it
-   * (glowing energy, a liquid with bubbles, pixel blocks, or a flat fill), its
-   * colours from start to front, and the metal of its fittings. Left out, the
-   * pipe carries energy in the track's colours.
-   */
+  /** The channel the progress pipe lies in. */
+  track: { groove: string }
   /**
    * The day version: a light backdrop shown instead of the dark one while the
    * pane is in light mode. Left out for skins that are light already.
    */
   day?: DayStyle
-  pipe?: { fill: 'energy' | 'liquid' | 'pixel' | 'flat'; colors: [string, string, string]; metal: string }
+  /**
+   * The progress pipe in its own band at the pedestal's foot: what flows in it
+   * (glowing energy, a liquid with bubbles, pixel blocks, or a flat fill), its
+   * colours from start to front, and the metal of its fittings.
+   */
+  pipe: { fill: 'energy' | 'liquid' | 'pixel' | 'flat'; colors: [string, string, string]; metal: string }
   /** Font family for numbers and captions. */
   font: string
   /**
    * The renderer's own effects a skin may switch off (all on when left out):
    * the glint running over mini cubes, sparks rising from live cubes, the glow
-   * and pulse on live edges, the glossy sweep over live glass, the finish
-   * flag, and the plaques' drop shadow.
+   * and pulse on live edges, the glossy sweep over live glass, and the
+   * plaques' drop shadow.
    */
   effects?: {
     glint?: boolean
@@ -134,7 +134,6 @@ export type Skin = {
     glow?: boolean
     pulse?: boolean
     sweep?: boolean
-    flag?: boolean
     plaqueShadow?: boolean
     /** Reflections of the cubes on the polished pedestal top. */
     reflection?: boolean

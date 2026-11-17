@@ -8,6 +8,8 @@
 import { esc, n1 } from '../svg'
 import { FONT, STYLE } from '../gauges'
 import type { CallKind, CubeStatus } from '../../types'
+import { tr } from '../i18n'
+import { STATUS_LABEL } from '../iso'
 
 type Built = { source: string; width: number; height: number; alt: string }
 
@@ -106,7 +108,7 @@ export function buildNow(n: NowInfo, width: number, animate: boolean): Built {
     s += `<rect class="acg-gf" x="${tx}" y="49" width="${n1(bw)}" height="6" rx="3"/>`
     s += `<rect x="${tx}" y="49" width="${n1(Math.max(6, bw * Math.max(0, Math.min(1, n.progress))))}" height="6" rx="3" fill="${n.color}"/>`
   }
-  const alt = `${n.cube ? `Cube ${n.cube}: ` : ''}${n.title}${n.sub ? ` (${n.sub})` : ''}`
+  const alt = `${n.cube ? `${tr('Würfel', 'Cube')} ${n.cube}: ` : ''}${n.title}${n.sub ? ` (${n.sub})` : ''}`
   return { source: svg(width, H, s), width, height: H, alt }
 }
 
@@ -166,6 +168,6 @@ export function buildLive(calls: CallInfo[], width: number, animate: boolean): B
     s += `</g>`
   })
   const height = Math.max(ROW, calls.length * ROW)
-  const alt = calls.map(c => `${c.tool} ${c.detail} (${c.status})`).join('; ')
+  const alt = calls.map(c => `${c.tool} ${c.detail} (${STATUS_LABEL[c.status]})`).join('; ')
   return { source: svg(width, height, s), width, height, alt }
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.2
+
+- Plans of up to sixteen steps now really show every cube: finished steps at the start folded into a stack
+  from eleven steps on, although two rows had room for them all.
+- In two rows the progress pipe has a coupling for every cube of the task, not only for the front row.
+- The alternative texts of the Now, Agents and Live drawings follow the panel language.
+- Cleaned up: the unused finish-flag option, the track colours the pipe replaced, a clock parameter without
+  effect. CI installs a fixed Claude Code version.
+
 ## 0.11.1
 
 - README: a section on the scene and what each part of the drawing tells; features, skins and settings brought

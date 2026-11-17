@@ -229,8 +229,6 @@ function layout(r: CubeRun, now: number): Big[] {
 
 const pad2 = (v: number) => String(v).padStart(2, '0')
 
-/** From this many steps on, runs of finished steps fold into one stacked cube. */
-const COMPACT_FROM = 11
 /** At most this many cubes are drawn; more fold trailing pending (then other) runs too. */
 const MAX_POS = 12
 /** From this many cubes on they stand in two rows, the earlier steps in the back row; up to this many in all. */
@@ -270,7 +268,7 @@ function stackOf(members: Big[], total: number): Big {
 }
 
 /**
- * Compact mode: with more than ten steps, the leading run of finished steps
+ * Folding: with more steps than there are places, the leading run of finished steps
  * (all but the last of them) folds into one stacked cube; if more than
  * MAX_POS cubes are left, the trailing pending run folds too (all but its
  * first), then other runs of finished or pending steps, longest first.
@@ -278,7 +276,8 @@ function stackOf(members: Big[], total: number): Big {
  */
 function fold(bigs: Big[], maxPos = MAX_POS): Big[] {
   const n = bigs.length
-  if (n < COMPACT_FROM) return bigs
+  // Nothing folds while every cube has a place of its own.
+  if (n <= maxPos) return bigs
   const runs: [number, number][] = []
   const taken = new Array<boolean>(n).fill(false)
   const take = (a: number, b: number) => {
@@ -404,7 +403,7 @@ type Scene = {
  * backdrop, tank, pipe or skin overlay, the front row has those), the front row
  * with `extraTop` px of room above it, where the back row goes.
  */
-type RowOptions = { bare?: boolean; extraTop?: number }
+type RowOptions = { bare?: boolean; extraTop?: number; /** Cubes in both rows together: the pipe gets a coupling per cube of the whole task. */ totalCubes?: number }
 
 function render(sc: Scene, detail: Detail, skin: Skin, row: RowOptions = {}) {
   const { bigs, posOf, overall, targetWidth, selPos, ctxFill, still } = sc
@@ -451,6 +450,11 @@ function render(sc: Scene, detail: Detail, skin: Skin, row: RowOptions = {}) {
     y: P(0, PED_FRONT, -pedH)[1] - (pipeBand * S) / 2 - 1,
     r: pipeR,
     joints: Array.from({ length: Math.max(0, n - 1) }, (_, k) => P(cubeU(k + 1) - (PITCH - 1) / 2, PED_FRONT, 0)[0]),
+  }
+  // In two rows the pipe stands for every cube of the task: its couplings spread evenly over its length.
+  if (row.totalCubes && row.totalCubes > 1) {
+    const total = row.totalCubes
+    pipe.joints = Array.from({ length: total - 1 }, (_, k) => pipe.x0 + ((pipe.x1 - pipe.x0) * (k + 1)) / total)
   }
 
   // ── Definitions ──
@@ -898,7 +902,7 @@ function renderRows(sc: Scene, detail: Detail, skin: Skin): { source: string; wi
   const backOut = render({ ...sc, bigs: back.row, posOf: back.posOf, selPos: selIn(sc.selPos, 0, k), ctxFill: null }, detail > 1 ? 1 : 0, skin, { bare: true })
   const scale = 0.84
   const lift = backOut.height * scale * 0.62
-  const frontOut = render({ ...sc, bigs: front.row, posOf: front.posOf, selPos: selIn(sc.selPos, k, sc.bigs.length - k) }, detail, skin, { extraTop: lift })
+  const frontOut = render({ ...sc, bigs: front.row, posOf: front.posOf, selPos: selIn(sc.selPos, k, sc.bigs.length - k) }, detail, skin, { extraTop: lift, totalCubes: sc.bigs.length })
   // The back row's ids get a prefix of their own, so they never meet the front row's.
   const inner = backOut.source
     .replace(/^<svg[^>]*>/, '')

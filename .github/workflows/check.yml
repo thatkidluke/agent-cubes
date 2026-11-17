@@ -19,8 +19,9 @@ jobs:
         with:
           node-version: 22
 
+      # A fixed version: a new release of Claude Code cannot turn this check red on its own. Raise it on purpose.
       - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+        run: npm install -g @anthropic-ai/claude-code@2.1.325
 
       - name: Validate the plugin (manifest, marketplace, hooks module, types)
         run: claude plugin validate .
