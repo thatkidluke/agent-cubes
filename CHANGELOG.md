@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.1
+
+- The orbit view is drawn in more detail: stars and a faint glow around the system, a sun with a corona that
+  turns, a surface and the tool the main agent is using under the figure; an instrument ring whose segment in work
+  fills as far as the step has come, with a spark running along it; planets as lit spheres with bands, a ring or
+  craters, their names below them and a trail behind them, larger in front and smaller behind; a comet with a
+  glowing head; marks where finished subagents dock, and the count of failed calls on the sun.
+
 ## 0.15.0
 
 - A third view, the orbit: the main agent as a sun with the plan as a ring of segments around it, its latest calls

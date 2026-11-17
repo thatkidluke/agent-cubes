@@ -448,7 +448,7 @@ test('the orbit shows the plan as a ring, the calls as a comet and each subagent
   expect(pic.source.length).toBeLessThan(131_073)
   expect(pic.alt).toBe('Orbit: ' + pic.alt.slice(7))
   expect(pic.alt.includes('2 subagents, 2 working')).toBe(true)
-  expect((pic.source.match(/type="rotate"/g) ?? []).length, 'a moon per working subagent with a call').toBe(1)
+  expect((pic.source.match(/class="ob-moon"/g) ?? []).length, 'a moon per working subagent with a call').toBe(1)
   expect((pic.source.match(/dur="18s"/g) ?? []).length, 'a comet dot per main call').toBe(4)
   const still = buildOrbit(r, 520, t, -1, { motion: false }).source
   expect(still.includes('<animate'), 'still picture').toBe(false)
