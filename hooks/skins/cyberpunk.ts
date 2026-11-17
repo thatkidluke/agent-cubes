@@ -167,6 +167,7 @@ export const cyberpunk: Skin = {
   },
   track: { groove: '#05030a', from: PINK, to: CYAN, head: YELLOW },
   pipe: { fill: 'energy', colors: [VIOLET, PINK, CYAN], metal: '#3b2a5e' },
+  day: { sky: ['#fde7f3', '#e7dcfb'], ink: '#7c3aed', pattern: 'skyline' },
   font: 'ui-monospace,Consolas,monospace',
   defs: () =>
     lin('cyberpunk-sky', 0, 1, [[0, '#07060f'], [0.55, '#120b22'], [1, '#1a0c29']]) +

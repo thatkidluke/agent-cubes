@@ -436,7 +436,7 @@ export function addAgent(r0: CubeRun, a: { id: string; name: string; kind: strin
   const r = ensureRunning(r0, now)
   if (r.agents.some(x => x.id === a.id)) return r
   const taskIndex = matchTask(r, a.name)
-  const agent: CubeAgent = { ...a, status: 'running', tool: '', calls: 0, taskIndex }
+  const agent: CubeAgent = { ...a, status: 'running', tool: '', calls: 0, taskIndex, spawnedAt: now }
   // An agent sitting down on a step starts that step's clock.
   const tasks = r.tasks.map((t, i) => (i === taskIndex && !t.startedAt && t.status !== 'done' ? { ...t, startedAt: now } : t))
   return { ...r, tasks, agents: [...r.agents, agent] }
@@ -617,6 +617,16 @@ export function priorFrom(history: HistRun[]): Prior {
 }
 
 /** Indices of the unfinished steps that step i waits for. */
+/** Whether a step was freed just now: one of the steps it waited for finished within `ms`. */
+export function unlockedRecently(r: CubeRun, i: number, now: number, ms: number): boolean {
+  const t = r.tasks[i]
+  if (!t || t.blockedBy.length === 0 || t.status === 'done') return false
+  return t.blockedBy.some(id => {
+    const b = r.tasks.find(x => x.id === id)
+    return !!b && b.status === 'done' && b.endedAt > 0 && now - b.endedAt >= 0 && now - b.endedAt < ms
+  })
+}
+
 export function blockersOf(r: CubeRun, i: number): number[] {
   const t = r.tasks[i]
   if (!t || t.blockedBy.length === 0) return []

@@ -112,6 +112,7 @@ export const stellar: Skin = {
   },
   track: { groove: '#0c0a22', from: '#38bdf8', to: '#34d399', head: '#a78bfa' },
   pipe: { fill: 'energy', colors: ['#6366f1', '#a78bfa', '#f0abfc'], metal: '#312e81' },
+  day: { sky: ['#f1f3ff', '#dfe4ff'], ink: '#6366f1', pattern: 'stars' },
   font: 'Avenir Next,Futura,Century Gothic,Segoe UI,system-ui,sans-serif',
 
   defs(ctx) {

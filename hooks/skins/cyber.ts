@@ -258,6 +258,7 @@ export const cyber: Skin = {
   },
   track: { groove: '#020409', from: CYAN, to: '#34d399', head: CYAN },
   pipe: { fill: 'energy', colors: ['#0891b2', CYAN, '#a7f3d0'], metal: '#1e3a4a' },
+  day: { sky: ['#f0fdff', '#cff6fb'], ink: '#0891b2', pattern: 'grid' },
   font: 'ui-monospace,SFMono-Regular,Consolas,monospace',
 
   defs(ctx) {

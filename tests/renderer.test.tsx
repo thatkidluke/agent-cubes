@@ -100,7 +100,7 @@ test('renderer: many steps fold the finished ones into a stack', async () => {
   const src20 = buildSvg(r20, 640, 100_100, 19).source
   expect(src20.includes('01–02')).toBe(true)
   expect(/1\d–20/.test(src20)).toBe(true)
-  expect((src20.match(/<g><title>Cube /g) ?? []).length).toBeLessThan(13 * 2 + 1)
+  expect((src20.match(/<g><title>Cube /g) ?? []).length).toBeLessThan(17 * 2 + 1)
 })
 
 test('renderer: the worst case stays well under the limit in every skin', async () => {
@@ -123,9 +123,11 @@ test('renderer: motion false draws a still picture with every mini cube', async 
       expect(SMIL.test(still), `${skin.id}: no SMIL`).toBe(false)
       expect(still.endsWith('</svg>'), `${skin.id}: well-formed`).toBe(true)
       // Every mini cube shows; only the falling "next" one per live cube is gone.
-      const minis = (s: string) => (s.match(/<use href="#m-/g) ?? []).length
+      const minis = (s: string) => (s.match(/<use href="#(?:r2-)?m-/g) ?? []).length
       const incoming = (moving.match(/values="0;0\.8;0\.8;0"/g) ?? []).length
-      expect(minis(still), `${skin.id}: mini cubes`).toBe(minis(moving) - incoming)
+      // A cube finished just now shows its minis fusing into the block: 27 that only exist while that plays.
+      const fusing = (moving.match(/values="0.95;0"/g) ?? []).length * 27
+      expect(minis(still), `${skin.id}: mini cubes`).toBe(minis(moving) - incoming - fusing)
       expect(minis(still) > 0, `${skin.id}: some mini cubes`).toBe(true)
       // Nothing waits invisible for an animation that never runs: the drop-in wrapper is gone.
       expect(still.includes('<g opacity="0"><use'), `${skin.id}: no hidden mini cube`).toBe(false)
@@ -170,4 +172,24 @@ test('a drawing that comes back (A, B, A) is locked to the clock afresh; the sam
   const back = buildSvg(a, 600, 13_300).source
   expect(back.includes('repeatCount="indefinite"')).toBe(true)
   expect(back, 'a picture coming back starts its animations where the clock is').not.toBe(first)
+})
+
+test('the scene tells its state: mood lights, flights, landings, day versions and two rows', async () => {
+  clearSvgCache()
+  let r = startRun(emptyRun, 'Build it', 1)
+  r = applyTaskTool(r, 'mcp__ccd_turn__update_plan', { items: [{ content: 'Read it', status: 'completed' }, { content: 'Write it', status: 'in_progress' }, { content: 'Test it', status: 'pending' }] }, undefined, 2)
+  r = toolStart(r, { id: 'x', tool: 'Edit', agentId: undefined, input: { file_path: '/a', old_string: 'a', new_string: 'a\nb' } }, 1000)
+  r = toolEnd(r, { id: 'x', tool: 'Edit', agentId: undefined, isError: false, errorText: '' }, 1500)
+  r = addAgent(r, { id: 'a1', name: 'Test it', kind: 'general-purpose' }, 1600)
+  const now = buildSvg(r, 640, 2000).source
+  expect(now.includes('values="0 -'), 'the newest mini cube drops in').toBe(true)
+  expect(now.includes('calcMode="spline"'), 'the new subagent flies over').toBe(true)
+  const later = buildSvg(r, 640, 9000).source
+  expect(later.includes('calcMode="spline"'), 'and settles').toBe(false)
+  const waiting = buildSvg({ ...r, status: 'waiting' }, 640, 9000).source
+  expect(waiting.includes('url(#mood-cone)'), 'a warm spot on the waiting step').toBe(true)
+  expect(buildSvg(r, 640, 9000, -1, SKINS.find(s => s.id === 'cyber')!).source.includes('class="acd-day"'), 'cyber has a day version').toBe(true)
+  let long = startRun(emptyRun, 'Long', 1)
+  long = applyTaskTool(long, 'mcp__ccd_turn__update_plan', { items: Array.from({ length: 10 }, (_, i) => ({ content: `S${i}`, status: i === 0 ? 'in_progress' : 'pending' })) }, undefined, 2)
+  expect(buildSvg(long, 640, 9000).source.includes('id="r2-'), 'ten steps stand in two rows').toBe(true)
 })

@@ -1,5 +1,6 @@
 import type { CallKind, CubeStatus } from '../../types'
 import type { Box, Pt } from '../svg'
+import type { DayStyle } from '../day'
 
 /** A mini cube's look: the kind of work of the call it stands for, or a failed call. */
 export type MiniKind = CallKind | 'err'
@@ -113,6 +114,11 @@ export type Skin = {
    * colours from start to front, and the metal of its fittings. Left out, the
    * pipe carries energy in the track's colours.
    */
+  /**
+   * The day version: a light backdrop shown instead of the dark one while the
+   * pane is in light mode. Left out for skins that are light already.
+   */
+  day?: DayStyle
   pipe?: { fill: 'energy' | 'liquid' | 'pixel' | 'flat'; colors: [string, string, string]; metal: string }
   /** Font family for numbers and captions. */
   font: string
@@ -130,6 +136,10 @@ export type Skin = {
     sweep?: boolean
     flag?: boolean
     plaqueShadow?: boolean
+    /** Reflections of the cubes on the polished pedestal top. */
+    reflection?: boolean
+    /** Mood lights: a warm spot on a waiting step, a red glow on a stuck one, a calm wash when all is done. */
+    mood?: boolean
   }
   /** Extra <defs> content: gradients, filters, patterns, symbols. */
   defs?: (ctx: SceneCtx) => string

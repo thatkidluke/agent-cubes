@@ -1,10 +1,11 @@
 import type { CallKind, CubeCall, CubeRun, CubeStatus } from '../types'
-import { blockersOf, currentTaskIndex, isActive, isWorked, stepProgress, stuckReason } from './model'
+import { blockersOf, currentTaskIndex, isActive, isWorked, stepProgress, stuckReason, unlockedRecently } from './model'
 import { classic, CLASSIC_CAPTION_DARK } from './skins/classic'
 import type { CubeCtx, MiniKind, SceneCtx, Skin } from './skins/types'
-import { box, circle, esc, fmt, lin, line, mix, n1, phaseLock, pline, poly, seeded } from './svg'
+import { box, circle, esc, fmt, lin, line, mix, n1, phaseLock, pline, poly, rad, seeded } from './svg'
 import type { Pt } from './svg'
 import { pipeBandPx, pipeDefs, progressPipe, type PipeGeometry } from './pipe'
+import { DAY_CSS, dayBackdrop, dayDefs } from './day'
 import { fmtDuration } from './panel/format'
 import { tr } from './i18n'
 import { contextTank, cracks, dependencies, smoke, testSeal } from './overlays'
@@ -57,17 +58,22 @@ const DY = 0.3
 /** Distance from one cube's left edge to the next one's. */
 const PITCH = 1.3
 /** Pedestal: how far it reaches in front of and behind the cubes, and its height. */
-const PED_FRONT = -0.28
+const PED_FRONT = -0.4
 const PED_BACK = 1.18
 const PED_H = 0.95
 const FOOT = 0.14
 /** How long a cube counts as just finished. */
 const JUST_DONE_MS = 4000
+/** How long the newest mini cube takes to land, an agent to fly over, a padlock to spring open. */
+const LAND_MS = 1500
+const FLY_MS = 1200
+const UNLOCK_MS = 3000
 /** Caption sizes under the plaques: readable at a glance, never under 10 px. */
 const capSize = (S: number) => Math.max(10, S * 0.26)
 const diffSize = (S: number) => Math.max(10, S * 0.24)
 
-type Badge = { color: string; letter: string; title: string; isLive: boolean }
+/** An agent's badge; `from` is the step it is flying over from just now, or -1. */
+type Badge = { color: string; letter: string; title: string; isLive: boolean; from: number }
 
 /** One step: a glass cube filling as it progresses, or a solid finished one. */
 type Big = {
@@ -101,6 +107,10 @@ type Big = {
   /** The look of each mini cube in fill order: the kind of call it stands for, or an error. */
   kinds: MiniKind[]
   errors: number
+  /** A call of this step ended just now: its newest mini cube drops in. */
+  landing: boolean
+  /** A step it waited for finished just now: the padlock springs open. */
+  unlocked: boolean
 }
 
 /**
@@ -139,6 +149,7 @@ function layout(r: CubeRun, now: number): Big[] {
         test: t.lastTest,
         errors: t.errors,
         callList: r.calls.filter(c => c.taskIndex === i),
+        unlocked: unlockedRecently(r, i, now, UNLOCK_MS),
       }))
     : [
         {
@@ -156,18 +167,33 @@ function layout(r: CubeRun, now: number): Big[] {
           test: '' as '' | 'pass' | 'fail',
           errors: r.errors,
           callList: r.calls,
+          unlocked: false,
         },
       ]
 
+  // The main agent moved on just now: from the step finished last to the one it starts.
+  const curStart = hasPlan && cur >= 0 ? (r.tasks[cur]?.startedAt ?? 0) : 0
+  let mainFrom = -1
+  if (active && cur > 0 && curStart > 0 && now - curStart >= 0 && now - curStart < FLY_MS) {
+    let best = -1
+    r.tasks.forEach((t, j) => {
+      if (j !== cur && t.status === 'done' && t.endedAt > 0 && (best < 0 || t.endedAt > (r.tasks[best]?.endedAt ?? 0))) best = j
+    })
+    mainFrom = best >= 0 ? best : cur - 1
+  }
   return steps.map((t, i): Big => {
     const badges: Badge[] = []
     if (active && i === mainIndex) {
-      badges.push({ color: MAIN_COLOR, letter: 'H', title: tr('Hauptagent', 'Main agent'), isLive: true })
+      badges.push({ color: MAIN_COLOR, letter: 'H', title: tr('Hauptagent', 'Main agent'), isLive: true, from: mainFrom })
     }
     r.agents.forEach((a, k) => {
       if ((hasPlan ? a.taskIndex : 0) !== i || a.status !== 'running') return
-      badges.push({ color: agentColor(k), letter: agentInitial(a.name), title: `${a.name} (${a.kind})`, isLive: true })
+      // A subagent spawned just now flies over from the main agent's step.
+      const fresh = a.spawnedAt !== undefined && now - a.spawnedAt >= 0 && now - a.spawnedAt < FLY_MS
+      const from = fresh && hasPlan && mainIndex >= 0 && mainIndex !== i ? mainIndex : -1
+      badges.push({ color: agentColor(k), letter: agentInitial(a.name), title: `${a.name} (${a.kind})`, isLive: true, from })
     })
+    const lastEnd = t.callList.reduce((m, c) => (c.ms && c.at + c.ms > m ? c.at + c.ms : m), 0)
     const worked = t.worked || (t.status === 'pending' && badges.length > 0)
     const status: CubeStatus = worked ? (isWaiting && i === mainIndex ? 'waiting' : 'running') : t.status
     const isSolid = status === 'done' || status === 'error'
@@ -195,6 +221,8 @@ function layout(r: CubeRun, now: number): Big[] {
       caption: status === 'done' ? (t.took ? fmtDuration(t.took) : '✓') : worked ? `≈ ${pct} %` : status === 'error' ? tr('Fehler', 'Error') : '–',
       kinds: miniKinds(t.callList, Math.min(fill, SLOTS)),
       errors: t.errors,
+      landing: worked && active && lastEnd > 0 && now - lastEnd >= 0 && now - lastEnd < LAND_MS,
+      unlocked: t.unlocked,
     }
   })
 }
@@ -205,6 +233,9 @@ const pad2 = (v: number) => String(v).padStart(2, '0')
 const COMPACT_FROM = 11
 /** At most this many cubes are drawn; more fold trailing pending (then other) runs too. */
 const MAX_POS = 12
+/** From this many cubes on they stand in two rows, the earlier steps in the back row; up to this many in all. */
+const TWO_ROWS_FROM = 8
+const MAX_POS_TWO_ROWS = 16
 
 /** Many steps folded into one stacked cube: a range on the plaque, the count below, every title in the tooltip. */
 function stackOf(members: Big[], total: number): Big {
@@ -233,6 +264,8 @@ function stackOf(members: Big[], total: number): Big {
     caption: `${members.length} ${done ? '✓' : '○'}`,
     kinds: [],
     errors: sum(m => m.errors),
+    landing: false,
+    unlocked: false,
   }
 }
 
@@ -243,7 +276,7 @@ function stackOf(members: Big[], total: number): Big {
  * first), then other runs of finished or pending steps, longest first.
  * Every cube gets its position `pos`; `index` stays the step's.
  */
-function fold(bigs: Big[]): Big[] {
+function fold(bigs: Big[], maxPos = MAX_POS): Big[] {
   const n = bigs.length
   if (n < COMPACT_FROM) return bigs
   const runs: [number, number][] = []
@@ -257,16 +290,16 @@ function fold(bigs: Big[]): Big[] {
   if (keep >= 2) take(0, keep)
   let positions = n - runs.reduce((s, [a, b]) => s + b - a - 1, 0)
   const foldable = (b: Big | undefined, status: CubeStatus) => !!b && b.status === status && b.badges.length === 0
-  if (positions > MAX_POS) {
+  if (positions > maxPos) {
     let s = n
     while (s > 0 && !taken[s - 1] && foldable(bigs[s - 1], 'pending')) s--
-    const from = Math.max(s + 1, n - (positions - MAX_POS + 1))
+    const from = Math.max(s + 1, n - (positions - maxPos + 1))
     if (n - from >= 2) {
       take(from, n)
       positions -= n - from - 1
     }
   }
-  while (positions > MAX_POS) {
+  while (positions > maxPos) {
     let best: [number, number] | null = null
     for (const status of ['done', 'pending'] as const) {
       for (let i = 0; i < n; ) {
@@ -366,7 +399,14 @@ type Scene = {
   still: boolean
 }
 
-function render(sc: Scene, detail: Detail, skin: Skin) {
+/**
+ * How a row is drawn when the cubes stand in two: the back row `bare` (no
+ * backdrop, tank, pipe or skin overlay, the front row has those), the front row
+ * with `extraTop` px of room above it, where the back row goes.
+ */
+type RowOptions = { bare?: boolean; extraTop?: number }
+
+function render(sc: Scene, detail: Detail, skin: Skin, row: RowOptions = {}) {
   const { bigs, posOf, overall, targetWidth, selPos, ctxFill, still } = sc
   const n = bigs.length
   const pad = 10
@@ -386,14 +426,14 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
   const anyDiff = bigs.some(b => b.added > 0 || b.removed > 0)
   // The progress pipe gets its own band at the pedestal's foot, under the plaques and captions.
   const pipeR = Math.max(3.5, S * 0.085)
-  const pipeBand = pipeBandPx(pipeR) / S
+  const pipeBand = row.bare ? 0 : pipeBandPx(pipeR) / S
   const pedH = Math.max(PED_H, 0.8 + (0.4 * cs + (anyDiff ? 1.35 * ds : 0)) / S + 0.06) + pipeBand
   const badgeR = Math.max(7, S * 0.2)
   const drop = S * 0.9
   const above = Math.max(drop, S * 0.42 + badgeR * 2 + 6)
   const width = Math.ceil(spanU * S + 2 * pad)
   const ox = pad - (uStart - 0.1 + PED_FRONT * DX) * S
-  const oy = pad + above + (1 + DY) * S
+  const oy = pad + above + (1 + DY) * S + (row.extraTop ?? 0)
   const height = Math.ceil(oy + (pedH + FOOT - (PED_FRONT - 0.08) * DY) * S + pad)
   const P = (u: number, v: number, w: number): Pt => [ox + (u + v * DX) * S, oy - (w + v * DY) * S]
   const Pr = (u: number, v: number, w: number): Pt => [(u + v * DX) * S, -(w + v * DY) * S]
@@ -429,6 +469,16 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
   defs.push(lin('plq', 0, 1, [[0, skin.plaque.frame[0]], [1, skin.plaque.frame[1]]]))
   defs.push(lin('plqIn', 0, 1, [[0, skin.plaque.inner[0]], [1, skin.plaque.inner[1]]]))
   defs.push(pipeDefs(pipe, skin, moving))
+  // Mood lights: a warm spot for a step that waits for you, a red glow for one that is stuck, a calm wash once all is done.
+  defs.push(
+    lin('mood-cone', 0, 1, [[0, '#fde68a', 0], [0.55, '#fbbf24', 0.16], [1, '#f59e0b', 0.32]]) +
+      rad('mood-amber', [[0, '#fbbf24', 0.45], [1, '#fbbf24', 0]]) +
+      rad('mood-red', [[0, '#ef4444', 0.42], [0.6, '#ef4444', 0.14], [1, '#ef4444', 0]]) +
+      '<radialGradient id="mood-vig" cx="0.5" cy="0.5" r="0.75"><stop offset="0.62" stop-color="#ef4444" stop-opacity="0"/><stop offset="1" stop-color="#ef4444" stop-opacity="0.22"/></radialGradient>' +
+      lin('mood-calm', 0, 1, [[0, '#ffffff', 0.14], [0.6, '#ffffff', 0]]),
+  )
+  // Reflections on the polished pedestal top: the cube's colour fading towards the front edge.
+  for (const st of statuses) defs.push(lin(`rf-${st}`, 0, 1, [[0, skin.status[st][1], 0.38], [1, skin.status[st][1], 0]]))
   if (moving && detail > 0) {
     defs.push(
       lin('sh', 1, 0.5, [[0, '#ffffff', 0], [0.42, '#ffffff', 0], [0.5, '#ffffff', 0.5], [0.58, '#ffffff', 0]],
@@ -471,6 +521,7 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
     }
   }
   defs.push(hook(skin.defs && (() => skin.defs!(ctx))))
+  if (skin.day && detail > 0) defs.push(dayDefs(skin.day))
 
   const css =
     `<style>.e{stroke:${skin.edge.color};stroke-opacity:${skin.edge.opacity};stroke-width:.7;stroke-linejoin:round}` +
@@ -479,11 +530,14 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
     (skin.id === 'classic' ? `@media (prefers-color-scheme:dark){.cap{fill:${CLASSIC_CAPTION_DARK};paint-order:stroke;stroke:#0f172a;stroke-opacity:.5;stroke-width:2px}}` : '') +
     // Skins on dark, busy grounds (brick, wood, stars) get a dark halo so small captions stay legible.
     (skin.id !== 'classic' && skin.id !== 'minimal' ? `.cap{paint-order:stroke;stroke:#000;stroke-opacity:.6;stroke-width:2.2px;stroke-linejoin:round}` : '') +
+    (skin.day ? DAY_CSS : '') +
     `</style>`
   const parts: string[] = []
   const overlay: string[] = []
 
-  parts.push(hook(skin.backdrop && (() => skin.backdrop!(ctx))))
+  if (!row.bare) parts.push(hook(skin.backdrop && (() => skin.backdrop!(ctx))))
+  // The day version, over the night backdrop: shows only while the pane is in light mode.
+  if (skin.day && detail > 0 && !row.bare) parts.push(dayBackdrop(skin.day, width, height, S, ped.top[3][1], 7 + n))
 
   // ── Pedestal: a foot, the block, a bevel ──
   {
@@ -495,11 +549,12 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
     parts.push(line(ped.front[0], ped.front[1], `stroke="${pd.shadow}" stroke-opacity="0.35" stroke-width="1"`))
     parts.push(line(ped.front[2], ped.top[2], `stroke="${pd.light}" stroke-opacity="0.45" stroke-width="0.9"`))
   }
+  if (row.extraTop) parts.push('<!--back-row-->')
   parts.push(hook(skin.pedestalDecor && (() => skin.pedestalDecor!(ctx))))
-  if (ctxFill !== null) parts.push(safe(() => contextTank(ctxFill, P, S, uEnd, pedH, PED_BACK, cs, detail, skin, still)))
+  if (ctxFill !== null && !row.bare) parts.push(safe(() => contextTank(ctxFill, P, S, uEnd, pedH, PED_BACK, cs, detail, skin, still)))
 
   // ── The progress pipe, in its own band at the pedestal's foot ──
-  parts.push(progressPipe(pipe, overall, skin, moving, detail, skin.track.groove, pd.light))
+  if (!row.bare) parts.push(progressPipe(pipe, overall, skin, moving, detail, skin.track.groove, pd.light))
 
   // ── Plaques: an embossed number per step on the pedestal's front, its time below ──
   for (const big of bigs) {
@@ -520,7 +575,12 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
     const fs = Math.min(Math.max(8, h * 0.55), (w - 2 * inset) / (num.length * 0.62 + 0.95))
     const gs = n1(fs * 0.7)
     const lab = `<tspan font-size="${gs}">${glyph}</tspan> ${num}`
+    // A step finished just now: its plaque flips over like a split-flap sign.
+    const flip = big.justDone && !still
+    const fcx = n1(lx + w / 2)
+    const fcy = n1(ly + h / 2)
     parts.push(
+      (flip ? `<g transform="translate(${fcx} ${fcy})"><g><animateTransform attributeName="transform" type="scale" values="1 1;1 0.04;1 1" keyTimes="0;0.45;1" dur="0.7s" fill="freeze"/><g transform="translate(-${fcx} -${fcy})">` : '') +
       `<g><title>${esc(big.title)}</title>` +
         (skin.effects?.plaqueShadow === false ? '' : `<rect x="${n1(lx + 0.8)}" y="${n1(ly + 1.2)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(S * 0.06)}" fill="#0f172a" opacity="0.3" filter="url(#sd)"/>`) +
         `<rect x="${n1(lx)}" y="${n1(ly)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(S * 0.06)}" fill="url(#plq)" stroke="#475569" stroke-opacity="0.6" stroke-width="0.8"/>` +
@@ -531,7 +591,8 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
         `</circle>` +
         `<text class="t" x="${n1(lx + w / 2)}" y="${n1(ly + h / 2 + fs * 0.36 + 0.9)}" font-size="${n1(fs)}" fill="#000000" opacity="0.6" text-anchor="middle">${lab}</text>` +
         `<text class="t" x="${n1(lx + w / 2)}" y="${n1(ly + h / 2 + fs * 0.36)}" font-size="${n1(fs)}" fill="${lit}" text-anchor="middle"${big.isLive ? ' filter="url(#gl)"' : ''}>${lab}</text>` +
-        `</g>`,
+        `</g>` +
+        (flip ? '</g></g></g>' : ''),
     )
     if (big.pos === selPos) {
       parts.push(
@@ -606,6 +667,12 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
       top: P(u0 + 0.5, 0.5, w1),
     }
 
+    // A reflection on the polished top in front of the cube, fading to the front edge.
+    if (!big.isGhost && detail > 0 && skin.effects?.reflection !== false) {
+      const k = big.kind === 'solid' ? 1 : 0.55
+      const ry = 0.85 * PED_FRONT
+      parts.push(`<g opacity="${k}">` + poly([P(u0 + 0.04, 0, 0), P(u1 - 0.04, 0, 0), P(u1 - 0.1, ry, 0), P(u0 + 0.1, ry, 0)], `fill="url(#rf-${s})"`) + '</g>')
+    }
     // Soft contact shadow cast back and to the right.
     parts.push(poly(box(P, u0 + 0.06, u1 + 0.16, v0 + 0.05, v1 + 0.12, 0, 0).top, `fill="${pd.shadow}" opacity="${big.isGhost ? 0.08 : 0.3}" filter="url(#sd)"`))
 
@@ -638,6 +705,14 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
       const mk = `fill="none" stroke="#ffffff" stroke-opacity="0.95" stroke-width="${n1(Math.max(1.6, S * 0.08))}" stroke-linecap="round" stroke-linejoin="round"`
       if (s === 'done') out.push(pline([onFront(0.26, 0.5), onFront(0.43, 0.32), onFront(0.75, 0.7)], mk))
       if (s === 'error') out.push(line(onFront(0.3, 0.3), onFront(0.7, 0.7), mk), line(onFront(0.7, 0.3), onFront(0.3, 0.7), mk))
+      if (big.justDone && !still && s === 'done' && detail > 0) {
+        // The mini cubes fuse into the block: they fade out over it, then a light edge runs round.
+        const at0 = ([i, j, k]: [number, number, number]): Pt => P(u0 + pIn + i * cell + cell * q, v0 + pIn + j * cell + cell * q, w0 + pIn + k * cell + cell * q)
+        const minis = [...FILL_ORDER].sort((p, c) => c[1] - p[1] || p[2] - c[2] || p[0] - c[0]).map(sl => `<use href="#m-other" x="${n1(at0(sl)[0])}" y="${n1(at0(sl)[1])}"/>`).join('')
+        out.push(`<g opacity="0" pointer-events="none"><animate attributeName="opacity" values="0.95;0" dur="0.8s" fill="freeze"/>${minis}</g>`)
+        const rim = pathD([[b.front[0], b.front[1], b.right[1], b.right[2], b.top[3], b.front[3], b.front[0]], [b.front[3], b.front[2], b.front[1]], [b.front[2], b.right[2]]])
+        out.push(`<path d="${rim}" fill="none" stroke="#ffffff" stroke-width="${n1(Math.max(1.5, S * 0.05))}" stroke-linejoin="round" filter="url(#gl)" opacity="0"><animate attributeName="opacity" values="0;0.9;0" dur="1s" begin="0.6s" fill="freeze"/></path>`)
+      }
       out.push('</g>')
       parts.push(out.join(''))
     } else {
@@ -665,7 +740,7 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
         const kind = big.kinds[FILL_ORDER.indexOf(slot)] ?? 'other'
         const body = use(`m-${kind}`, p) + (shimmer ? use(`g${(slot[0] + slot[2]) % 3}`, p) : '')
         // The newest mini cube drops in; in a still picture it simply sits there.
-        if (big.isLive && !still && slot === newest) {
+        if (big.landing && !still && slot === newest) {
           out.push(
             `<g opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.35s" fill="freeze"/>` +
               `<animateTransform attributeName="transform" type="translate" values="0 ${n1(-drop)};0 0;0 -1.5;0 0" keyTimes="0;0.7;0.85;1" dur="0.55s" fill="freeze"/>` +
@@ -717,6 +792,8 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
     }
     parts.push(hook(skin.cubeOverlay && (() => skin.cubeOverlay!(ctx, cube))))
     if (big.test) overlay.push(safe(() => testSeal(big.test, b.front[2], S, skin)))
+    // A step freed just now: its padlock springs open, rises and fades.
+    if (big.unlocked && !still) overlay.push(unlockMark(P(u0 + 0.18, v0, w1 + 0.12), S, skin.status.done[1]))
 
     // Agent badges above the cube.
     const [tx, ty] = P(u0 + 0.5, 0.5, w1)
@@ -724,26 +801,114 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
     big.badges.forEach((bd, k) => {
       const bx = tx + (k - (count - 1) / 2) * badgeR * 2.4
       const by = ty - S * 0.42 - badgeR
+      // Flying over from another step just now: start there, arc across, settle here.
+      const fromPos = bd.from >= 0 ? (posOf[bd.from] ?? -1) : -1
+      let fly = ''
+      if (fromPos >= 0 && fromPos !== big.pos && !still) {
+        const [fx, fy] = P(cubeU(fromPos) + 0.5, 0.5, 1)
+        const mx = (fx - tx) / 2
+        const my = (fy - ty) / 2 - S * 0.5
+        fly = `<animateTransform attributeName="transform" type="translate" values="${n1(fx - tx)} ${n1(fy - ty)};${n1(mx)} ${n1(my)};0 0" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.2 1" dur="0.9s" fill="freeze"/>`
+      }
       const bob = bd.isLive && !still
         ?`<animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" dur="1.8s" begin="${n1(k * 0.3)}s" repeatCount="indefinite"/>`
         : ''
       overlay.push(
-        `<g><title>${esc(bd.title)}</title>${bob}` +
+        `<g>${fly}<g><title>${esc(bd.title)}</title>${bob}` +
           line([tx, ty], [bx, by + badgeR], `stroke="${bd.color}" stroke-width="1.3" stroke-opacity="0.85"`) +
           `<circle cx="${n1(tx)}" cy="${n1(ty)}" r="1.8" fill="${bd.color}"/>` +
           `<circle cx="${n1(bx + 1)}" cy="${n1(by + 1.5)}" r="${n1(badgeR)}" fill="#0f172a" opacity="0.3" filter="url(#sd)"/>` +
           `<circle cx="${n1(bx)}" cy="${n1(by)}" r="${n1(badgeR)}" fill="${bd.color}" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2"/>` +
           `<circle cx="${n1(bx - badgeR * 0.3)}" cy="${n1(by - badgeR * 0.35)}" r="${n1(badgeR * 0.35)}" fill="#ffffff" opacity="0.35"/>` +
           `<text class="t" x="${n1(bx)}" y="${n1(by + badgeR * 0.38)}" font-size="${n1(badgeR * 1.1)}" fill="#0f172a" text-anchor="middle">${esc(bd.letter)}</text>` +
-          `</g>`,
+          `</g></g>`,
       )
     })
   }
   overlay.push(safe(() => dependencies(bigs, posOf, P, S, cubeU, detail, skin, still)))
-  overlay.push(hook(skin.overlay && (() => skin.overlay!(ctx))))
+  if (detail > 0) overlay.push(safe(() => moodLights(bigs, P, S, cubeU, width, height, still, skin)))
+  if (!row.bare) overlay.push(hook(skin.overlay && (() => skin.overlay!(ctx))))
 
   const source = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${css}<defs>${defs.join('')}</defs>${parts.join('')}${overlay.join('')}</svg>`
   return { source, width, height }
+}
+
+/** An open padlock rising and fading over a step that was freed just now, with a ring spreading out. */
+function unlockMark([lx, ly]: Pt, S: number, okc: string): string {
+  const lk = Math.max(5, S * 0.13)
+  const hx = lx + lk * 0.42
+  const hy = ly - lk * 0.2
+  return (
+    '<g opacity="0" pointer-events="none"><animate attributeName="opacity" values="1;1;0" keyTimes="0;0.6;1" dur="2.2s" fill="freeze"/>' +
+    `<animateTransform attributeName="transform" type="translate" values="0 0;0 ${n1(-S * 0.35)}" dur="2.2s" fill="freeze"/>` +
+    `<circle cx="${n1(lx)}" cy="${n1(ly)}" r="${n1(lk)}" fill="none" stroke="${okc}" stroke-width="1.5"><animate attributeName="r" values="${n1(lk)};${n1(lk * 3)}" dur="0.8s" fill="freeze"/><animate attributeName="stroke-opacity" values="0.9;0" dur="0.8s" fill="freeze"/></circle>` +
+    `<rect x="${n1(lx - lk * 0.7)}" y="${n1(ly - lk * 0.2)}" width="${n1(lk * 1.4)}" height="${n1(lk * 1.1)}" rx="${n1(lk * 0.2)}" fill="${okc}" stroke="#0f172a" stroke-opacity="0.5" stroke-width="0.8"/>` +
+    `<path d="M${n1(lx - lk * 0.42)} ${n1(hy)}V${n1(ly - lk * 0.6)}A${n1(lk * 0.42)} ${n1(lk * 0.42)} 0 0 1 ${n1(hx)} ${n1(ly - lk * 0.6)}" fill="none" stroke="${okc}" stroke-width="${n1(Math.max(1.3, lk * 0.22))}" stroke-linecap="round">` +
+    `<animateTransform attributeName="transform" type="rotate" values="0 ${n1(hx)} ${n1(hy)};-35 ${n1(hx)} ${n1(hy)}" dur="0.5s" fill="freeze"/></path></g>`
+  )
+}
+
+/**
+ * Light that tells the state at a glance: a warm spot falling on a step that
+ * waits for you, a red glow around one that is stuck (and a faint red edge
+ * round the scene), a calm bright wash once every step is done.
+ */
+function moodLights(bigs: Big[], P: (u: number, v: number, w: number) => Pt, S: number, cubeU: (i: number) => number, W: number, H: number, still: boolean, skin: Skin): string {
+  if (skin.effects?.mood === false) return ''
+  let s = ''
+  for (const big of bigs) {
+    const u0 = cubeU(big.pos)
+    if (big.status === 'waiting') {
+      const [ax, ay] = P(u0 + 0.5, 0.5, 2.6)
+      const l = P(u0 - 0.05, 0, 1)
+      const r = P(u0 + 1.05, 1, 1)
+      const top = Math.max(0, ay)
+      const breathe = still ? '' : '<animate attributeName="opacity" values="0.75;1;0.75" dur="3s" repeatCount="indefinite"/>'
+      s += `<g pointer-events="none">${breathe}<polygon points="${n1(ax - S * 0.08)},${n1(top)} ${n1(ax + S * 0.08)},${n1(top)} ${n1(r[0])},${n1(r[1])} ${n1(l[0])},${n1(l[1])}" fill="url(#mood-cone)"/>`
+      const [gx, gy] = P(u0 + 0.5, 0.5, 0)
+      s += `<ellipse cx="${n1(gx)}" cy="${n1(gy)}" rx="${n1(S * 0.95)}" ry="${n1(S * 0.32)}" fill="url(#mood-amber)"/></g>`
+    }
+    if (big.stuck) {
+      const [cx, cy] = P(u0 + 0.5, 0.5, 0.5)
+      const pulse = still ? '' : '<animate attributeName="opacity" values="0.55;1;0.55" dur="1.6s" repeatCount="indefinite"/>'
+      s += `<ellipse cx="${n1(cx)}" cy="${n1(cy)}" rx="${n1(S * 1.05)}" ry="${n1(S * 0.95)}" fill="url(#mood-red)" pointer-events="none">${pulse}</ellipse>`
+    }
+  }
+  if (bigs.some(b => b.stuck)) s += `<rect width="${W}" height="${H}" fill="url(#mood-vig)" pointer-events="none"/>`
+  if (bigs.length > 0 && bigs.every(b => b.status === 'done')) s += `<rect width="${W}" height="${H}" fill="url(#mood-calm)" pointer-events="none"/>`
+  return s
+}
+
+/**
+ * Two rows for a long plan: the earlier half of the cubes stands in a back row,
+ * a little smaller and raised, behind the later half in front. The front row
+ * carries the backdrop, the tank and the progress pipe for the whole task.
+ */
+function renderRows(sc: Scene, detail: Detail, skin: Skin): { source: string; width: number; height: number } {
+  const k = Math.ceil(sc.bigs.length / 2)
+  const split = (bigs: Big[], from: number) => {
+    const row = bigs.map(b => ({ ...b, pos: b.pos - from }))
+    const posOf: number[] = []
+    for (const b of row) for (let j = 0; j < b.count; j++) posOf[b.index + j] = b.pos
+    return { row, posOf }
+  }
+  const back = split(sc.bigs.slice(0, k), 0)
+  const front = split(sc.bigs.slice(k), k)
+  const selIn = (p: number, from: number, len: number) => (p >= from && p < from + len ? p - from : -1)
+  const backOut = render({ ...sc, bigs: back.row, posOf: back.posOf, selPos: selIn(sc.selPos, 0, k), ctxFill: null }, detail > 1 ? 1 : 0, skin, { bare: true })
+  const scale = 0.84
+  const lift = backOut.height * scale * 0.62
+  const frontOut = render({ ...sc, bigs: front.row, posOf: front.posOf, selPos: selIn(sc.selPos, k, sc.bigs.length - k) }, detail, skin, { extraTop: lift })
+  // The back row's ids get a prefix of their own, so they never meet the front row's.
+  const inner = backOut.source
+    .replace(/^<svg[^>]*>/, '')
+    .replace(/<\/svg>$/, '')
+    .replace(/id="([^"]+)"/g, 'id="r2-$1"')
+    .replace(/url\(#([^)]+)\)/g, 'url(#r2-$1)')
+    .replace(/href="#([^"]+)"/g, 'href="#r2-$1"')
+  const x = Math.max(0, (frontOut.width - backOut.width * scale) / 2)
+  const placed = `<g transform="translate(${n1(x)} 4) scale(${scale})">${inner}</g>`
+  return { ...frontOut, source: frontOut.source.replace('<!--back-row-->', placed) }
 }
 
 type Drawing = { source: string; width: number; height: number; alt: string }
@@ -777,7 +942,7 @@ export function buildSvg(
     `Cube timeline: ${done} of ${steps.length} cubes done${working.length ? `, working on cube ${working.join(', ')}` : ''}`,
   )
 
-  const bigs = fold(steps)
+  const bigs = fold(steps, steps.length >= TWO_ROWS_FROM ? MAX_POS_TWO_ROWS : MAX_POS)
   const posOf: number[] = []
   for (const b of bigs) for (let k = 0; k < b.count; k++) posOf[b.index + k] = b.pos
   const ctxRaw = opts.context
@@ -809,13 +974,24 @@ export function buildSvg(
 
   // Compact mode: past ten cubes they are small, the finest ornament would not
   // show anyway, and the markup keeps well clear of the limit.
-  const compact = bigs.length > 10
-  const budget = compact ? COMPACT_BUDGET : MAX_SOURCE
-  let out = render(sc, compact ? 1 : 2, skin)
-  if (out.source.length > budget && !compact) out = render(sc, 1, skin)
+  const twoRows = bigs.length >= TWO_ROWS_FROM
+  const draw = (d: Detail) => (twoRows ? renderRows(sc, d, skin) : render(sc, d, skin))
+  const compact = (twoRows ? Math.ceil(bigs.length / 2) : bigs.length) > 10
+  const budget = compact || twoRows ? COMPACT_BUDGET : MAX_SOURCE
+  let out = draw(compact ? 1 : 2)
+  if (out.source.length > budget && !compact) out = draw(1)
   if (out.source.length > budget) {
-    const bare = render(sc, 0, skin)
+    const bare = draw(0)
     if (bare.source.length < out.source.length) out = bare
+  }
+  // Two rows that still do not fit fall back to one row of folded cubes.
+  if (twoRows && out.source.length > budget) {
+    const one = fold(steps)
+    const posOne: number[] = []
+    for (const b of one) for (let j = 0; j < b.count; j++) posOne[b.index + j] = b.pos
+    const sc1 = { ...sc, bigs: one, posOf: posOne, selPos: selected >= 0 && selected < posOne.length ? posOne[selected]! : -1 }
+    out = render(sc1, 1, skin)
+    if (out.source.length > COMPACT_BUDGET) out = render(sc1, 0, skin)
   }
   // Endless animations start where the clock says, so this drawing carries on from the one it replaces.
   const drawing: Drawing = { source: phaseLock(out.source, now), width: out.width, height: out.height, alt }

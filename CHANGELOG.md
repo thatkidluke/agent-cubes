@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.11.0
+
+- Mood lights: a warm spot falls on a step that waits for you, a stuck step glows red with a faint red edge
+  round the scene, and the light turns calm and bright once every step is done.
+- The newest mini cube drops into its cube only when its call has just ended, instead of with every new
+  picture.
+- Agents move visibly: the main agent flies over to the step it starts, a new subagent flies from the main
+  agent's step to its own.
+- Reflections of the cubes on a deeper, polished pedestal top.
+- A step that is done fuses: its mini cubes melt into the block, a light edge runs round it, and its plaque
+  flips like a split-flap sign.
+- A step freed from the steps it waited for: its padlock springs open, rises and fades.
+- The context tank in the style of the progress pipe: the skin's liquid, metal caps, bubbles.
+- Day versions of the dark skins (Cyber, Cyberpunk, Stellar, Retro, Steampunk, Robot factory): in light mode
+  a light sky with a pattern in the skin's spirit replaces the night backdrop.
+- Two rows for long plans: from eight cubes on, the earlier steps stand in a raised back row behind the later
+  ones, so the cubes stay large; up to sixteen before steps fold.
+
 ## 0.10.2
 
 - Steadier animations. A cube picture coming back from the cache (one state, another, the first again)

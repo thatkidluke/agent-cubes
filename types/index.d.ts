@@ -36,6 +36,8 @@ export type CubeAgent = {
   tool: string
   calls: number
   taskIndex: number
+  /** When the agent was spawned, in $.clock.now() ms; absent in runs stored before. */
+  spawnedAt?: number
 }
 
 export type CubeCall = {

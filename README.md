@@ -93,6 +93,8 @@ copies it as Markdown, ready for a pull request.
 
 - Cube timeline with a status per step: open, running, done, waiting for you, error, each with its own symbol
 - A progress pipe in its own band of the pedestal, filled with energy, liquid or pixels to suit the skin
+- Mood lights, mini cubes landing as calls end, agents flying between steps, steps fusing when done
+- Two rows of cubes for long plans, and day versions of the dark skins in light mode
 - Subagents as badges on the cube they work on
 - Live feed of the latest tool calls
 - Context tank on the pedestal: amber from 70 %, red from 85 %

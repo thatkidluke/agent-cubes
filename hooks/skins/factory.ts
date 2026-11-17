@@ -263,6 +263,7 @@ export const factory: Skin = {
   },
   track: { groove: '#0f172a', from: '#0ea5e9', to: '#10b981', head: HAZARD },
   pipe: { fill: 'liquid', colors: ['#0e7490', '#06b6d4', '#a5f3fc'], metal: '#94a3b8' },
+  day: { sky: ['#f4f7fb', '#dfe6ee'], ink: '#64748b', pattern: 'hall' },
   font: 'ui-monospace,Consolas,monospace',
   effects: { glint: false, sparks: false },
   defs: () =>

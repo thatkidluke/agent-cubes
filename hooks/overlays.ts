@@ -6,6 +6,7 @@
 import type { CubeCtx, Skin } from './skins/types'
 import { tr } from './i18n'
 import { box, circle, esc, line, mix, n1, pline, poly, seeded } from './svg'
+import { pipeStyle } from './pipe'
 import type { Pt } from './svg'
 
 /** How much ornament to draw: 2 full, 1 reduced, 0 bare. */
@@ -31,10 +32,11 @@ export function contextTank(fill: number, P: Proj, S: number, uEnd: number, pedH
   const wB = -pedH + 0.1
   const wT = -0.08
   const pct = Math.round(fill * 100)
-  const col = fill >= CONTEXT_RED ? skin.status.error[1] : fill >= CONTEXT_AMBER ? skin.status.waiting[1] : skin.track.from
+  const ps = pipeStyle(skin)
+  const col = fill >= CONTEXT_RED ? skin.status.error[1] : fill >= CONTEXT_AMBER ? skin.status.waiting[1] : ps.colors[1]
   const g = box(P, u0, u1, v0, v1, wB, wT)
   let s = `<g><title>${tr(`Kontextfenster zu ${pct} % gefüllt`, `Context window ${pct} % full`)}</title>`
-  s += poly(g.back, `fill="#0f172a" fill-opacity="0.4"`)
+  s += poly(g.back, `fill="#0f172a" fill-opacity="0.55"`)
   if (fill > 0) {
     const lq = box(P, u0 + 0.025, u1 - 0.025, v0 + 0.04, v1 - 0.04, wB + 0.01, wB + 0.01 + (wT - wB - 0.02) * fill)
     const pulse = fill >= CONTEXT_RED && detail > 0 && !still ?'<animate attributeName="opacity" values="1;0.5;1" dur="1.1s" repeatCount="indefinite"/>' : ''
@@ -44,6 +46,15 @@ export function contextTank(fill: number, P: Proj, S: number, uEnd: number, pedH
       poly(lq.right, `fill="${shade(col, '#000000', 0.3)}" fill-opacity="0.9"`) +
       poly(lq.top, `fill="${shade(col, '#ffffff', 0.35)}"`) +
       `</g>`
+    // Bubbles rising through a liquid, while things move.
+    if (ps.fill === 'liquid' && !still && detail > 1) {
+      for (let k = 0; k < 2; k++) {
+        const [bx, by0] = P(u0 + 0.07 + k * 0.07, v0, wB + 0.06)
+        const [, by1] = P(u0, v0, wB + (wT - wB) * fill - 0.04)
+        const dur = 1.7 + k * 0.6
+        s += `<circle cx="${n1(bx)}" cy="${n1(by0)}" r="${n1(Math.max(0.8, S * 0.018))}" fill="#ffffff" opacity="0"><animate attributeName="cy" values="${n1(by0)};${n1(by1)}" dur="${dur}s" begin="${k * 0.7}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.7;0" dur="${dur}s" begin="${k * 0.7}s" repeatCount="indefinite"/></circle>`
+      }
+    }
   }
   // Marks at 60 % and 80 %.
   for (const m of [CONTEXT_AMBER, CONTEXT_RED]) {
@@ -55,10 +66,15 @@ export function contextTank(fill: number, P: Proj, S: number, uEnd: number, pedH
     poly(g.right, `fill="#ffffff" fill-opacity="0.07" class="e"`) +
     poly(g.top, `fill="${skin.pedestal.footSide}" class="e"`) +
     line(P(u0 + 0.05, v0, wB + 0.06), P(u0 + 0.05, v0, wT - 0.06), `stroke="#ffffff" stroke-opacity="0.55" stroke-width="1"`)
+  // Metal caps at both ends, as on the pipe.
+  for (const [a, b] of [[wT - 0.05, wT + 0.02], [wB - 0.02, wB + 0.05]] as const) {
+    const cap = box(P, u0 - 0.02, u1 + 0.02, v0 - 0.03, v1 + 0.03, a, b)
+    s += poly(cap.front, `fill="${ps.metal}" class="e"`) + poly(cap.right, `fill="${shade(ps.metal, '#000000', 0.35)}" class="e"`) + poly(cap.top, `fill="${shade(ps.metal, '#ffffff', 0.3)}" class="e"`)
+  }
   const [lx] = P(uEnd, pedBack, 0)
   const [, ly] = P(u1, v0, (wB + wT) / 2)
   s +=
-    `<text class="t cap" x="${n1(lx + 4)}" y="${n1(ly - 1)}" font-size="${n1(fs * 0.8)}" fill="${skin.plaque.caption}" fill-opacity="0.8">CTX</text>` +
+    `<text class="t cap acd-bgtxt" x="${n1(lx + 4)}" y="${n1(ly - 1)}" font-size="${n1(fs * 0.8)}" fill="${skin.plaque.caption}" fill-opacity="0.8">CTX</text>` +
     `<text class="t" x="${n1(lx + 4)}" y="${n1(ly + fs)}" font-size="${n1(fs)}" fill="${col}">${pct} %</text>`
   return s + `</g>`
 }
