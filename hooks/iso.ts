@@ -1003,3 +1003,7 @@ export function buildSvg(
   if (cache.length > CACHE_SIZE) cache.length = CACHE_SIZE
   return drawing
 }
+
+// The steps as the drawing sees them, and their folding: for the circuit-board view, which draws the same task.
+export { layout as sceneSteps, fold as foldSteps, SLOTS }
+export type { Big }

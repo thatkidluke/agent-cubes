@@ -118,6 +118,8 @@ declare module 'claude-code' {
       history: Shaped<HistRun[]>
       /** The chosen skin's id. */
       skin: string
+      /** How the task is drawn: 'cubes' or 'board'. */
+      view: string
       /** Where the last export was written, for the panel to show; '' for none. */
       exported: string
       /** Whether the STATISTIK section is unfolded. */

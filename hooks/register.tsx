@@ -32,6 +32,7 @@ import {
   toolStart,
 } from './model'
 import { buildSummary } from './summary'
+import { buildBoard } from './board'
 import { buildGauges, buildTiles, warnColors, type Gauge, type Tile } from './gauges'
 import { activity, AMBER as P_AMBER, BLUE as P_BLUE, clock, coins, cup, diffBlocks, GOLD as P_GOLD, GREEN as P_GREEN, hourglass, perMinute, RED as P_RED, tank, TEAL as P_TEAL, tokenBars, VIOLET as P_VIOLET, warning } from './pictos'
 import { agentRow, callColor, card, figures, glyphOf, whoCalled, type Els, type Figure } from './panel/blocks'
@@ -59,6 +60,11 @@ const history = atom({ plugin: 'agent-cubes', key: 'history' } as const, [] as H
 const skinPick = atom({ plugin: 'agent-cubes', key: 'skin' } as const, '')
 const exported = atom({ plugin: 'agent-cubes', key: 'exported' } as const, '')
 const SKIN_KEY = 'skin'
+/** How the task is drawn: as cubes on a pedestal, or as chips on a circuit board. */
+const VIEWS = ['cubes', 'board'] as const
+type View = (typeof VIEWS)[number]
+const viewPick = atom({ plugin: 'agent-cubes', key: 'view' } as const, 'cubes')
+const VIEW_KEY = 'view'
 
 
 /** Whether the STATISTIK section is unfolded. */
@@ -127,6 +133,8 @@ export const register: Register = (on, options) => {
     }
     const storedSkin = await $.store.get(SKIN_KEY).catch(() => undefined)
     if (typeof storedSkin === 'string' && SKINS.some(s => s.id === storedSkin)) await update($, skinPick, () => storedSkin)
+    const storedView = await $.store.get(VIEW_KEY).catch(() => undefined)
+    if (typeof storedView === 'string' && (VIEWS as readonly string[]).includes(storedView)) await update($, viewPick, () => storedView)
     if (settings.autoOpen) void $.ui.open({ id: PANE, title: TITLE })
     // Keeps the elapsed time, the estimated fill and the meters moving while a run is active: one write a second.
     await refreshMeters($)
@@ -262,7 +270,10 @@ export const register: Register = (on, options) => {
     const curTask = cur >= 0 ? r.tasks[cur] : undefined
 
     const drawOpts = { context: ctxFrac, motion: settings.animations }
-    const svg = Svg ? buildSvg(r, isWidget ? 180 : Math.max(260, Math.min(680, cols * 7.5)), now, sel, skin, drawOpts) : undefined
+    const view: View = (await read($, viewPick)) === 'board' ? 'board' : 'cubes'
+    // The widget stays with the cubes: a board needs more room than it has.
+    const sceneWidth = isWidget ? 180 : Math.max(260, Math.min(680, cols * 7.5))
+    const svg = !Svg ? undefined : view === 'board' && !isWidget ? buildBoard(r, sceneWidth, now, sel, drawOpts) : buildSvg(r, sceneWidth, now, sel, skin, drawOpts)
 
     if (isWidget) {
       return (
@@ -311,7 +322,7 @@ export const register: Register = (on, options) => {
     const exportSvg = async () => {
       try {
         const at = await $.clock.now()
-        const pic = buildSvg(r, 1000, at, -1, skin, drawOpts)
+        const pic = view === 'board' ? buildBoard(r, 1000, at, -1, drawOpts) : buildSvg(r, 1000, at, -1, skin, drawOpts)
         const path = joinPath(await $.session.cwd(), `agent-cubes-${fileStamp(at)}.svg`)
         await $.fs.write(path, pic.source)
         await update($, exported, () => path)
@@ -343,6 +354,11 @@ export const register: Register = (on, options) => {
     const viewAgent = async (agentId: string | undefined) => {
       const shown = await $.ui.view(agentId ? { agentId } : {})
       if (shown.deny) $.ui.toast(shown.deny)
+    }
+    const pickView = async (id: string) => {
+      const picked: View = id === 'board' ? 'board' : 'cubes'
+      await update($, viewPick, () => picked)
+      await $.store.set(VIEW_KEY, picked).catch(() => undefined)
     }
     const pickSkin = async (id: string) => {
       const picked = skinById(id).id
@@ -559,9 +575,18 @@ export const register: Register = (on, options) => {
       <Text dimColor>Skin: {skin.name}</Text>
     )
 
+    const viewLabel = (v: View) => (v === 'board' ? tr('Platine', 'Circuit board') : tr('Würfel', 'Cubes'))
+    const viewPicker = Select ? (
+      <Select key="view" label={tr('Ansicht', 'View')} value={view} options={VIEWS.map(v => ({ value: v, label: viewLabel(v) }))} onSelect={value => pickView(value)} />
+    ) : (
+      <Text dimColor>
+        {tr('Ansicht', 'View')}: {viewLabel(view)}
+      </Text>
+    )
+
     return (
       <Box flexDirection="column" gap={1} paddingX={1}>
-        {/* Head: progress figure, status, skin */}
+        {/* Head: progress figure, status, view and skin */}
         <Box flexDirection="row" justifyContent="space-between" alignItems="flex-end">
           <Box flexDirection="column">
             <Text size="title" weight="bold" tabular>
@@ -575,7 +600,11 @@ export const register: Register = (on, options) => {
             <Text weight="semibold" color={runColor}>
               ● {RUN_LABEL[r.status]}
             </Text>
-            {skinPicker}
+            <Box flexDirection="row" gap={1} alignItems="center">
+              {viewPicker}
+              {/* Skins dress the cubes; the board has a look of its own. */}
+              {view === 'cubes' && skinPicker}
+            </Box>
           </Box>
         </Box>
         <Progress

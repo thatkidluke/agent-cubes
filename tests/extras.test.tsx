@@ -15,6 +15,7 @@ import {
   toolStart,
 } from '../hooks/model'
 import { buildSummary } from '../hooks/summary'
+import { buildBoard } from '../hooks/board'
 import { memo, phaseLock } from '../hooks/svg'
 import { buildGauges, buildTiles, warnColors } from '../hooks/gauges'
 import { buildAgents, buildLive, buildNow, clip } from '../hooks/panel/live'
@@ -288,5 +289,46 @@ test('every drawing is well-formed: no attribute twice on one element', async ()
       const names = [...tag.matchAll(/\s([a-zA-Z:-]+)="/g)].map(m => m[1])
       expect(new Set(names).size, tag.slice(0, 60)).toBe(names.length)
     }
+  }
+})
+
+test('the view dropdown switches between cubes and the circuit board, and the pick is kept', async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.tool.call(PLAN)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  const scene = async () => (await ui.findAll({ type: 'Svg' })).map(n => String(n.props.alt)).find(a => a.startsWith('Cube timeline') || a.startsWith('Circuit board'))
+  expect((await ui.find({ type: 'Select', key: 'view' }))?.props.value).toBe('cubes')
+  expect(await scene()).toContain('Cube timeline')
+  expect(await ui.find({ key: 'skin' }), 'skins dress the cubes').toBeDefined()
+  await ui.select({ key: 'view', value: 'board' })
+  expect((await ui.find({ type: 'Select', key: 'view' }))?.props.value).toBe('board')
+  expect(await scene()).toContain('Circuit board: 0 of 2 chips done')
+  expect(await ui.find({ key: 'skin' }), 'the board has its own look').toBeUndefined()
+  await ui.unmount()
+})
+
+test('the circuit board: a chip per step, lit traces after finished steps, LEDs by kind of work', async () => {
+  let r = startRun(emptyRun, 'Build it', 1)
+  r = applyTaskTool(r, 'mcp__ccd_turn__update_plan', { items: [{ content: 'Read it', status: 'completed' }, { content: 'Write it', status: 'in_progress' }, { content: 'Test it', status: 'pending' }] }, undefined, 2)
+  r = toolStart(r, { id: 'x', tool: 'Edit', agentId: undefined, input: { file_path: '/a', old_string: 'a', new_string: 'a\nb' } }, 1000)
+  r = toolEnd(r, { id: 'x', tool: 'Edit', agentId: undefined, isError: false, errorText: '' }, 1500)
+  const b = buildBoard(r, 560, 9000, 1, { context: 0.9 })
+  expect(b.source.startsWith('<svg') && b.source.endsWith('</svg>')).toBe(true)
+  expect((b.source.match(/<title>Cube /g) ?? []).length, 'three chips').toBe(3)
+  expect(b.source).toContain('#5eead4')
+  expect(b.source).toContain('CHIPS <tspan font-weight="700">1/3</tspan>')
+  expect(b.source).toContain('CTX <tspan font-weight="700">90%</tspan>')
+  expect(b.source, 'the write call lights an amber LED').toContain('fill="#f59e0b"')
+  expect(b.source.includes('<animate'), 'current runs while work goes on').toBe(true)
+  expect(buildBoard(r, 560, 9000, 1, { motion: false }).source.includes('<animate'), 'still mode').toBe(false)
+  // Many steps stay under the element's limit, and every tag is well-formed.
+  let long = startRun(emptyRun, 'Long', 1)
+  long = applyTaskTool(long, 'mcp__ccd_turn__update_plan', { items: Array.from({ length: 40 }, (_, i) => ({ content: `S${i}`, status: i < 20 ? 'completed' : i === 20 ? 'in_progress' : 'pending' })) }, undefined, 2)
+  const big = buildBoard(long, 680, 9000).source
+  expect(big.length < 131072, `40 steps: ${big.length}`).toBe(true)
+  for (const tag of big.match(/<[a-zA-Z][^>]*>/g) ?? []) {
+    const names = [...tag.matchAll(/\s([a-zA-Z:-]+)="/g)].map(m => m[1])
+    expect(new Set(names).size, tag.slice(0, 60)).toBe(names.length)
   }
 })

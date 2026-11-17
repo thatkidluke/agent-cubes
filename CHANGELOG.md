@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0
+
+- A second view: the circuit board. A **View** dropdown at the top of the panel switches between the cubes and
+  the board, and the pick is remembered. On the board every step is a chip with a row of LEDs for its calls,
+  coloured by the kind of work, and a status LED; copper traces join the chips in order, wind from row to row,
+  glow once a step is done and carry pulses into the chip in work. Agents sit on their chip as probes; a display
+  module shows the whole task, the chips done and the context window. Errors, stuck steps, test runs, times and
+  changed lines show on the chip. The export saves the view that is showing. The widget stays with the cubes.
+
 ## 0.11.2
 
 - Plans of up to sixteen steps now really show every cube: finished steps at the start folded into a stack

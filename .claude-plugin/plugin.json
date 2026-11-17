@@ -1,7 +1,7 @@
 {
   "name": "agent-cubes",
-  "version": "0.11.2",
-  "description": "A live cube timeline of your agents' work beside the Claude Code chat: a cube per step, a progress pipe, agents, a live feed, stuck detection, context and cost, eight skins",
+  "version": "0.12.0",
+  "description": "A live view of your agents' work beside the Claude Code chat, as cubes or as a circuit board: a step each, progress, agents, a live feed, stuck detection, context and cost, eight skins",
   "author": {
     "name": "Agent Cubes contributors"
   },

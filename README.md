@@ -76,6 +76,17 @@ The drawing tells what happens before you read a number:
   into stacks.
 - **Light and dark:** the dark skins switch to a day version of their backdrop when the app is light.
 
+### Or as a circuit board
+
+<p align="center"><img src="docs/board.svg" width="640" alt="The same task as a circuit board: a chip per step, lit traces, LEDs for the work done"></p>
+
+The **View** dropdown at the top of the panel switches between the cubes and a circuit board. On the board every
+step is a chip: a row of LEDs lights up with its calls, one colour per kind of work, and a status LED sits in its
+corner. Copper traces join the chips in order, winding from row to row, and carry current once a step is done;
+pulses run into the chip in work. Agents sit on their chip as probes, and a display module along the top shows the
+whole task, the chips done and the context window. Failed calls, stuck steps, test runs, times and changed lines
+show on the chip as they do on the cubes. Your pick is remembered.
+
 ## The panel
 
 <picture>
@@ -137,7 +148,8 @@ copies it as Markdown, ready for a pull request.
 
 **Make it yours**
 
-- Eight skins, from calm to playful; the dark ones with a day version
+- Two views of the same task: cubes on a pedestal, or chips on a circuit board
+- Eight skins for the cubes, from calm to playful; the dark ones with a day version
 - Still mode without animation, for calm or slow machines
 - English and German interface
 
@@ -147,7 +159,7 @@ copies it as Markdown, ready for a pull request.
 **Take it with you**
 
 - Summary as Markdown with one click
-- Export of the cube timeline as an SVG file
+- Export of the drawing, cubes or board, as an SVG file
 - Data export of the history as CSV and JSON
 
 </td>
