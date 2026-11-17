@@ -29,13 +29,20 @@ export function contextTank(fill: number, P: Proj, S: number, uEnd: number, pedH
   const u1 = uEnd + 0.2
   const v0 = 0.22
   const v1 = 0.62
-  const wB = -pedH + 0.1
+  // A metal foot stands on the ground; the glass stands on the foot, so nothing of it is drawn over the glass.
+  const wF = -pedH + 0.1
+  const wB = wF + 0.07
   const wT = -0.08
   const pct = Math.round(fill * 100)
   const ps = pipeStyle(skin)
   const col = fill >= CONTEXT_RED ? skin.status.error[1] : fill >= CONTEXT_AMBER ? skin.status.waiting[1] : ps.colors[1]
   const g = box(P, u0, u1, v0, v1, wB, wT)
   let s = `<g><title>${tr(`Kontextfenster zu ${pct} % gefüllt`, `Context window ${pct} % full`)}</title>`
+  const metal = (b: ReturnType<typeof box>) =>
+    poly(b.front, `fill="${ps.metal}" class="e"`) + poly(b.right, `fill="${shade(ps.metal, '#000000', 0.35)}" class="e"`) + poly(b.top, `fill="${shade(ps.metal, '#ffffff', 0.3)}" class="e"`)
+  // The foot first: wider than the glass, with a soft shadow under it.
+  const foot = box(P, u0 - 0.035, u1 + 0.035, v0 - 0.06, v1 + 0.06, wF, wB)
+  s += poly(foot.bottom.map(p => [p[0] + S * 0.04, p[1] + S * 0.03] as Pt), `fill="#000000" opacity="0.3"`) + metal(foot)
   s += poly(g.back, `fill="#0f172a" fill-opacity="0.55"`)
   if (fill > 0) {
     const lq = box(P, u0 + 0.025, u1 - 0.025, v0 + 0.04, v1 - 0.04, wB + 0.01, wB + 0.01 + (wT - wB - 0.02) * fill)
@@ -66,11 +73,8 @@ export function contextTank(fill: number, P: Proj, S: number, uEnd: number, pedH
     poly(g.right, `fill="#ffffff" fill-opacity="0.07" class="e"`) +
     poly(g.top, `fill="${skin.pedestal.footSide}" class="e"`) +
     line(P(u0 + 0.05, v0, wB + 0.06), P(u0 + 0.05, v0, wT - 0.06), `stroke="#ffffff" stroke-opacity="0.55" stroke-width="1"`)
-  // Metal caps at both ends, as on the pipe.
-  for (const [a, b] of [[wT - 0.05, wT + 0.02], [wB - 0.02, wB + 0.05]] as const) {
-    const cap = box(P, u0 - 0.02, u1 + 0.02, v0 - 0.03, v1 + 0.03, a, b)
-    s += poly(cap.front, `fill="${ps.metal}" class="e"`) + poly(cap.right, `fill="${shade(ps.metal, '#000000', 0.35)}" class="e"`) + poly(cap.top, `fill="${shade(ps.metal, '#ffffff', 0.3)}" class="e"`)
-  }
+  // A metal cap on top, as on the pipe.
+  s += metal(box(P, u0 - 0.02, u1 + 0.02, v0 - 0.03, v1 + 0.03, wT - 0.05, wT + 0.02))
   const [lx] = P(uEnd, pedBack, 0)
   const [, ly] = P(u1, v0, (wB + wT) / 2)
   s +=

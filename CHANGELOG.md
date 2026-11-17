@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.13.3
+
+- The context tank's foot is drawn right: the glass stands on a metal foot with a soft shadow, where the
+  lower cap used to be painted over the glass and looked out of place.
+
+## 0.13.2
+
+- Code tidied, nothing visible changed: what the drawings show (the steps, their folding, colours and words)
+  now lives in its own module beside the cube drawing, and the panel's figures and live infos are built in
+  modules of their own. Every drawing and the whole panel were compared before and after.
+
 ## 0.13.1
 
 - README and images brought up to date: an animated demo of the circuit board, a gallery of the five solder masks,
