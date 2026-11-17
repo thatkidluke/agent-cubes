@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1
+
+- The clock on the Elapsed tile no longer jumps back and forth. Its hand turned on its own and restarted
+  with every new picture of the tiles; now it stands still and points where the ring ends.
+
 ## 0.10.0
 
 - The progress has a band of its own at the pedestal's foot: a glass pipe in a recessed channel, with metal

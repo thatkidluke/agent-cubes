@@ -179,6 +179,7 @@ test('the pictograms show their figure', async () => {
   expect(coins(1.2, 6)).toContain('#e11d48')
   expect(cup('c1', 0.5, true, true)).toContain('id="c1"')
   expect(clock(0.5, false)).not.toContain('<animate')
+  expect(clock(0.5, true), 'the hand stands still even while work goes on').not.toContain('<animate')
   expect(hourglass(0.4, true)).toContain('<animate')
   expect(tokenBars(10, 0)).toContain('#3b82f6')
 })

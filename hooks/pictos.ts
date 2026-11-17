@@ -22,7 +22,7 @@ const stroke = (d: string, col: string, w = SW, extra = '') =>
 const clamp = (v: number) => Math.max(0, Math.min(1, v))
 
 /** Elapsed: a clock; its ring fills with the share of the estimated total, the hand turns while work goes on. */
-export function clock(frac: number | null, animate: boolean): string {
+export function clock(frac: number | null, _animate = false): string {
   const cx = 18, cy = 18, r = 15
   const f = clamp(frac ?? 0)
   let s = `<circle class="acg-gf" cx="${cx}" cy="${cy}" r="${r}"/>`
@@ -36,9 +36,11 @@ export function clock(frac: number | null, animate: boolean): string {
     const t = (k / 4) * 2 * Math.PI
     s += stroke(`M${n1(cx + 9.5 * Math.sin(t))} ${n1(cy - 9.5 * Math.cos(t))}L${n1(cx + 11.5 * Math.sin(t))} ${n1(cy - 11.5 * Math.cos(t))}`, RIM, 1.2)
   }
-  const spin = animate ? `<animateTransform attributeName="transform" type="rotate" from="0 ${cx} ${cy}" to="360 ${cx} ${cy}" dur="8s" repeatCount="indefinite"/>` : ''
+  // The hand points where the ring ends, and stands still: a hand turning on its own
+  // restarted with every new picture and seemed to jump back and forth.
+  const ha = (f > 0 ? f : 0) * 2 * Math.PI
   s += `<path class="acg-hand" d="M${cx} ${cy}L${cx + 4} ${cy - 4}" fill="none" stroke-width="2.2" stroke-linecap="round"/>`
-  s += `<g>${stroke(`M${cx} ${cy}L${cx} ${cy - 9.5}`, BLUE, 1.8)}${spin}</g>`
+  s += stroke(`M${cx} ${cy}L${n1(cx + 9.5 * Math.sin(ha))} ${n1(cy - 9.5 * Math.cos(ha))}`, BLUE, 1.8)
   return s + `<circle cx="${cx}" cy="${cy}" r="1.8" fill="${BLUE}"/>`
 }
 
