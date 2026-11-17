@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/hero.svg" width="100%" alt="Agent Cubes: watch your agents work, one glass cube per step">
+  <img src="docs/hero.svg" width="100%" alt="Agent Cubes: watch your agents work, as glass cubes or on a circuit board">
 </p>
 
 <p align="center">
@@ -10,13 +10,15 @@
 </p>
 
 <p align="center">
-  <b>A live cube timeline of your agents' work, right beside the Claude Code chat.</b><br>
-  Every step of the plan becomes a glass cube that fills while the agents work on it.
+  <b>A live view of your agents' work, right beside the Claude Code chat.</b><br>
+  Every step of the plan becomes a glass cube that fills while the agents work on it,<br>
+  or a chip on a circuit board that lights up. Your choice.
 </p>
 
 <p align="center">
   <a href="#install">Install</a> ·
   <a href="#the-scene">The scene</a> ·
+  <a href="#or-as-a-circuit-board">Circuit board</a> ·
   <a href="#the-panel">The panel</a> ·
   <a href="#skins">Skins</a> ·
   <a href="#settings">Settings</a> ·
@@ -50,7 +52,7 @@ The panel opens when a session starts, or any time with `/cubes`.
 <p align="center"><img src="docs/demo.svg" width="640" alt="A sample task playing out: cubes fill, agents move from step to step, finished steps turn solid"></p>
 
 Every step of the agents' plan (`update_plan`, `TodoWrite`, `TaskCreate` / `TaskUpdate`) becomes a glass cube on a
-pedestal. While a step is worked on, its cube fills with small cubes, one slice of the step's real tool calls each,
+pedestal, or a chip on a circuit board; a dropdown switches between the two. While a step is worked on, its cube fills with small cubes, one slice of the step's real tool calls each,
 tinted by the kind of work: reading, writing, running, agents. A finished step turns into a solid cube with a tick.
 
 Subagents show up as coloured badges on the cube they work on. The panel estimates progress and time left, spots
@@ -78,7 +80,7 @@ The drawing tells what happens before you read a number:
 
 ### Or as a circuit board
 
-<p align="center"><img src="docs/board.svg" width="640" alt="The same task as a circuit board: a chip per step, lit traces, LEDs for the work done"></p>
+<p align="center"><img src="docs/board-demo.svg" width="640" alt="A sample task playing out on the circuit board: LEDs light up, traces glow, agents move from part to part"></p>
 
 The **View** dropdown at the top of the panel switches between the cubes and a circuit board; your pick is
 remembered, and the `defaultView` setting says where new sessions start.
@@ -98,7 +100,22 @@ remembered, and the `defaultView` setting says where new sessions start.
   and time left.
 - **Solder masks:** green, black and gold, blue, white or red, from the **Board** dropdown.
 
-When the task is done, the summary turns into a test report in the board's style. The widget shows a tiny board.
+<table>
+<tr>
+<td width="50%"><img src="docs/board-green.svg" alt="Green solder mask"><br><b>Green</b> · the classic</td>
+<td width="50%"><img src="docs/board-black.svg" alt="Black and gold solder mask"><br><b>Black and gold</b> · matte black, gold traces</td>
+</tr>
+<tr>
+<td><img src="docs/board-blue.svg" alt="Blue solder mask"><br><b>Blue</b> · deep blue, light traces</td>
+<td><img src="docs/board-white.svg" alt="White solder mask"><br><b>White</b> · a light board for light rooms</td>
+</tr>
+<tr>
+<td><img src="docs/board-red.svg" alt="Red solder mask"><br><b>Red</b> · dark red, warm traces</td>
+<td><img src="docs/board-report.svg" alt="The test report of a finished task"><br><b>Test report</b> · the summary of a finished task, in the board's style</td>
+</tr>
+</table>
+
+When the task is done, the summary turns into this test report. The widget shows a tiny board.
 
 ## The panel
 
@@ -119,6 +136,8 @@ Everything follows the app's light or dark mode.
 
 ### When a task is done
 
+With the cubes as the view:
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/summary-dark.svg">
   <img src="docs/summary-light.svg" width="520" alt="The summary of a finished task">
@@ -126,7 +145,8 @@ Everything follows the app's light or dark mode.
 
 A ring for the steps done next to time, cost, tool calls and subagents; bars for working versus waiting and
 for the kinds of work; code and tests; one bar per step, as long as it took and tinted by its kind. One click
-copies it as Markdown, ready for a pull request.
+copies it as Markdown, ready for a pull request. With the circuit board as the view, the same figures come as a
+test report on a piece of the board.
 
 ## Features
 
@@ -136,7 +156,7 @@ copies it as Markdown, ready for a pull request.
 
 **See what happens**
 
-- A cube per step with a status: open, running, done, waiting for you, error, each with its own symbol
+- A cube or a chip per step with a status: open, running, done, waiting for you, error, each with its own symbol
 - A progress pipe and a context tank, filled to suit the skin
 - Mood lights for waiting, stuck and finished steps
 - Agents as badges that move with their work; a live feed of the latest calls
@@ -163,6 +183,7 @@ copies it as Markdown, ready for a pull request.
 
 - Two views of the same task: cubes on a pedestal, or chips on a circuit board
 - Eight skins for the cubes, from calm to playful; the dark ones with a day version
+- Five solder masks for the board
 - Still mode without animation, for calm or slow machines
 - English and German interface
 
@@ -181,7 +202,7 @@ copies it as Markdown, ready for a pull request.
 
 ## Skins
 
-Pick a skin from the dropdown at the top of the panel. Each brings its own pedestal, cubes, pipe filling and
+The skins dress the cubes; the circuit board has [solder masks](#or-as-a-circuit-board) instead. Pick a skin from the dropdown at the top of the panel. Each brings its own pedestal, cubes, pipe filling and
 backdrop; in light mode the dark ones show a day version.
 
 <table>
@@ -255,7 +276,7 @@ how full the context window is. It reads no credentials, environment variables o
 | `tool.call` | Notes each call's start, end and outcome to fill the cubes. The call and its result are unchanged. |
 | `ui.render` | Draws the panel. |
 
-**What it stores.** Your skin pick and a short history of your last twelve tasks (step titles, times, counts, cost)
+**What it stores.** Your picks of view, skin and solder mask, and a short history of your last twelve tasks (step titles, times, counts, cost)
 in the plugin's own storage, for estimates and statistics.
 
 **What it writes, and only when you press a button**

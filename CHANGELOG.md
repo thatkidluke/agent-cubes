@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.1
+
+- README and images brought up to date: an animated demo of the circuit board, a gallery of the five solder masks,
+  the test report, a hero that names both views; every image drawn afresh from the current code. Plugin and
+  marketplace descriptions name both views.
+
 ## 0.13.0
 
 The circuit board grows up:
