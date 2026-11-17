@@ -79,7 +79,7 @@ export function contextTank(fill: number, P: Proj, S: number, uEnd: number, pedH
   const [, ly] = P(u1, v0, (wB + wT) / 2)
   s +=
     `<text class="t cap acd-bgtxt" x="${n1(lx + 4)}" y="${n1(ly - 1)}" font-size="${n1(fs * 0.8)}" fill="${skin.plaque.caption}" fill-opacity="0.8">CTX</text>` +
-    `<text class="t" x="${n1(lx + 4)}" y="${n1(ly + fs)}" font-size="${n1(fs)}" fill="${col}">${pct} %</text>`
+    `<text class="t acd-bgval" x="${n1(lx + 4)}" y="${n1(ly + fs)}" font-size="${n1(fs)}" fill="${col}">${pct} %</text>`
   return s + `</g>`
 }
 

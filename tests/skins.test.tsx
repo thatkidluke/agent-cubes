@@ -271,7 +271,6 @@ function hookOutputs(skin: Skin): HookOut[] {
           const ctx = sceneCtx(n, detail, hasLive, overall)
           const tag = `n=${n} detail=${detail} live=${hasLive} overall=${overall}`
           if (skin.defs) call(`defs(${tag})`, () => skin.defs!(ctx))
-          if (skin.backdrop) call(`backdrop(${tag})`, () => skin.backdrop!(ctx))
           if (skin.pedestalDecor) call(`pedestalDecor(${tag})`, () => skin.pedestalDecor!(ctx))
           if (skin.overlay) call(`overlay(${tag})`, () => skin.overlay!(ctx))
           if (overall !== 0.5) continue
@@ -332,7 +331,6 @@ test('skins: in a full render, ids beyond classic\'s carry the skin prefix and n
       const dup = all.filter((id, i) => all.indexOf(id) !== i)
       expect([...new Set(dup)], `${skin.id} / ${name}: duplicate ids`).toEqual([])
       if (skin.id === 'classic') continue
-      // The renderer's own day backdrop (acd-) is shared by every skin that has one.
       // The back row of a two-row drawing carries the same ids with an r2- prefix.
       const extra = all.map(id => id.replace(/^r2-/, '')).filter(id => !base.has(id) && !id.startsWith(`${skin.id}-`) && !id.startsWith('acd-'))
       expect(extra, `${skin.id} / ${name}: ids without the "${skin.id}-" prefix`).toEqual([])

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.0
+
+- The scenes stand free: no skin draws a backdrop any more, so the cube machine sits directly on the pane and the
+  panel reads as one piece. The day versions of the backdrops go with them; what is written beside the pedestal
+  turns dark on a light pane. The robot factory's arm stands on a post behind the cube, where it hung from a
+  ceiling rail. Drawings are a little smaller as well.
+- The drawings keep one axis: the summary, the tiles, NOW, AGENTS and LIVE sit centred like the scene above them,
+  where they used to stay at the left and drift apart from it in a wide pane.
+
 ## 0.13.3
 
 - The context tank's foot is drawn right: the glass stands on a metal foot with a soft shadow, where the

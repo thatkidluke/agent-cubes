@@ -9,7 +9,6 @@ import type { CubeCtx, MiniKind, SceneCtx, Skin } from './skins/types'
 import { box, esc, fmt, lin, line, mix, n1, phaseLock, pline, poly, rad } from './svg'
 import type { Pt } from './svg'
 import { pipeBandPx, pipeDefs, progressPipe, type PipeGeometry } from './pipe'
-import { DAY_CSS, dayBackdrop, dayDefs } from './day'
 import { tr } from './i18n'
 import { contextTank, cracks, dependencies, smoke, testSeal } from './overlays'
 import type { Detail } from './overlays'
@@ -96,7 +95,7 @@ type Scene = {
 
 /**
  * How a row is drawn when the cubes stand in two: the back row `bare` (no
- * backdrop, tank, pipe or skin overlay, the front row has those), the front row
+ * tank, pipe or skin overlay, the front row has those), the front row
  * with `extraTop` px of room above it, where the back row goes.
  */
 type RowOptions = { bare?: boolean; extraTop?: number; /** Cubes in both rows together: the pipe gets a coupling per cube of the whole task. */ totalCubes?: number }
@@ -173,9 +172,7 @@ function render(sc: Scene, detail: Detail, skin: Skin, row: RowOptions = {}) {
   defs.push(
     lin('mood-cone', 0, 1, [[0, '#fde68a', 0], [0.55, '#fbbf24', 0.16], [1, '#f59e0b', 0.32]]) +
       rad('mood-amber', [[0, '#fbbf24', 0.45], [1, '#fbbf24', 0]]) +
-      rad('mood-red', [[0, '#ef4444', 0.42], [0.6, '#ef4444', 0.14], [1, '#ef4444', 0]]) +
-      '<radialGradient id="mood-vig" cx="0.5" cy="0.5" r="0.75"><stop offset="0.62" stop-color="#ef4444" stop-opacity="0"/><stop offset="1" stop-color="#ef4444" stop-opacity="0.22"/></radialGradient>' +
-      lin('mood-calm', 0, 1, [[0, '#ffffff', 0.14], [0.6, '#ffffff', 0]]),
+      rad('mood-red', [[0, '#ef4444', 0.42], [0.6, '#ef4444', 0.14], [1, '#ef4444', 0]]),
   )
   // Reflections on the polished pedestal top: the cube's colour fading towards the front edge.
   for (const st of statuses) defs.push(lin(`rf-${st}`, 0, 1, [[0, skin.status[st][1], 0.38], [1, skin.status[st][1], 0]]))
@@ -221,7 +218,6 @@ function render(sc: Scene, detail: Detail, skin: Skin, row: RowOptions = {}) {
     }
   }
   defs.push(hook(skin.defs && (() => skin.defs!(ctx))))
-  if (skin.day && detail > 0) defs.push(dayDefs(skin.day))
 
   const css =
     `<style>.e{stroke:${skin.edge.color};stroke-opacity:${skin.edge.opacity};stroke-width:.7;stroke-linejoin:round}` +
@@ -230,14 +226,12 @@ function render(sc: Scene, detail: Detail, skin: Skin, row: RowOptions = {}) {
     (skin.id === 'classic' ? `@media (prefers-color-scheme:dark){.cap{fill:${CLASSIC_CAPTION_DARK};paint-order:stroke;stroke:#0f172a;stroke-opacity:.5;stroke-width:2px}}` : '') +
     // Skins on dark, busy grounds (brick, wood, stars) get a dark halo so small captions stay legible.
     (skin.id !== 'classic' && skin.id !== 'minimal' ? `.cap{paint-order:stroke;stroke:#000;stroke-opacity:.6;stroke-width:2.2px;stroke-linejoin:round}` : '') +
-    (skin.day ? DAY_CSS : '') +
+    // No backdrop: the scene stands free on the pane. What is written beside the pedestal turns dark on a light pane.
+    `@media (prefers-color-scheme:light){.acd-bgtxt{fill:#334155;stroke:none}.acd-bgval{filter:brightness(.62) saturate(1.25)}}` +
     `</style>`
   const parts: string[] = []
   const overlay: string[] = []
 
-  if (!row.bare) parts.push(hook(skin.backdrop && (() => skin.backdrop!(ctx))))
-  // The day version, over the night backdrop: shows only while the pane is in light mode.
-  if (skin.day && detail > 0 && !row.bare) parts.push(dayBackdrop(skin.day, width, height, S, ped.top[3][1], 7 + n))
 
   // ── Pedestal: a foot, the block, a bevel ──
   {
@@ -574,15 +568,13 @@ function moodLights(bigs: Big[], P: (u: number, v: number, w: number) => Pt, S: 
       s += `<ellipse cx="${n1(cx)}" cy="${n1(cy)}" rx="${n1(S * 1.05)}" ry="${n1(S * 0.95)}" fill="url(#mood-red)" pointer-events="none">${pulse}</ellipse>`
     }
   }
-  if (bigs.some(b => b.stuck)) s += `<rect width="${W}" height="${H}" fill="url(#mood-vig)" pointer-events="none"/>`
-  if (bigs.length > 0 && bigs.every(b => b.status === 'done')) s += `<rect width="${W}" height="${H}" fill="url(#mood-calm)" pointer-events="none"/>`
   return s
 }
 
 /**
  * Two rows for a long plan: the earlier half of the cubes stands in a back row,
  * a little smaller and raised, behind the later half in front. The front row
- * carries the backdrop, the tank and the progress pipe for the whole task.
+ * carries the tank and the progress pipe for the whole task.
  */
 function renderRows(sc: Scene, detail: Detail, skin: Skin): { source: string; width: number; height: number } {
   const k = Math.ceil(sc.bigs.length / 2)

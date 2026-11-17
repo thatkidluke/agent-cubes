@@ -1,6 +1,5 @@
 import type { CallKind, CubeStatus } from '../../types'
 import type { Box, Pt } from '../svg'
-import type { DayStyle } from '../day'
 
 /** A mini cube's look: the kind of work of the call it stands for, or a failed call. */
 export type MiniKind = CallKind | 'err'
@@ -110,11 +109,6 @@ export type Skin = {
   /** The channel the progress pipe lies in. */
   track: { groove: string }
   /**
-   * The day version: a light backdrop shown instead of the dark one while the
-   * pane is in light mode. Left out for skins that are light already.
-   */
-  day?: DayStyle
-  /**
    * The progress pipe in its own band at the pedestal's foot: what flows in it
    * (glowing energy, a liquid with bubbles, pixel blocks, or a flat fill), its
    * colours from start to front, and the metal of its fittings.
@@ -142,8 +136,6 @@ export type Skin = {
   }
   /** Extra <defs> content: gradients, filters, patterns, symbols. */
   defs?: (ctx: SceneCtx) => string
-  /** Drawn first, behind everything (the whole width × height). */
-  backdrop?: (ctx: SceneCtx) => string
   /** Drawn over the pedestal's faces, before the plaques and cubes. */
   pedestalDecor?: (ctx: SceneCtx) => string
   /** Drawn inside a glass cube, after its mini cubes and before its front glass. */

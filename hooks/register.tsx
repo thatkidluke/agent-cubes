@@ -388,6 +388,7 @@ export const register: Register = (on, options) => {
     }
 
     // ── Overview: the figures, the canisters and the tiles ──
+    // Every drawing sits centred in the pane, so the scene and the cards below it keep one axis at any pane width.
     const drawWidth = Math.max(240, Math.min(680, cols * 7.5))
     const moving = settings.animations && active
     const { overview, gaugeItems, tileSpec } = overviewOf({ r, now, elapsed, left, exp, waitNow, ctxFrac, runUsd, settings, budgetFrac, costColor, overall, active, moving })
@@ -531,7 +532,9 @@ export const register: Register = (on, options) => {
             tr('ZUSAMMENFASSUNG', 'SUMMARY'),
             <Box flexDirection="column" gap={1}>
               {summaryPic && Svg ? (
-                <Svg key="sum-pic" source={summaryPic.source} alt={summaryPic.alt} width={summaryPic.width} height={summaryPic.height} isInteractive={!active} />
+                <Box key="sum-pic" flexDirection="row" justifyContent="center">
+                  <Svg source={summaryPic.source} alt={summaryPic.alt} width={summaryPic.width} height={summaryPic.height} isInteractive={!active} />
+                </Box>
               ) : figures(
                 blockEls,
                 'sum',
@@ -567,7 +570,9 @@ export const register: Register = (on, options) => {
               </Box>
             )}
             {tiles && Svg ? (
-              <Svg key="ov-tiles" source={tiles.source} alt={tiles.alt} width={tiles.width} height={tiles.height} isInteractive={!active} />
+              <Box key="ov-tiles" flexDirection="row" justifyContent="center">
+                <Svg source={tiles.source} alt={tiles.alt} width={tiles.width} height={tiles.height} isInteractive={!active} />
+              </Box>
             ) : (
               figures(blockEls, 'ov', overviewShown, 3)
             )}
@@ -589,7 +594,9 @@ export const register: Register = (on, options) => {
           tr('JETZT', 'NOW'),
           <Box flexDirection="column" gap={1}>
             {nowPic && Svg ? (
-              <Svg key="now-pic" source={nowPic.source} alt={nowPic.alt} width={nowPic.width} height={nowPic.height} isInteractive={!active} />
+              <Box key="now-pic" flexDirection="row" justifyContent="center">
+                <Svg source={nowPic.source} alt={nowPic.alt} width={nowPic.width} height={nowPic.height} isInteractive={!active} />
+              </Box>
             ) : (
               <Box flexDirection="column" gap={0}>
                 <Text weight="medium">{nowLine}</Text>
@@ -615,7 +622,9 @@ export const register: Register = (on, options) => {
           'AGENTS',
           agentsPic && Svg ? (
             <Box flexDirection="column" gap={1}>
-              <Svg key="agents-pic" source={agentsPic.source} alt={agentsPic.alt} width={agentsPic.width} height={agentsPic.height} isInteractive={!active} />
+              <Box key="agents-pic" flexDirection="row" justifyContent="center">
+                <Svg source={agentsPic.source} alt={agentsPic.alt} width={agentsPic.width} height={agentsPic.height} isInteractive={!active} />
+              </Box>
               <Box flexDirection="row" flexWrap="wrap" gap={1}>
                 <Button key="view-main" variant="secondary" onPress={() => viewAgent(undefined)}>
                   {`↗ ${tr('Hauptagent', 'Main agent')}`}
@@ -663,7 +672,9 @@ export const register: Register = (on, options) => {
             'card-live',
             'LIVE',
             livePic && Svg ? (
-              <Svg key="live-pic" source={livePic.source} alt={livePic.alt} width={livePic.width} height={livePic.height} isInteractive={!active} />
+              <Box key="live-pic" flexDirection="row" justifyContent="center">
+                <Svg source={livePic.source} alt={livePic.alt} width={livePic.width} height={livePic.height} isInteractive={!active} />
+              </Box>
             ) : (
               <Box flexDirection="column" gap={0}>
                 {ticker.map(c => {

@@ -3,8 +3,8 @@ import { circle, lin, line, n1, pline, poly, rad, seeded } from '../svg'
 import type { Pt } from '../svg'
 
 /**
- * Stellar: energy cubes floating in deep space. A dark starfield panel with
- * nebula glows, an obsidian pedestal with constellations and an aurora edge,
+ * Stellar: energy cubes from deep space, standing free on the pane. An
+ * obsidian pedestal with constellations and an aurora edge,
  * glass cubes holding a plasma core, done cubes as crystallised star-matter.
  */
 
@@ -70,7 +70,7 @@ function orbit(ctx: SceneCtx, c: CubeCtx) {
 export const stellar: Skin = {
   id: 'stellar',
   name: 'Stellar',
-  description: 'Energy cubes in a star field: plasma cores, star matter and an obsidian pedestal',
+  description: 'Energy cubes: plasma cores, star matter and an obsidian pedestal with constellations',
   status: {
     pending: ['#a5b4fc', '#6366f1', '#3730a3'],
     running: ['#bae6fd', '#38bdf8', '#0369a1'],
@@ -112,19 +112,11 @@ export const stellar: Skin = {
   },
   track: { groove: '#0c0a22' },
   pipe: { fill: 'energy', colors: ['#6366f1', '#a78bfa', '#f0abfc'], metal: '#312e81' },
-  day: { sky: ['#f1f3ff', '#dfe4ff'], ink: '#6366f1', pattern: 'stars' },
   font: 'Avenir Next,Futura,Century Gothic,Segoe UI,system-ui,sans-serif',
 
   defs(ctx) {
-    const { width, height, detail, hasLive } = ctx
+    const { width, detail, hasLive } = ctx
     const out: string[] = []
-    out.push(
-      `<linearGradient id="stellar-bg" x1="0" y1="0" x2="0.3" y2="1">` +
-        `<stop offset="0" stop-color="#1b1550"/><stop offset="0.55" stop-color="#0e0b2c"/><stop offset="1" stop-color="#06051a"/></linearGradient>`,
-    )
-    out.push(rad('stellar-n1', [[0, '#ec4899', 0.34], [0.5, '#a855f7', 0.12], [1, '#6d28d9', 0]]))
-    out.push(rad('stellar-n2', [[0, '#2dd4bf', 0.26], [0.55, '#0ea5e9', 0.08], [1, '#0ea5e9', 0]]))
-    out.push(`<clipPath id="stellar-clip"><rect width="${width}" height="${height}" rx="${n1(Math.min(16, ctx.S * 0.3))}"/></clipPath>`)
     out.push(`<path id="stellar-spark" d="${SPARK}"/>`)
     for (const [id, [a, b, c]] of [['stellar-cr', CORE_RUN], ['stellar-cw', CORE_WAIT]] as const) {
       out.push(rad(id, [[0, '#ffffff', 1], [0.16, a, 0.95], [0.45, b, 0.5], [1, c, 0]]))
@@ -137,8 +129,6 @@ export const stellar: Skin = {
     out.push(rad('stellar-ke', [[0, '#fecaca', 0.5], [0.4, '#f87171', 0.28], [1, '#991b1b', 0]]))
     out.push(rad('stellar-nv', [[0, '#ffffff', 1], [0.3, '#ecfdf5', 0.9], [0.6, '#6ee7b7', 0.4], [1, '#34d399', 0]]))
     if (detail > 0) {
-      out.push(starTile('stellar-sa', 157, 113, 16, 11, 0.35, 0.9, 0.3))
-      out.push(starTile('stellar-sb', 233, 171, 9, 29, 0.6, 1.2, 0.5))
       out.push(starTile('stellar-dust', 61, 47, 7, 53, 0.3, 0.7, 0.25))
       const anim =
         hasLive && detail > 1
@@ -151,43 +141,6 @@ export const stellar: Skin = {
           `</linearGradient>`,
       )
     }
-    return out.join('')
-  },
-
-  backdrop(ctx) {
-    const { width: W, height: H, detail, hasLive } = ctx
-    const out: string[] = [`<g clip-path="url(#stellar-clip)">`, `<rect width="${W}" height="${H}" fill="url(#stellar-bg)"/>`]
-    out.push(`<ellipse cx="${n1(W * 0.2)}" cy="${n1(H * 0.32)}" rx="${n1(W * 0.3)}" ry="${n1(H * 0.42)}" fill="url(#stellar-n1)"/>`)
-    out.push(`<ellipse cx="${n1(W * 0.8)}" cy="${n1(H * 0.22)}" rx="${n1(W * 0.28)}" ry="${n1(H * 0.36)}" fill="url(#stellar-n2)"/>`)
-    if (detail > 0) {
-      out.push(`<rect width="${W}" height="${H}" fill="url(#stellar-sa)"/>`, `<rect width="${W}" height="${H}" fill="url(#stellar-sb)"/>`)
-      const r = seeded(97)
-      const yMax = Math.max(12, ctx.pedestal.top[3][1] - 4)
-      const count = detail > 1 ? 9 : 4
-      for (let i = 0; i < count; i++) {
-        const p: Pt = [8 + r() * (W - 16), 6 + r() * (yMax - 6)]
-        const s = 2.2 + r() * 2.4
-        const c = STAR_COLORS[i % STAR_COLORS.length] ?? '#ffffff'
-        const d = n1(2.4 + r() * 2.6)
-        const b = n1(r() * 3)
-        const tw = hasLive && detail > 1 ? `<animate attributeName="opacity" values="0.25;1;0.25" dur="${d}s" begin="${b}s" repeatCount="indefinite"/>` : ''
-        out.push(sparkle(p, s, `fill="${c}" opacity="0.85"`, tw))
-      }
-      if (hasLive && detail > 1) {
-        // A shooting star now and then, high in the sky.
-        const x0 = W * 0.15
-        const y0 = Math.max(8, H * 0.08)
-        const len = Math.max(18, ctx.S * 0.6)
-        out.push(
-          `<g opacity="0"><animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;0.7;0.74;0.82;1" dur="9s" repeatCount="indefinite"/>` +
-            `<animateTransform attributeName="transform" type="translate" values="0 0;0 0;${n1(W * 0.35)} ${n1(H * 0.12)};${n1(W * 0.35)} ${n1(H * 0.12)}" keyTimes="0;0.7;0.82;1" dur="9s" repeatCount="indefinite"/>` +
-            poly([[x0, y0], [x0 - len, y0 - len * 0.34 - 1], [x0 - len, y0 - len * 0.34 + 1]], 'fill="#ffffff" opacity="0.7"') +
-            circle([x0, y0], 1.4, 'fill="#ffffff"') +
-            `</g>`,
-        )
-      }
-    }
-    out.push('</g>')
     return out.join('')
   },
 

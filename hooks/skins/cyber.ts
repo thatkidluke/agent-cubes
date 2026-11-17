@@ -1,5 +1,5 @@
 import type { CubeStatus } from '../../types'
-import { box, circle, fmt, lin, line, n1, poly, pts, rad, seeded, lerp } from '../svg'
+import { box, circle, fmt, lin, line, n1, poly, pts, seeded, lerp } from '../svg'
 import type { Pt } from '../svg'
 import type { CubeCtx, SceneCtx, Skin } from './types'
 
@@ -258,7 +258,6 @@ export const cyber: Skin = {
   },
   track: { groove: '#020409' },
   pipe: { fill: 'energy', colors: ['#0891b2', CYAN, '#a7f3d0'], metal: '#1e3a4a' },
-  day: { sky: ['#f0fdff', '#cff6fb'], ink: '#0891b2', pattern: 'grid' },
   font: 'ui-monospace,SFMono-Regular,Consolas,monospace',
 
   defs(ctx) {
@@ -270,10 +269,7 @@ export const cyber: Skin = {
     const tw = ctx.S / 4
     const th = Math.abs(dvy) / 4
     return (
-      lin('cyber-bg', 0, 1, [[0, '#0e121b'], [1, '#05070b']]) +
-      rad('cyber-glow', [[0, CYAN, 0.16], [0.6, '#6366f1', 0.05], [1, '#6366f1', 0]]) +
       lin('cyber-strip', 1, 0, [[0, MAGENTA, 0.9], [0.5, CYAN], [1, MAGENTA, 0.9]]) +
-      `<pattern id="cyber-grid" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M16 0H0V16" fill="none" stroke="#38bdf8" stroke-opacity="0.07" stroke-width="0.6"/></pattern>` +
       `<pattern id="cyber-tg" width="${n1(tw)}" height="${n1(th)}" patternUnits="userSpaceOnUse" patternTransform="matrix(1 0 ${n1(shear)} 1 ${fmt(o).replace(',', ' ')})">` +
       `<path d="M0 0H${n1(tw)}M0 0V${n1(th)}" fill="none" stroke="${CYAN}" stroke-opacity="0.16" stroke-width="0.6"/></pattern>` +
       `<pattern id="cyber-scan" width="4" height="3" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="#a5f3fc" fill-opacity="0.22"/></pattern>` +
@@ -286,22 +282,6 @@ export const cyber: Skin = {
       pcb('cyber-pcb-r', ctx.S, NEON.error) +
       (ctx.hasLive && ctx.detail > 0 ? `<g id="cyber-lv">${live(ctx, unitCube(ctx))}</g>` : '')
     )
-  },
-
-  backdrop(ctx) {
-    const { width: W, height: H } = ctx
-    let s = `<rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="10" fill="url(#cyber-bg)" stroke="${CYAN}" stroke-opacity="0.25"/>`
-    if (ctx.detail === 0) return s
-    const t = ctx.pedestal.top
-    const c = lerp(t[0], t[2], 0.5)
-    s += `<rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="9.5" fill="url(#cyber-grid)"/>`
-    s += `<ellipse cx="${n1(c[0])}" cy="${n1(c[1] - ctx.S * 0.3)}" rx="${n1(W * 0.5)}" ry="${n1(H * 0.55)}" fill="url(#cyber-glow)"/>`
-    // HUD corner brackets.
-    const a = 12
-    const i = 5
-    const br = (x: number, y: number, dx: number, dy: number) => `M${n1(x + dx * a)} ${n1(y)}H${n1(x)}V${n1(y + dy * a)}`
-    s += `<path d="${br(i, i, 1, 1)}${br(W - i, i, -1, 1)}${br(i, H - i, 1, -1)}${br(W - i, H - i, -1, -1)}" fill="none" stroke="${CYAN}" stroke-opacity="0.65" stroke-width="1.2"/>`
-    return s
   },
 
   pedestalDecor(ctx) {
@@ -361,7 +341,8 @@ export const cyber: Skin = {
 
     // Neon strip along the top edge, a faint magenta one along the bottom.
     const sh = Math.max(1.4, S * 0.03)
-    out.push(`<rect x="${n1(x0)}" y="${n1(yT - sh / 2)}" width="${n1(x1 - x0)}" height="${n1(sh)}" fill="url(#cyber-strip)" filter="url(#gl)"/>`)
+    // Its glow is a wider, fainter strip: a filter on so flat a shape spills past the console.
+    out.push(`<rect x="${n1(x0)}" y="${n1(yT - sh * 1.6)}" width="${n1(x1 - x0)}" height="${n1(sh * 3.2)}" fill="url(#cyber-strip)" opacity="0.22"/><rect x="${n1(x0)}" y="${n1(yT - sh / 2)}" width="${n1(x1 - x0)}" height="${n1(sh)}" fill="url(#cyber-strip)"/>`)
     out.push(line([x0 + 1, yB - 1.5], [x1 - 1, yB - 1.5], `stroke="${MAGENTA}" stroke-opacity="0.45" stroke-width="1"`))
 
     // Data pulses while something is being worked on.
@@ -378,7 +359,7 @@ export const cyber: Skin = {
         // A bright spark running along the top strip.
         const sw = S * 0.6
         p +=
-          `<rect y="${n1(yT - sh)}" width="${n1(sw)}" height="${n1(sh * 2)}" rx="${n1(sh)}" fill="#ecfeff" opacity="0.85">` +
+          `<rect x="${n1(x0)}" y="${n1(yT - sh)}" width="${n1(sw)}" height="${n1(sh * 2)}" rx="${n1(sh)}" fill="#ecfeff" opacity="0.85">` +
           `<animate attributeName="x" values="${n1(x0)};${n1(x1 - sw)}" dur="3s" repeatCount="indefinite"/></rect>`
       }
       out.push(`<g filter="url(#gl)">${p}</g>`)

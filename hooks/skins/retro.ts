@@ -1,22 +1,19 @@
-import { box, n1, poly, pts, seeded } from '../svg'
+import { box, n1, poly, pts } from '../svg'
 import type { Box, Pt } from '../svg'
 import type { CubeCtx, SceneCtx, Skin } from './types'
 
 /**
- * Retro: an arcade cabinet at night. A dark screen with a faint pixel horizon,
- * scanlines and a soft CRT vignette; a cabinet panel of a pedestal with a thin
- * amber trim; cubes in phosphor colours with crisp pixel edges. Things move in
+ * Retro: an arcade cabinet, standing free on the pane. A cabinet panel of a
+ * pedestal with a thin amber trim; cubes in phosphor colours with crisp pixel edges. Things move in
  * discrete steps, like a game running at a few frames a second, but quietly.
  */
 
 const K = '#000000'
-const INK = '#0b0d18'
 const PANEL = '#161a2b'
 const LINE = '#2c3150'
 const SOFT = '#c9cbe0'
 const AMBER = '#ffb000'
 const PHOS = '#3ef08e'
-const TEAL = '#2bd4c5'
 const ROSE = '#ff5c8a'
 const SKY = '#59c3ff'
 
@@ -161,28 +158,10 @@ function alarm(ctx: SceneCtx, c: CubeCtx): string {
   return `<g ${CRISP} ${NOPE}>${step('opacity', '1;1;0', 0.9)}${sprite(BANG, x, y, q, { k: K, a: AMBER })}</g>`
 }
 
-/** A stepped skyline: the highest of a few mounds [centre x, radius x, height], quantised to the pixel grid. */
-function ridge(W: number, H: number, g: number, mounds: [number, number, number][]): string {
-  let d = `M0 ${n1(H)}`
-  let last = NaN
-  for (let x = 0; x < W; x += g) {
-    let y = H
-    for (const [cx, rx, ry] of mounds) {
-      const t = (x + g / 2 - cx) / rx
-      if (t > -1 && t < 1) y = Math.min(y, H - ry * (1 - Math.abs(t)))
-    }
-    y = Math.round(y / g) * g
-    if (y !== last) d += `V${n1(y)}`
-    d += `H${n1(Math.min(W, x + g))}`
-    last = y
-  }
-  return d + `V${n1(H)}Z`
-}
-
 export const retro: Skin = {
   id: 'retro',
   name: 'Retro',
-  description: 'An arcade cabinet at night: pixel art in phosphor colours with a soft CRT glow',
+  description: 'An arcade cabinet: pixel art in phosphor colours',
   status: {
     pending: ['#4a4f6a', '#373b52', '#24273a'],
     running: ['#ffc94d', '#e09a00', '#7a5200'],
@@ -224,59 +203,14 @@ export const retro: Skin = {
   },
   track: { groove: '#05060c' },
   pipe: { fill: 'pixel', colors: [AMBER, PHOS, '#d9ffe9'], metal: '#4b5070' },
-  day: { sky: ['#fff8ee', '#ffe9cc'], ink: '#c2410c', pattern: 'scan' },
   font: '"Courier New",Consolas,ui-monospace,monospace',
   effects: { glint: false, sparks: false, sweep: false, plaqueShadow: false },
 
   defs(ctx) {
     if (ctx.detail === 0) return ''
-    let s =
-      `<pattern id="retro-scan" width="4" height="3" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="${K}" fill-opacity="0.22"/></pattern>` +
-      `<radialGradient id="retro-vig" cx="0.5" cy="0.45" r="0.75"><stop offset="0.6" stop-color="${K}" stop-opacity="0"/><stop offset="1" stop-color="${K}" stop-opacity="0.55"/></radialGradient>` +
-      `<linearGradient id="retro-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${INK}"/><stop offset="0.7" stop-color="#151a33"/><stop offset="1" stop-color="#231a3d"/></linearGradient>`
+    let s = ''
     s += solidBlock(ctx, true) + solidBlock(ctx, false) + ghost(ctx)
     if (ctx.hasLive) s += live(ctx, false) + live(ctx, true)
-    return s
-  },
-
-  backdrop(ctx) {
-    const { width: W, height: H, S } = ctx
-    const rr = Math.min(12, S * 0.25)
-    let s = `<rect width="${W}" height="${H}" rx="${n1(rr)}" fill="url(#retro-sky)"/>`
-    if (ctx.detail === 0) return s
-    const rnd = seeded(5 + ctx.n * 3)
-    const g = Math.max(2, S / 12)
-    // A few stars, pixel sized.
-    for (let k = 0; k < Math.round(W / 18); k++) {
-      const x = Math.round((rnd() * W) / g) * g
-      const y = Math.round((rnd() * H * 0.45) / g) * g
-      s += `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(g * 0.5)}" height="${n1(g * 0.5)}" fill="${SOFT}" opacity="${n1(0.2 + rnd() * 0.45)}"/>`
-    }
-    // A stepped mountain ridge on the horizon, a thin teal rim on its crest.
-    const yPed = ctx.pedestal.top[2][1]
-    const mounds: [number, number, number][] = []
-    const count = Math.max(3, Math.ceil(W / (S * 2.2)))
-    for (let i = 0; i < count; i++) mounds.push([((i + rnd()) / count) * W, S * (1 + rnd() * 1.2), H - yPed + S * (0.25 + rnd() * 0.7)])
-    const d = ridge(W, H, g, mounds)
-    s += `<path d="${d}" fill="#141833" ${CRISP}/>`
-    s += `<path d="${d}" fill="none" stroke="${TEAL}" stroke-opacity="0.35" stroke-width="1" ${CRISP}/>`
-    // A perspective grid fading into the horizon.
-    if (ctx.detail > 1) {
-      const hz = yPed - S * 0.1
-      let grid = ''
-      for (let k = 1; k <= 6; k++) {
-        const y = hz + ((H - hz) * (k * k)) / 36
-        grid += `<line x1="0" y1="${n1(y)}" x2="${W}" y2="${n1(y)}"/>`
-      }
-      for (let k = -8; k <= 8; k++) grid += `<line x1="${n1(W / 2 + k * S * 0.35)}" y1="${n1(hz)}" x2="${n1(W / 2 + k * S * 2.2)}" y2="${H}"/>`
-      s += `<g stroke="#8b6cff" stroke-opacity="0.16" stroke-width="1">${grid}</g>`
-      // A quiet high score in amber.
-      if (W >= 260) {
-        const fs = Math.max(7, S * 0.16)
-        const pct = Number.isFinite(ctx.overall) ? Math.round(Math.max(0, Math.min(1, ctx.overall)) * 100) : 0
-        s += `<text class="t" x="${n1(rr + 4)}" y="${n1(rr + fs)}" font-size="${n1(fs)}" fill="${AMBER}" fill-opacity="0.75" letter-spacing="1">HI ${String(pct * 100).padStart(6, '0')}</text>`
-      }
-    }
     return s
   },
 
@@ -315,7 +249,7 @@ export const retro: Skin = {
   },
 
   overlay(ctx) {
-    const { width: W, height: H, S } = ctx
+    const { S } = ctx
     if (ctx.detail === 0) return ''
     // Score-box frames on the plaques: a black rim and a fine inner line.
     const at = front(ctx)
@@ -329,11 +263,8 @@ export const retro: Skin = {
       rim += R(lx, ly, rx - lx, ry - ly)
       inner += R(lx + 2 * p, ly + 2 * p, rx - lx - 4 * p, ry - ly - 4 * p)
     }
-    const rr = Math.min(12, S * 0.25)
     return (
-      `<g ${CRISP} ${NOPE}><path d="${rim}" fill="none" stroke="${K}" stroke-width="${n1(2 * p)}"/><path d="${inner}" fill="none" stroke="${LINE}" stroke-width="${n1(p)}"/></g>` +
-      // The screen: scanlines and a vignette over everything.
-      `<g class="acd-night" ${NOPE}><rect width="${W}" height="${H}" rx="${n1(rr)}" fill="url(#retro-scan)"/><rect width="${W}" height="${H}" rx="${n1(rr)}" fill="url(#retro-vig)"/></g>`
+      `<g ${CRISP} ${NOPE}><path d="${rim}" fill="none" stroke="${K}" stroke-width="${n1(2 * p)}"/><path d="${inner}" fill="none" stroke="${LINE}" stroke-width="${n1(p)}"/></g>`
     )
   },
 }

@@ -177,7 +177,7 @@ test('a drawing that comes back (A, B, A) is locked to the clock afresh; the sam
   expect(back, 'a picture coming back starts its animations where the clock is').not.toBe(first)
 })
 
-test('the scene tells its state: mood lights, flights, landings, day versions and two rows', async () => {
+test('the scene tells its state: mood lights, flights, landings, no backdrop and two rows', async () => {
   clearSvgCache()
   let r = startRun(emptyRun, 'Build it', 1)
   r = applyTaskTool(r, 'mcp__ccd_turn__update_plan', { items: [{ content: 'Read it', status: 'completed' }, { content: 'Write it', status: 'in_progress' }, { content: 'Test it', status: 'pending' }] }, undefined, 2)
@@ -191,7 +191,14 @@ test('the scene tells its state: mood lights, flights, landings, day versions an
   expect(later.includes('calcMode="spline"'), 'and settles').toBe(false)
   const waiting = buildSvg({ ...r, status: 'waiting' }, 640, 9000).source
   expect(waiting.includes('url(#mood-cone)'), 'a warm spot on the waiting step').toBe(true)
-  expect(buildSvg(r, 640, 9000, -1, SKINS.find(s => s.id === 'cyber')!).source.includes('class="acd-day"'), 'cyber has a day version').toBe(true)
+  // The scene stands free: no skin lays a ground over the whole drawing, whatever the state.
+  for (const skin of SKINS) {
+    for (const run of [r, { ...r, status: 'waiting' as const }, endRun(r, 'answer', 9500)]) {
+      const d = buildSvg(run, 640, 9600, -1, skin)
+      const whole = d.source.split(`width="${d.width}" height="${d.height}"`).length - 1
+      expect(whole, `${skin.id}: only the drawing itself spans the whole size`).toBe(1)
+    }
+  }
   let long = startRun(emptyRun, 'Long', 1)
   long = applyTaskTool(long, 'mcp__ccd_turn__update_plan', { items: Array.from({ length: 10 }, (_, i) => ({ content: `S${i}`, status: i === 0 ? 'in_progress' : 'pending' })) }, undefined, 2)
   expect(buildSvg(long, 640, 9000).source.includes('id="r2-'), 'ten steps stand in two rows').toBe(true)

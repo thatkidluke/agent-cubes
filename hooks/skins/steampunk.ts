@@ -257,18 +257,12 @@ export const steampunk: Skin = {
   },
   track: { groove: '#120a04' },
   pipe: { fill: 'liquid', colors: ['#6a3410', '#c8781e', '#ffd27a'], metal: '#b8862f' },
-  day: { sky: ['#f7ead0', '#e9d3a8'], ink: '#8a5a24', pattern: 'grain' },
   font: "Georgia,'Times New Roman',serif",
 
   defs(ctx) {
-    let s = lin('steampunk-bg', 0, 1, [[0, '#3b2414'], [0.6, '#2a180c'], [1, '#170c05']])
+    let s = ''
     if (ctx.detail === 0) return s
-    const { width: W, height: H, S } = ctx
-    const pw = Math.max(24, S * 0.9)
     s +=
-      `<pattern id="steampunk-wood" width="${n1(pw)}" height="60" patternUnits="userSpaceOnUse">` +
-      `<path d="M0.5 0V60" stroke="#000000" stroke-opacity="0.45"/><path d="M1.5 0V60" stroke="#e0a060" stroke-opacity="0.1"/>` +
-      `<path d="M${n1(pw * 0.3)} 0q3 15 0 30t0 30M${n1(pw * 0.62)} 0q-2 20 0 30t0 30M${n1(pw * 0.82)} 0q2 10 0 30t0 30" fill="none" stroke="#000000" stroke-opacity="0.14" stroke-width="0.8"/></pattern>` +
       rad('steampunk-lamp', [[0, '#ffb347', 0.34], [0.5, '#d9822b', 0.1], [1, '#d9822b', 0]]) +
       `<radialGradient id="steampunk-rv" cx="0.35" cy="0.35" r="0.7"><stop offset="0" stop-color="#fff2c2"/><stop offset="0.45" stop-color="#c8962e"/><stop offset="1" stop-color="#4a3010"/></radialGradient>` +
       lin('steampunk-band', 0, 1, [[0, '#fff0b0'], [0.35, '#d4a646'], [1, '#6b4a16']]) +
@@ -283,42 +277,14 @@ export const steampunk: Skin = {
       lin('steampunk-rT', 1, 1, [[0, '#b0603e'], [1, '#6a2a1a']]) +
       lin('steampunk-sh', 1, 1, [[0, '#ffffff', 0], [0.38, '#ffffff', 0], [0.5, '#ffffff', 0.45], [0.62, '#ffffff', 0], [1, '#ffffff', 0]]) +
       `<clipPath id="steampunk-pf"><polygon points="${pts(ctx.pedestal.front)}"/></clipPath>` +
-      `<clipPath id="steampunk-clip"><rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="9.5"/></clipPath>` +
-      `<path id="steampunk-g12" fill-rule="evenodd" stroke="${DARK}" stroke-width="0.6" d="${gearD(12)}"/>` +
       `<path id="steampunk-g8" fill-rule="evenodd" stroke="${DARK}" stroke-width="0.6" d="${gearD(8)}"/>`
-    return s
-  },
-
-  backdrop(ctx) {
-    const { width: W, height: H, S } = ctx
-    let s = `<rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="10" fill="url(#steampunk-bg)" stroke="#8a6326" stroke-width="1.2"/>`
-    if (ctx.detail === 0) return s
-    s += `<rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="9.5" fill="url(#steampunk-wood)"/>`
-    s += `<ellipse cx="${n1(W / 2)}" cy="${n1(H * 0.35)}" rx="${n1(W * 0.55)}" ry="${n1(H * 0.65)}" fill="url(#steampunk-lamp)"/>`
-    if (ctx.detail < 2) return s
-    // Big faint gears in the corners, turning slowly while work runs.
-    const spin = ctx.hasLive ? 1 : 0
-    const r1 = S * 0.9
-    const r2 = S * 0.6
-    const d = (r1 + r2) * 0.88
-    const a = (150 * Math.PI) / 180
-    s +=
-      `<g clip-path="url(#steampunk-clip)" opacity="0.14">` +
-      gear('steampunk-g12', W - S * 0.15, S * 0.15, r1, spin * 40, 0, '#0d0703') +
-      gear('steampunk-g8', W - S * 0.15 + Math.cos(a) * d, S * 0.15 + Math.sin(a) * d, r2, spin * -26.7, 22.5, '#0d0703') +
-      gear('steampunk-g8', S * 0.05, S * 0.35, S * 0.7, spin * -30, 10, '#0d0703') +
-      '</g>'
-    // Rivets down both sides of the panel.
-    let rv = ''
-    for (let y = S * 0.35; y < H - 8; y += S * 0.6) rv += dot([6, y], 1.4) + dot([W - 6, y], 1.4)
-    s += `<g ${RIVET}>${rv}</g>`
     return s
   },
 
   pedestalDecor(ctx) {
     if (ctx.detail === 0) return ''
     const S = ctx.S
-    const { x0, x1, yT, yB, xAt, yAt } = front(ctx)
+    const { x0, x1, yT, yB, yAt } = front(ctx)
     const out: string[] = []
     // Wood grain across the walnut front.
     if (ctx.detail > 1) {

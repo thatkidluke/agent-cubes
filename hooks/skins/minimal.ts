@@ -13,12 +13,6 @@ const STATUS: Skin['status'] = {
   waiting: ['#fcd34d', '#f59e0b', '#d97706'],
 }
 
-/** A neutral rounded card behind everything, so the scene reads on light and dark panels alike. */
-function backdrop(ctx: SceneCtx): string {
-  const r = Math.max(6, ctx.S * 0.18)
-  return `<rect x="0.5" y="0.5" width="${n1(ctx.width - 1)}" height="${n1(ctx.height - 1)}" rx="${n1(r)}" fill="${HAIR}" fill-opacity="0.07" stroke="${HAIR}" stroke-opacity="0.3" stroke-width="1"/>`
-}
-
 /** A flat top over the pedestal and a hairline along its front edge. */
 function pedestalDecor(ctx: SceneCtx): string {
   if (ctx.detail === 0) return ''
@@ -124,7 +118,6 @@ export const minimal: Skin = {
   font: 'Inter, system-ui, -apple-system, Segoe UI, sans-serif',
   // Calm: the skin's own breathing tint is the one live effect.
   effects: { glint: false, sparks: false, glow: false, pulse: false, sweep: false, plaqueShadow: false },
-  backdrop: safe(backdrop),
   pedestalDecor: safe(pedestalDecor),
   cubeOverlay: safe(cubeOverlay),
 }

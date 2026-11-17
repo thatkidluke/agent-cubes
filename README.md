@@ -76,7 +76,7 @@ The drawing tells what happens before you read a number:
   free.
 - **Long plans** stand in two rows, the earlier steps raised at the back; past sixteen cubes, finished runs fold
   into stacks.
-- **Light and dark:** the dark skins switch to a day version of their backdrop when the app is light.
+- **Light and dark:** the scene stands free on the pane, with no backdrop of its own, so it sits well in a light and in a dark app.
 
 ### Or as a circuit board
 
@@ -182,7 +182,7 @@ test report on a piece of the board.
 **Make it yours**
 
 - Two views of the same task: cubes on a pedestal, or chips on a circuit board
-- Eight skins for the cubes, from calm to playful; the dark ones with a day version
+- Eight skins for the cubes, from calm to playful, each standing free on the pane
 - Five solder masks for the board
 - Still mode without animation, for calm or slow machines
 - English and German interface
@@ -202,8 +202,8 @@ test report on a piece of the board.
 
 ## Skins
 
-The skins dress the cubes; the circuit board has [solder masks](#or-as-a-circuit-board) instead. Pick a skin from the dropdown at the top of the panel. Each brings its own pedestal, cubes, pipe filling and
-backdrop; in light mode the dark ones show a day version.
+The skins dress the cubes; the circuit board has [solder masks](#or-as-a-circuit-board) instead. Pick a skin from the dropdown at the top of the panel. Each brings its own pedestal, cubes and pipe filling,
+and stands free on the pane, without a backdrop.
 
 <table>
 <tr>
@@ -211,15 +211,15 @@ backdrop; in light mode the dark ones show a day version.
 <td width="50%"><img src="docs/skin-cyber.svg" alt="Cyber skin"><br><b>Cyber</b> · neon console with circuit traces and holographic cubes</td>
 </tr>
 <tr>
-<td><img src="docs/skin-cyberpunk.svg" alt="Cyberpunk skin"><br><b>Cyberpunk</b> · a city at night, thin neon lettering, lights mirrored in a wet street</td>
-<td><img src="docs/skin-stellar.svg" alt="Stellar skin"><br><b>Stellar</b> · energy cubes in a star field on an obsidian pedestal</td>
+<td><img src="docs/skin-cyberpunk.svg" alt="Cyberpunk skin"><br><b>Cyberpunk</b> · neon cubes on a dark block, lights mirrored in a wet street</td>
+<td><img src="docs/skin-stellar.svg" alt="Stellar skin"><br><b>Stellar</b> · energy cubes on an obsidian pedestal strewn with constellations</td>
 </tr>
 <tr>
-<td><img src="docs/skin-retro.svg" alt="Retro skin"><br><b>Retro</b> · an arcade cabinet at night: pixel art in phosphor colours, a soft CRT glow</td>
+<td><img src="docs/skin-retro.svg" alt="Retro skin"><br><b>Retro</b> · an arcade cabinet: pixel art in phosphor colours</td>
 <td><img src="docs/skin-steampunk.svg" alt="Steampunk skin"><br><b>Steampunk</b> · a Victorian instrument case of walnut and brushed brass</td>
 </tr>
 <tr>
-<td><img src="docs/skin-factory.svg" alt="Robot factory skin"><br><b>Robot factory</b> · a production hall of graphite steel, robot arms and coolant lines</td>
+<td><img src="docs/skin-factory.svg" alt="Robot factory skin"><br><b>Robot factory</b> · a machine of graphite steel with a robot arm and coolant lines</td>
 <td><img src="docs/skin-minimal.svg" alt="Minimal skin"><br><b>Minimal</b> · flat and calm, for small panels</td>
 </tr>
 </table>
