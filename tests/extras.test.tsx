@@ -217,8 +217,8 @@ test('phaseLock starts endless animations where the clock is; one-shot ones stay
     '<rect><animate attributeName="opacity" values="0;1" dur="3s" begin="0.5s" repeatCount="indefinite"/></rect>' +
     '<rect><animate attributeName="x" values="0;9" dur="1s" begin="0.1s" fill="freeze"/></rect></svg>'
   const out = phaseLock(src, 5_500)
-  expect(out).toContain('<animate begin="-1.50s" attributeName="r"')
-  expect(out).toContain('begin="-2.00s"')
+  expect(out).toContain('<animate begin="-1.65s" attributeName="r"')
+  expect(out).toContain('begin="-2.15s"')
   expect(out).toContain('begin="0.1s" fill="freeze"')
   expect(phaseLock('<svg/>', 1000)).toBe('<svg/>')
 })

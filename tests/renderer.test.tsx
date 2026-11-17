@@ -157,3 +157,17 @@ test('every skin carries the progress in a pipe of its own, in the band at the p
   const retroSrc = buildSvg(r, 600, 60_000, -1, SKINS.find(s => s.id === 'retro')!).source
   expect(retroSrc.includes('fill="url(#pp-fill)"'), 'retro fills with pixel blocks, not a gradient bar').toBe(false)
 })
+
+test('a drawing that comes back (A, B, A) is locked to the clock afresh; the same one twice stays as it was', async () => {
+  clearSvgCache()
+  let a = startRun(emptyRun, 'Build it', 1)
+  a = applyTaskTool(a, 'mcp__ccd_turn__update_plan', { items: [{ content: 'A', status: 'in_progress' }, { content: 'B', status: 'pending' }] }, undefined, 2)
+  a = toolStart(a, { id: 'x', tool: 'Read', agentId: undefined, input: { file_path: '/a' } }, 3)
+  const b = toolEnd(a, { id: 'x', tool: 'Read', agentId: undefined, isError: true, errorText: 'no' }, 4)
+  const first = buildSvg(a, 600, 10_000).source
+  expect(buildSvg(a, 600, 11_000).source, 'same picture, same source').toBe(first)
+  buildSvg(b, 600, 12_000)
+  const back = buildSvg(a, 600, 13_300).source
+  expect(back.includes('repeatCount="indefinite"')).toBe(true)
+  expect(back, 'a picture coming back starts its animations where the clock is').not.toBe(first)
+})

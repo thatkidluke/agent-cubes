@@ -754,7 +754,7 @@ type Drawing = { source: string; width: number; height: number; alt: string }
  * same result, so the host keeps the frame and its animations keep running.
  */
 const CACHE_SIZE = 6
-const cache: { key: string; skin: Skin; out: Drawing }[] = []
+const cache: { key: string; skin: Skin; raw: string; out: Drawing }[] = []
 
 /** Forgets every cached drawing (tests). */
 export function clearSvgCache(): void {
@@ -800,6 +800,9 @@ export function buildSvg(
   const hit = cache.findIndex(e => e.key === key && e.skin === skin)
   if (hit >= 0) {
     const [e] = cache.splice(hit, 1)
+    // The drawing shown last stays as it is. One coming back after another (A, B, A)
+    // is locked to the clock afresh: the old picture's animations started long ago.
+    if (hit > 0) e!.out = { ...e!.out, source: phaseLock(e!.raw, now) }
     cache.unshift(e!)
     return e!.out
   }
@@ -816,7 +819,7 @@ export function buildSvg(
   }
   // Endless animations start where the clock says, so this drawing carries on from the one it replaces.
   const drawing: Drawing = { source: phaseLock(out.source, now), width: out.width, height: out.height, alt }
-  cache.unshift({ key, skin, out: drawing })
+  cache.unshift({ key, skin, raw: out.source, out: drawing })
   if (cache.length > CACHE_SIZE) cache.length = CACHE_SIZE
   return drawing
 }

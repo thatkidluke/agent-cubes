@@ -67,9 +67,13 @@ export function seeded(seed: number): () => number {
  * carries on where the old one was, instead of every wave, spark and glow
  * jumping back to its start. One-shot animations are left as they are.
  */
+/** About how long the pane takes to show a new picture, in ms. */
+const SHOW_LAG_MS = 150
+
 export function phaseLock(source: string, nowMs: number): string {
   if (!source.includes('repeatCount="indefinite"')) return source
-  const t = nowMs / 1000
+  // A new picture appears a moment after it is made: start that far ahead, so it does not lag behind the old one.
+  const t = (nowMs + SHOW_LAG_MS) / 1000
   return source.replace(/<animate(?:Transform|Motion)?\b[^>]*>/g, tag => {
     if (!tag.includes('repeatCount="indefinite"')) return tag
     const dur = /\bdur="([\d.]+)s"/.exec(tag)

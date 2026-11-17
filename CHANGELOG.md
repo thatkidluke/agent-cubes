@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.2
+
+- Steadier animations. A cube picture coming back from the cache (one state, another, the first again)
+  now starts its animations where the clock is, instead of where they were long ago. Cost and context keep
+  their last value when a reading fails, so they no longer flicker to "–" and redraw the panel. New
+  pictures start a moment ahead, as the pane takes that long to show them.
+- An animated demo in the README: a sample task playing out from the first call to the last cube.
+
 ## 0.10.1
 
 - The clock on the Elapsed tile no longer jumps back and forth. Its hand turned on its own and restarted

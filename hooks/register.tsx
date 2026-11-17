@@ -98,7 +98,8 @@ async function refreshMeters($: Parameters<typeof sessionUsage>[0] & Parameters<
   const usage = await sessionUsage($)
   const usd = usage?.cost?.usd ?? null
   const ctx = contextFrac(usage?.context)
-  await update($, tick, t => ({ beat: (t?.beat ?? 0) + 1, usd, ctx }))
+  // A read that fails keeps the last figures: a value flickering to "–" and back would redraw the panel for nothing.
+  await update($, tick, t => ({ beat: (t?.beat ?? 0) + 1, usd: usd ?? t?.usd ?? null, ctx: ctx ?? t?.ctx ?? null }))
 }
 
 async function sessionUsd($: { session: { usage: () => Promise<UsageLike> } }): Promise<number | undefined> {

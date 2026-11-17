@@ -46,6 +46,8 @@ The panel opens when a session starts, or any time with `/cubes`.
 
 ## How it works
 
+<p align="center"><img src="docs/demo.svg" width="640" alt="A sample task playing out: cubes fill, agents move from step to step, finished steps turn solid"></p>
+
 Every step of the agents' plan (`update_plan`, `TodoWrite`, `TaskCreate` / `TaskUpdate`) becomes a glass cube on a
 timeline. While a step is worked on, its cube fills with small cubes, one slice of the step's real tool calls each,
 tinted by the kind of work: reading, writing, running, agents. A finished step turns into a solid cube with a tick.
