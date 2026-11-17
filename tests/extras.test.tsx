@@ -15,7 +15,8 @@ import {
   toolStart,
 } from '../hooks/model'
 import { buildSummary } from '../hooks/summary'
-import { buildBoard } from '../hooks/board'
+import { BOARD_THEMES, buildBoard } from '../hooks/board'
+import { buildBoardSummary } from '../hooks/board-summary'
 import { memo, phaseLock } from '../hooks/svg'
 import { buildGauges, buildTiles, warnColors } from '../hooks/gauges'
 import { buildAgents, buildLive, buildNow, clip } from '../hooks/panel/live'
@@ -317,7 +318,7 @@ test('the circuit board: a chip per step, lit traces after finished steps, LEDs 
   expect(b.source.startsWith('<svg') && b.source.endsWith('</svg>')).toBe(true)
   expect((b.source.match(/<title>Cube /g) ?? []).length, 'three chips').toBe(3)
   expect(b.source).toContain('#5eead4')
-  expect(b.source).toContain('CHIPS <tspan font-weight="700">1/3</tspan>')
+  expect(b.source).toContain('>1/3</tspan>')
   expect(b.source).toContain('CTX <tspan font-weight="700">90%</tspan>')
   expect(b.source, 'the write call lights an amber LED').toContain('fill="#f59e0b"')
   expect(b.source.includes('<animate'), 'current runs while work goes on').toBe(true)
@@ -331,4 +332,44 @@ test('the circuit board: a chip per step, lit traces after finished steps, LEDs 
     const names = [...tag.matchAll(/\s([a-zA-Z:-]+)="/g)].map(m => m[1])
     expect(new Set(names).size, tag.slice(0, 60)).toBe(names.length)
   }
+})
+
+test('the board: solder masks, a default view, waiting traces, a mini board and a test report', async () => {
+  let r = startRun(emptyRun, 'Build it', 1)
+  for (const [i, title] of ['Research it', 'Write it', 'Run the tests'].entries()) r = applyTaskTool(r, 'TaskCreate', { subject: title }, { task: { id: String(i + 1) } }, 2)
+  r = applyTaskTool(r, 'TaskUpdate', { taskId: '1', status: 'in_progress' }, undefined, 3)
+  r = applyTaskTool(r, 'TaskUpdate', { taskId: '3', addBlockedBy: ['2'] }, undefined, 4)
+  const green = buildBoard(r, 560, 9000).source
+  expect(green, 'the step that waits is tied to the one it waits for').toContain('Step 03 waits for step 02')
+  expect(green, 'part kinds are printed on the parts').toContain('>MEM<')
+  expect(green).toContain('>TST<')
+  expect(green, 'the step name in silkscreen').toContain('>Run the tests<')
+  expect(BOARD_THEMES.map(t => t.id)).toEqual(['green', 'black', 'blue', 'white', 'red'])
+  const white = buildBoard(r, 560, 9000, -1, { theme: 'white', cost: '$1.2', left: '≈ 3 min' }).source
+  expect(white).toContain('#f4f6f9')
+  expect(white).toContain('>$1.2<')
+  expect(white).toContain('≈ 3 min')
+  const mini = buildBoard(r, 180, 9000, -1, { mini: true })
+  expect(mini.width).toBe(180)
+  expect(mini.source.includes('CHIPS'), 'the mini board has no display').toBe(false)
+  expect(readSettings({ defaultView: 'board' }).defaultView).toBe('board')
+  expect(readSettings({}).defaultView).toBe('cubes')
+  const done = endRun(r, 'answer', 60_000)
+  const report = buildBoardSummary(done, summaryOf(done, 0.5), 480, 'blue')
+  expect(report.source).toContain('TEST REPORT')
+  expect(report.alt).toContain('Test report')
+})
+
+test('defaultView: board starts on the circuit board, with a picker for its solder mask', { options: { defaultView: 'board' } }, async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.tool.call(PLAN)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect((await ui.find({ type: 'Select', key: 'view' }))?.props.value).toBe('board')
+  expect((await ui.find({ type: 'Select', key: 'board' }))?.props.value).toBe('green')
+  await ui.select({ key: 'board', value: 'black' })
+  expect((await ui.find({ type: 'Select', key: 'board' }))?.props.value).toBe('black')
+  const scene = (await ui.findAll({ type: 'Svg' })).find(n => String(n.props.alt).startsWith('Circuit board'))
+  expect(String(scene?.props.source)).toContain('#1c1c22')
+  await ui.unmount()
 })

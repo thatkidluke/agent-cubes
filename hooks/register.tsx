@@ -32,7 +32,8 @@ import {
   toolStart,
 } from './model'
 import { buildSummary } from './summary'
-import { buildBoard } from './board'
+import { BOARD_THEMES, boardThemeById, buildBoard } from './board'
+import { buildBoardSummary } from './board-summary'
 import { buildGauges, buildTiles, warnColors, type Gauge, type Tile } from './gauges'
 import { activity, AMBER as P_AMBER, BLUE as P_BLUE, clock, coins, cup, diffBlocks, GOLD as P_GOLD, GREEN as P_GREEN, hourglass, perMinute, RED as P_RED, tank, TEAL as P_TEAL, tokenBars, VIOLET as P_VIOLET, warning } from './pictos'
 import { agentRow, callColor, card, figures, glyphOf, whoCalled, type Els, type Figure } from './panel/blocks'
@@ -63,8 +64,12 @@ const SKIN_KEY = 'skin'
 /** How the task is drawn: as cubes on a pedestal, or as chips on a circuit board. */
 const VIEWS = ['cubes', 'board'] as const
 type View = (typeof VIEWS)[number]
-const viewPick = atom({ plugin: 'agent-cubes', key: 'view' } as const, 'cubes')
+/** The view the person picked in the panel; '' while they have not, so the defaultView setting applies. */
+const viewPick = atom({ plugin: 'agent-cubes', key: 'view' } as const, '')
 const VIEW_KEY = 'view'
+/** The circuit board's solder mask. */
+const boardPick = atom({ plugin: 'agent-cubes', key: 'board' } as const, 'green')
+const BOARD_KEY = 'board'
 
 
 /** Whether the STATISTIK section is unfolded. */
@@ -135,6 +140,8 @@ export const register: Register = (on, options) => {
     if (typeof storedSkin === 'string' && SKINS.some(s => s.id === storedSkin)) await update($, skinPick, () => storedSkin)
     const storedView = await $.store.get(VIEW_KEY).catch(() => undefined)
     if (typeof storedView === 'string' && (VIEWS as readonly string[]).includes(storedView)) await update($, viewPick, () => storedView)
+    const storedBoard = await $.store.get(BOARD_KEY).catch(() => undefined)
+    if (typeof storedBoard === 'string' && BOARD_THEMES.some(t => t.id === storedBoard)) await update($, boardPick, () => storedBoard)
     if (settings.autoOpen) void $.ui.open({ id: PANE, title: TITLE })
     // Keeps the elapsed time, the estimated fill and the meters moving while a run is active: one write a second.
     await refreshMeters($)
@@ -270,10 +277,20 @@ export const register: Register = (on, options) => {
     const curTask = cur >= 0 ? r.tasks[cur] : undefined
 
     const drawOpts = { context: ctxFrac, motion: settings.animations }
-    const view: View = (await read($, viewPick)) === 'board' ? 'board' : 'cubes'
-    // The widget stays with the cubes: a board needs more room than it has.
+    const view: View = ((await read($, viewPick)) || settings.defaultView) === 'board' ? 'board' : 'cubes'
+    const boardTheme = boardThemeById(await read($, boardPick))
     const sceneWidth = isWidget ? 180 : Math.max(260, Math.min(680, cols * 7.5))
-    const svg = !Svg ? undefined : view === 'board' && !isWidget ? buildBoard(r, sceneWidth, now, sel, drawOpts) : buildSvg(r, sceneWidth, now, sel, skin, drawOpts)
+    // The board's display also shows cost and time left: in tenths of a dollar and whole minutes, so it stays calm.
+    const leftNow = eta(r, now)
+    const boardOpts = {
+      ...drawOpts,
+      theme: boardTheme.id,
+      cost: runUsd === null ? null : runUsd < 1 ? fmtUsd(runUsd) : `${runUsd.toFixed(1)}`,
+      left: !isActive(r) || leftNow === null ? null : fmtEta(leftNow),
+      // The widget gets a tiny board: parts and traces only.
+      mini: isWidget,
+    }
+    const svg = !Svg ? undefined : view === 'board' ? buildBoard(r, sceneWidth, now, sel, boardOpts) : buildSvg(r, sceneWidth, now, sel, skin, drawOpts)
 
     if (isWidget) {
       return (
@@ -322,7 +339,7 @@ export const register: Register = (on, options) => {
     const exportSvg = async () => {
       try {
         const at = await $.clock.now()
-        const pic = view === 'board' ? buildBoard(r, 1000, at, -1, drawOpts) : buildSvg(r, 1000, at, -1, skin, drawOpts)
+        const pic = view === 'board' ? buildBoard(r, 1000, at, -1, { ...boardOpts, mini: false }) : buildSvg(r, 1000, at, -1, skin, drawOpts)
         const path = joinPath(await $.session.cwd(), `agent-cubes-${fileStamp(at)}.svg`)
         await $.fs.write(path, pic.source)
         await update($, exported, () => path)
@@ -359,6 +376,11 @@ export const register: Register = (on, options) => {
       const picked: View = id === 'board' ? 'board' : 'cubes'
       await update($, viewPick, () => picked)
       await $.store.set(VIEW_KEY, picked).catch(() => undefined)
+    }
+    const pickBoard = async (id: string) => {
+      const picked = boardThemeById(id).id
+      await update($, boardPick, () => picked)
+      await $.store.set(BOARD_KEY, picked).catch(() => undefined)
     }
     const pickSkin = async (id: string) => {
       const picked = skinById(id).id
@@ -490,7 +512,13 @@ export const register: Register = (on, options) => {
           return { ...t, source: phaseLock(t.source, now) }
         })
       : null
-    const summaryPic = summary && Svg ? memo('summary', JSON.stringify([summary, drawWidth, r.tasks.length, r.endedAt]), () => buildSummary(r, summary, drawWidth)) : null
+    // The summary follows the view: a test report on a piece of the board, or the ring and bars.
+    const summaryPic =
+      summary && Svg
+        ? memo('summary', JSON.stringify([summary, drawWidth, r.tasks.length, r.endedAt, view, boardTheme.id]), () =>
+            view === 'board' ? buildBoardSummary(r, summary, drawWidth, boardTheme.id) : buildSummary(r, summary, drawWidth),
+          )
+        : null
 
     // ── Now: the current step, its time and estimate, the last error ──
     const nowLine = curTask
@@ -576,6 +604,15 @@ export const register: Register = (on, options) => {
     )
 
     const viewLabel = (v: View) => (v === 'board' ? tr('Platine', 'Circuit board') : tr('Würfel', 'Cubes'))
+    const boardPicker = Select ? (
+      <Select
+        key="board"
+        label={tr('Platine', 'Board')}
+        value={boardTheme.id}
+        options={BOARD_THEMES.map(t => ({ value: t.id, label: tr(t.name[0], t.name[1]) }))}
+        onSelect={value => pickBoard(value)}
+      />
+    ) : null
     const viewPicker = Select ? (
       <Select key="view" label={tr('Ansicht', 'View')} value={view} options={VIEWS.map(v => ({ value: v, label: viewLabel(v) }))} onSelect={value => pickView(value)} />
     ) : (
@@ -604,6 +641,7 @@ export const register: Register = (on, options) => {
               {viewPicker}
               {/* Skins dress the cubes; the board has a look of its own. */}
               {view === 'cubes' && skinPicker}
+              {view === 'board' && boardPicker}
             </Box>
           </Box>
         </Box>

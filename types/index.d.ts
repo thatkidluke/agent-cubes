@@ -118,8 +118,10 @@ declare module 'claude-code' {
       history: Shaped<HistRun[]>
       /** The chosen skin's id. */
       skin: string
-      /** How the task is drawn: 'cubes' or 'board'. */
+      /** How the task is drawn: 'cubes' or 'board'; '' while the person has not picked. */
       view: string
+      /** The circuit board's solder mask. */
+      board: string
       /** Where the last export was written, for the panel to show; '' for none. */
       exported: string
       /** Whether the STATISTIK section is unfolded. */

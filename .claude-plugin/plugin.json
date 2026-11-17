@@ -1,6 +1,6 @@
 {
   "name": "agent-cubes",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "A live view of your agents' work beside the Claude Code chat, as cubes or as a circuit board: a step each, progress, agents, a live feed, stuck detection, context and cost, eight skins",
   "author": {
     "name": "Agent Cubes contributors"
@@ -33,6 +33,16 @@
         "minimal"
       ],
       "default": "classic"
+    },
+    "defaultView": {
+      "type": "string",
+      "title": "Default view",
+      "description": "How the task is drawn until you pick a view in the panel: cubes on a pedestal, or chips on a circuit board. A pick in the panel wins.",
+      "options": [
+        "cubes",
+        "board"
+      ],
+      "default": "cubes"
     },
     "budgetUsd": {
       "type": "number",

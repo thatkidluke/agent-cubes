@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.13.0
+
+The circuit board grows up:
+
+- Dependencies as thin amber traces from the step waited for to the one that waits, with a diode on the waiting
+  part that turns green when it is free.
+- Agents travel along the traces when they move to another part.
+- Signals: a blinking push button on a part that waits for you, smoke over one that is stuck, and a wave of
+  light over every trace when the task is done.
+- The display also shows a scope of the calls per minute, the cost and the time left.
+- Parts by kind of step (processor, memory, test IC, lens, ROM, regulator, port), sized by the work expected of
+  the step, with the step's name in silkscreen under each.
+- Five solder masks from a new Board dropdown: green, black and gold, blue, white, red.
+- A `defaultView` setting; the widget shows a tiny board when the board is the view.
+- The summary of a finished task as a test report in the board's style.
+
 ## 0.12.0
 
 - A second view: the circuit board. A **View** dropdown at the top of the panel switches between the cubes and

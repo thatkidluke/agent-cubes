@@ -80,12 +80,25 @@ The drawing tells what happens before you read a number:
 
 <p align="center"><img src="docs/board.svg" width="640" alt="The same task as a circuit board: a chip per step, lit traces, LEDs for the work done"></p>
 
-The **View** dropdown at the top of the panel switches between the cubes and a circuit board. On the board every
-step is a chip: a row of LEDs lights up with its calls, one colour per kind of work, and a status LED sits in its
-corner. Copper traces join the chips in order, winding from row to row, and carry current once a step is done;
-pulses run into the chip in work. Agents sit on their chip as probes, and a display module along the top shows the
-whole task, the chips done and the context window. Failed calls, stuck steps, test runs, times and changed lines
-show on the chip as they do on the cubes. Your pick is remembered.
+The **View** dropdown at the top of the panel switches between the cubes and a circuit board; your pick is
+remembered, and the `defaultView` setting says where new sessions start.
+
+- **Parts:** every step is a part, its kind chosen by the kind of step: a processor for work, memory for research,
+  a test IC, a lens for review, a labelled ROM for docs, a regulator for setup, a port for shipping. Steps expected to
+  take longer get a larger part. The step's name stands under it in silkscreen.
+- **LEDs:** a row lights up with the step's calls, one colour per kind of work; the newest flickers on as its call ends.
+- **Traces:** copper joins the parts in order and winds from row to row. It glows once a step is done, pulses run
+  into the part in work, and a wave of light runs over the whole board when the task is finished.
+- **Dependencies:** a thin amber trace runs from the step waited for to the one that waits, with a diode on the
+  waiting part that turns green when it is free.
+- **Agents** sit on their part as probes and travel along the trace when they move on.
+- **Signals:** a blinking push button on a part that waits for you, smoke and a red frame on one that is stuck, a red
+  count for failed calls, a tag for the last test run.
+- **Display:** the whole task in LEDs, a scope of the calls per minute, the parts done, the context window, cost
+  and time left.
+- **Solder masks:** green, black and gold, blue, white or red, from the **Board** dropdown.
+
+When the task is done, the summary turns into a test report in the board's style. The widget shows a tiny board.
 
 ## The panel
 
@@ -198,6 +211,7 @@ Find them under **Agent Cubes** in the plugin settings; a change applies at once
 | --- | --- | --- |
 | `language` | `en` | Panel language: `en` or `de`. |
 | `defaultSkin` | `classic` | The skin while none is picked in the panel; a pick in the panel wins. |
+| `defaultView` | `cubes` | The view while none is picked in the panel: `cubes` or `board`. |
 | `budgetUsd` | `0` | Cost budget per task in USD: amber from 80 %, a warning once passed. `0` turns it off. |
 | `autoOpen` | on | Open the panel when a session starts; otherwise only via `/cubes`. |
 | `animations` | on | Animation in the panel and the export: filling, flights, mood lights, the pipe's flow. Off draws still pictures. |

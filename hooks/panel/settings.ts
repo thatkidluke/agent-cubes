@@ -8,6 +8,8 @@ import type { Lang } from '../i18n'
 export type PanelSettings = {
   /** The skin used while the person has not picked one in the panel. */
   defaultSkin: string
+  /** How the task is drawn while the person has not picked a view in the panel. */
+  defaultView: 'cubes' | 'board'
   /** Open the pane at session start. */
   autoOpen: boolean
   /** false draws still pictures: buildSvg gets motion: false. */
@@ -24,6 +26,7 @@ export type PanelSettings = {
 
 export const DEFAULTS = {
   defaultSkin: 'classic',
+  defaultView: 'cubes' as 'cubes' | 'board',
   language: 'en',
   budgetUsd: 0,
   autoOpen: true,
@@ -55,6 +58,7 @@ export function readSettings(options: PluginOptions | undefined): PanelSettings 
   const slow = clampNum(o.stuckSlowFactor, DEFAULTS.stuckSlowFactor, 1.1, 50)
   return {
     defaultSkin: skin,
+    defaultView: o.defaultView === 'board' ? 'board' : DEFAULTS.defaultView,
     autoOpen: bool(o.autoOpen, DEFAULTS.autoOpen),
     animations: bool(o.animations, DEFAULTS.animations),
     gaugeRow: bool(o.gaugeRow, DEFAULTS.gaugeRow),
