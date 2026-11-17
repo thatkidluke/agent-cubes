@@ -5,18 +5,13 @@
  * builders; register.tsx hands them what to show. They follow light and dark
  * mode through the theme classes of `gauges.ts`.
  */
-import { esc, n1 } from '../svg'
-import { FONT, STYLE } from '../gauges'
+import { esc, n1, type Drawing } from '../svg'
+import { FONT, themed as svg } from '../gauges'
+import { AMBER as WAIT, BLUE as RUN, GREEN as OK, RED as BAD } from '../pictos'
 import type { CubeStatus, WorkKind } from '../../types'
 import { unitWord } from '../i18n'
 import { STATUS_LABEL, WORK_COLOR as KIND } from '../iso'
 
-type Built = { source: string; width: number; height: number; alt: string }
-
-const OK = '#16a34a'
-const BAD = '#e11d48'
-const WAIT = '#f59e0b'
-const RUN = '#3b82f6'
 
 /** Clips text to about `px` pixels at `size`, with an ellipsis. */
 export function clip(text: string, px: number, size: number): string {
@@ -25,8 +20,6 @@ export function clip(text: string, px: number, size: number): string {
   return chars.length > max ? chars.slice(0, max - 1).join('') + '…' : chars.join('')
 }
 
-const svg = (width: number, height: number, body: string) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="${n1(width)}" height="${n1(height)}" viewBox="0 0 ${n1(width)} ${n1(height)}">${STYLE}${body}</svg>`
 const txt = (x: number, y: number, size: number, cls: string, body: string, extra = '', font = FONT) =>
   `<text class="${cls}" x="${n1(x)}" y="${n1(y)}" font-family="${font}" font-size="${size}"${extra}>${body}</text>`
 
@@ -85,7 +78,7 @@ export type NowInfo = {
 }
 
 /** NOW: the current step as a numbered badge, its title, a progress bar and the agents on it. */
-export function buildNow(n: NowInfo, width: number, animate: boolean): Built {
+export function buildNow(n: NowInfo, width: number, animate: boolean): Drawing {
   const H = 62
   let s = ''
   // The badge: the cube's number, or a tick / a dot when no step is in work.
@@ -128,7 +121,7 @@ export type AgentInfo = {
 }
 
 /** AGENTS: one row per agent, an avatar, its name, the cube it works on and what it does. */
-export function buildAgents(agents: AgentInfo[], width: number, animate: boolean): Built {
+export function buildAgents(agents: AgentInfo[], width: number, animate: boolean): Drawing {
   const ROW = 34
   let s = ''
   agents.forEach((a, k) => {
@@ -155,7 +148,7 @@ export function buildAgents(agents: AgentInfo[], width: number, animate: boolean
 export type CallInfo = { kind: WorkKind; status: CubeStatus; letter: string; color: string; tool: string; detail: string }
 
 /** LIVE: the latest calls as a feed: kind icon, who made it, the tool, what it touched, how it went. */
-export function buildLive(calls: CallInfo[], width: number, animate: boolean): Built {
+export function buildLive(calls: CallInfo[], width: number, animate: boolean): Drawing {
   const ROW = 28
   let s = ''
   calls.forEach((c, k) => {

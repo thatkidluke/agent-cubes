@@ -6,13 +6,12 @@
  * follows light and dark mode through the theme classes of `gauges.ts`.
  */
 import type { CubeRun } from '../../types'
-import { FONT, STYLE } from '../gauges'
+import { FONT, themed } from '../gauges'
 import { tr } from '../i18n'
 import { WORK_COLOR } from '../iso'
-import { esc, n1 } from '../svg'
+import { GREEN as ADD, RED as DEL } from '../pictos'
+import { esc, n1, type Drawing } from '../svg'
 import { clip } from './live'
-
-type Built = { source: string; width: number; height: number; alt: string }
 
 export type FileStat = {
   name: string
@@ -28,8 +27,6 @@ export type FileStat = {
 }
 
 const MAX_TILES = 18
-const ADD = '#16a34a'
-const DEL = '#e11d48'
 
 /** How busy a file was: every touch counts, a write double, and the lines changed a little. */
 export const fileWeight = (f: FileStat) => 1 + f.reads + 2 * f.writes + (f.added + f.removed) / 10
@@ -55,7 +52,7 @@ export function fileStats(r: CubeRun): FileStat[] {
 }
 
 /** Null while no call has named a file. */
-export function buildFileMap(r: CubeRun, width: number): Built | null {
+export function buildFileMap(r: CubeRun, width: number): Drawing | null {
   const all = fileStats(r)
   if (all.length === 0) return null
   const shown = all.slice(0, MAX_TILES)
@@ -112,6 +109,5 @@ export function buildFileMap(r: CubeRun, width: number): Built | null {
   const height = Math.max(TH, y - 4)
   const written = all.filter(f => f.writes > 0).length
   const alt = tr(`${all.length} Dateien, ${written} geschrieben`, `${all.length} files, ${written} written`) + `: ${shown.slice(0, 6).map(f => f.name).join(', ')}`
-  const source = `<svg xmlns="http://www.w3.org/2000/svg" width="${n1(width)}" height="${height}" viewBox="0 0 ${n1(width)} ${height}">${STYLE}${s}</svg>`
-  return { source, width, height, alt }
+  return { source: themed(width, height, s), width, height, alt }
 }

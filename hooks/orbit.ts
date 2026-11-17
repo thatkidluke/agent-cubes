@@ -16,10 +16,10 @@
 import type { CubeRun, CubeStatus } from '../types'
 import { FONT, STYLE } from './gauges'
 import { tr } from './i18n'
-import { isActive, isWorked, overallProgress, stepProgress } from './model'
+import { isActive, isWorked, overallProgress, stepProgress, workOf } from './model'
 import { cubeNo } from './panel/format'
 import { agentColor, agentInitial, MAIN_COLOR, PALETTE, WORK_COLOR } from './scene'
-import { esc, memo, mix, n1, phaseLock, seeded } from './svg'
+import { ellipsis, esc, memo, mix, n1, phaseLock, seeded, type Drawing } from './svg'
 
 export type OrbitOptions = {
   /** false draws a still picture. Default true. */
@@ -27,8 +27,6 @@ export type OrbitOptions = {
   /** The widget's tiny version: the sun and the ring of steps only. */
   mini?: boolean
 }
-
-type Drawing = { source: string; width: number; height: number; alt: string }
 
 /** How long after the task's end the finale plays. */
 const FINALE_MS = 4000
@@ -70,10 +68,7 @@ const arc = (r: number, d0: number, d1: number): string => {
   const [x1, y1] = polar(r, d1)
   return `M${n1(x0)} ${n1(y0)}A${r} ${r} 0 ${d1 - d0 > 180 ? 1 : 0} 1 ${n1(x1)} ${n1(y1)}`
 }
-const short = (t: string, max: number) => {
-  const s = t.replace(/\s+/g, ' ').trim()
-  return s.length > max ? s.slice(0, max - 1) + '…' : s
-}
+const short = (t: string, max: number) => ellipsis(t.replace(/\s+/g, ' ').trim(), max)
 
 /** A planet's body in its colour: a lit sphere, and by turns bands, a ring or craters. */
 function planetBody(idx: number, col: string, letter: string): string {
@@ -109,7 +104,7 @@ export function buildOrbit(r: CubeRun, width: number, now: number, selected = -1
   const planets = mini ? [] : r.agents.map((a, k) => ({ a, k })).slice(-MAX_PLANETS)
   const lastWork = (agentId: string) => {
     const c = [...r.calls].reverse().find(c => c.agentId === agentId)
-    return c ? (c.work ?? c.kind) : null
+    return c ? workOf(c) : null
   }
   const belt = mini ? [] : r.calls.filter(c => !c.agentId).slice(-BELT).reverse()
   const mainTool = active && r.mainTool ? short(r.mainTool, 10) : ''
@@ -118,7 +113,7 @@ export function buildOrbit(r: CubeRun, width: number, now: number, selected = -1
   const key = JSON.stringify([
     width, selected, still, mini, moving, finale, pct, r.status, steps, fills, mainTool, r.errors,
     planets.map(({ a, k }) => [a.id, k, a.status, a.taskIndex, a.status === 'running' ? lastWork(a.id) : null, a.name, a.tool]),
-    belt.map(c => [c.id, c.status, c.work ?? c.kind]),
+    belt.map(c => [c.id, c.status, workOf(c)]),
     tr('de', 'en'),
   ])
   return memo(`orbit-${mini ? 'mini' : 'full'}-${width}`, key, () => {
@@ -244,7 +239,7 @@ export function buildOrbit(r: CubeRun, width: number, now: number, selected = -1
       const ry = ryOf(0)
       const path = moving ? lap(rx, ry) : ''
       belt.forEach((c, k) => {
-        const col = c.status === 'error' ? PALETTE.error[1] : WORK_COLOR[c.work ?? c.kind]
+        const col = c.status === 'error' ? PALETTE.error[1] : WORK_COLOR[workOf(c)]
         const rad0 = Math.max(1.6, 4.6 - k * 0.32)
         const tip = `<title>${esc(c.tool)}${c.detail ? ` · ${esc(c.detail.slice(0, 40))}` : ''}</title>`
         let dot = ''

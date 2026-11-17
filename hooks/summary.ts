@@ -5,10 +5,11 @@
  * long as the step took and tinted by its kind. Follows light and dark mode
  * through the same classes as the gauges.
  */
-import { esc, n1 } from './svg'
+import { ellipsis, esc, n1 } from './svg'
 import { FONT, STYLE } from './gauges'
 import { WORK_COLOR } from './scene'
-import { stepKind, WORK_KINDS, WORK_LABEL, type RunSummary, type StepKind, type WorkKind } from './model'
+import { stepKind, WORK_KINDS, WORK_LABEL, workOf, type RunSummary, type StepKind, type WorkKind } from './model'
+import { AMBER, BLUE, GREEN, RED } from './pictos'
 import { tr } from './i18n'
 import { fmtDuration } from './panel/format'
 import type { CubeRun } from '../types'
@@ -33,9 +34,6 @@ const STEP_LABEL: Record<StepKind, () => string> = {
   ship: () => tr('Auslieferung', 'Shipping'),
 }
 
-const GREEN = '#16a34a'
-const RED = '#e11d48'
-const AMBER = '#f59e0b'
 const MAX_STEPS = 10
 
 const text = (x: number, y: number, size: number, cls: string, body: string, extra = '') =>
@@ -125,11 +123,11 @@ export function buildSummary(r: CubeRun, s: RunSummary, width: number): { source
   const work = Math.max(0, s.ms - s.waitMs)
   parts.push(section(0, y, tr('Zeit', 'Time')))
   y += 8
-  parts.push(stackedBar(0, y, W, 12, [[work, '#3b82f6'], [s.waitMs, AMBER]]))
+  parts.push(stackedBar(0, y, W, 12, [[work, BLUE], [s.waitMs, AMBER]]))
   y += 28
   {
     const l = legend(0, y, W, [
-      ['#3b82f6', `${tr('Arbeit', 'Working')} ${fmtDuration(work)}`],
+      [BLUE, `${tr('Arbeit', 'Working')} ${fmtDuration(work)}`],
       [AMBER, `${tr('Wartezeit auf dich', 'Waiting for you')} ${s.waitMs > 0 ? '≈ ' + fmtDuration(s.waitMs) : '0:00'}`],
     ])
     parts.push(l.svg)
@@ -138,7 +136,7 @@ export function buildSummary(r: CubeRun, s: RunSummary, width: number): { source
 
   // ── Kinds of work, from the calls ──
   const byKind = new Map<WorkKind, number>()
-  for (const c of r.calls) byKind.set(c.work ?? c.kind, (byKind.get(c.work ?? c.kind) ?? 0) + 1)
+  for (const c of r.calls) byKind.set(workOf(c), (byKind.get(workOf(c)) ?? 0) + 1)
   const kinds = WORK_KINDS.filter(k => (byKind.get(k) ?? 0) > 0)
   if (kinds.length > 0) {
     const total = kinds.reduce((t, k) => t + (byKind.get(k) ?? 0), 0)
@@ -195,7 +193,7 @@ export function buildSummary(r: CubeRun, s: RunSummary, width: number): { source
       const bw = st.ms > 0 ? Math.max(6, ((W - 56) * st.ms) / longest) : 0
       parts.push(
         `<g><title>${esc(`${st.title}: ${st.ms > 0 ? fmtDuration(st.ms) : '–'} (${STEP_LABEL[st.kind]()})`)}</title>`,
-        text(0, y + 11, 11.5, 'acg-lb', esc(label.length > maxChars ? label.slice(0, maxChars - 1) + '…' : label)),
+        text(0, y + 11, 11.5, 'acg-lb', esc(ellipsis(label, maxChars))),
         `<rect class="acg-gf" x="0" y="${n1(y + 16)}" width="${n1(W - 56)}" height="8" rx="4"/>`,
         bw > 0 ? `<rect x="0" y="${n1(y + 16)}" width="${n1(bw)}" height="8" rx="4" fill="${STEP_COLOR[st.kind]}" fill-opacity="${st.done ? 1 : 0.45}"/>` : '',
         text(W, y + 24, 11.5, 'acg-vp', esc(st.ms > 0 ? fmtDuration(st.ms) : '–'), ' text-anchor="end" font-weight="600"'),

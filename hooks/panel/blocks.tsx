@@ -6,6 +6,8 @@ import type { BoxProps, ButtonProps, ElementConstructor, RenderChildren, TextPro
 
 import type { CallKind, CubeRun, CubeStatus, WorkKind } from '../../types'
 import { agentColor, agentInitial, MAIN_COLOR, PALETTE, WORK_COLOR } from '../iso'
+import { workOf } from '../model'
+import { ellipsis } from '../svg'
 
 /** The elements the panel's blocks draw with: every surface has these. */
 export type Els = {
@@ -89,7 +91,7 @@ export function agentRow(els: Els, a: AgentRowProps) {
         </Box>
       ) : null}
       <Box flexShrink={1}>
-        <Text dimColor>{a.doing.length > 22 ? a.doing.slice(0, 21) + '…' : a.doing}</Text>
+        <Text dimColor>{ellipsis(a.doing, 22)}</Text>
       </Box>
       <Button key={`${a.key}-btn`} variant="secondary" onPress={a.onView}>
         {tr('Ansehen', 'View')}
@@ -107,9 +109,6 @@ export function whoCalled(r: CubeRun, agentId: string): { letter: string; color:
 }
 
 export const glyphOf = (status: CubeStatus) => (status === 'error' ? '✕' : status === 'done' ? '■' : '▶')
-
-/** A call's kind of work: the finer one read when it started, else its call kind. */
-export const workOf = (c: { kind: CallKind; work?: WorkKind }): WorkKind => c.work ?? c.kind
 
 export const callColor = (c: { status: CubeStatus; kind: CallKind; work?: WorkKind }) =>
   c.status === 'error' ? PALETTE.error[1] : c.status === 'done' ? WORK_COLOR[workOf(c)] : PALETTE.running[1]

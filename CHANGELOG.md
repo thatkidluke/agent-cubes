@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.2
+
+- Code clean-up without a change in behaviour: every drawing is byte for byte what it was. What was written
+  several times now stands once: the kind of work of a call, the type of a drawing, the cutting of long texts, the
+  signal colours and the themed SVG frame of the cards. In the panel one function draws the scene for the pane and
+  the export, one centres a drawing, and one saves a file.
+
 ## 0.15.1
 
 - The orbit view is drawn in more detail: stars and a faint glow around the system, a sun with a corona that

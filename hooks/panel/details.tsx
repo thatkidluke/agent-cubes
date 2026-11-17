@@ -3,8 +3,8 @@ import type { RenderChildren } from 'claude-code'
 
 import type { CubeRun, CubeStatus } from '../../types'
 import { agentColor, agentInitial, MAIN_COLOR, PALETTE, STATUS_LABEL, WORK_COLOR } from '../iso'
-import { blockersOf, isWorked, stepCost, stepProgress, stuckReason, WORK_KINDS, WORK_LABEL, type StuckThresholds } from '../model'
-import { callColor, figures, glyphOf, whoCalled, workOf, type Els } from './blocks'
+import { blockersOf, isWorked, stepCost, stepProgress, stuckReason, WORK_KINDS, WORK_LABEL, workOf, type StuckThresholds } from '../model'
+import { callColor, figures, glyphOf, whoCalled, type Els } from './blocks'
 import { baseName, cubeNo, fmtDuration, fmtTokens, fmtUsd } from './format'
 import { tr, unitWord } from '../i18n'
 

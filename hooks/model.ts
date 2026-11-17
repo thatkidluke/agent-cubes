@@ -1,5 +1,6 @@
 import type { WorkKind } from '../types'
 import type { CallKind, CubeAgent, CubeCall, CubeRun, CubeStatus, CubeTask, HistRun } from '../types'
+import { ellipsis as clip } from './svg'
 import { tr } from './i18n'
 
 export const DEFAULT_PRIOR = { calls: 10, ms: 90_000 }
@@ -80,6 +81,9 @@ export type { WorkKind }
 export const WORK_KINDS: WorkKind[] = ['read', 'write', 'run', 'browser', 'tools', 'agent', 'plan', 'other']
 
 const PLAN = new Set(['TaskCreate', 'TaskUpdate', 'TodoWrite', 'ExitPlanMode', 'EnterPlanMode'])
+
+/** A call's kind of work: the finer one read when it started, else its call kind (calls stored before it existed). */
+export const workOf = (c: { kind: CallKind; work?: WorkKind }): WorkKind => c.work ?? c.kind
 
 /** Read from the tool's full name, when the call starts. */
 export function workKind(t: string): WorkKind {
@@ -167,7 +171,6 @@ export function isTestCommand(command: string): boolean {
   return TEST_RE.test(command)
 }
 
-const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 const base = (p: string) => p.split(/[\\/]/).pop() ?? p
 /** The name of the folder a path's file lies in; '' for a bare file name. */
 const dirOf = (p: string) => p.split(/[\\/]/).slice(-2, -1)[0] ?? ''

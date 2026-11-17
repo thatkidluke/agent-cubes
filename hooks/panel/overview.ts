@@ -44,7 +44,6 @@ export function overviewOf(i: OverviewInput): { overview: Figure[]; gaugeItems: 
   const warnColor = (frac: number) => (frac >= CONTEXT_RED ? PALETTE.error[1] : frac >= CONTEXT_AMBER ? PALETTE.waiting[1] : undefined)
   const linesAdded = r.tasks.reduce((t, x) => t + x.added, 0)
   const linesRemoved = r.tasks.reduce((t, x) => t + x.removed, 0)
-  const GREEN_TEXT = '#16a34a'
   const overview: Figure[] = [
     // While work goes on, times show whole minutes: a figure that changes every second redraws every second.
     [`◷ ${tr('Laufzeit', 'Elapsed')}`, r.startedAt ? (active ? fmtMinutes(elapsed) : fmtDuration(elapsed)) : '–'],
@@ -60,7 +59,7 @@ export function overviewOf(i: OverviewInput): { overview: Figure[]; gaugeItems: 
       costColor,
     ],
     // The cubes done stand in the head already; the tile shows the lines changed instead.
-    [`± ${tr('Code', 'Code')}`, linesAdded + linesRemoved > 0 ? `+${linesAdded} −${linesRemoved}` : '–', linesAdded + linesRemoved > 0 ? GREEN_TEXT : undefined],
+    [`± ${tr('Code', 'Code')}`, linesAdded + linesRemoved > 0 ? `+${linesAdded} −${linesRemoved}` : '–', linesAdded + linesRemoved > 0 ? P_GREEN : undefined],
   ]
   // The canisters at the top of the overview: what to watch at a glance.
   const pctOf = (v: number) => `${Math.round(v * 100)} %`

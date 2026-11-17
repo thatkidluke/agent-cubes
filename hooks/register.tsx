@@ -17,6 +17,7 @@ import {
   isActive,
   WORK_KINDS,
   WORK_LABEL,
+  workOf,
   markWaiting,
   overallProgress,
   priorFrom,
@@ -39,10 +40,10 @@ import { buildOrbit } from './orbit'
 import { buildTimeline } from './panel/timeline'
 import { buildFileMap } from './panel/filemap'
 import { buildGauges, buildTiles, type Tile } from './gauges'
-import { agentRow, callColor, card, figures, glyphOf, whoCalled, workOf, type Els } from './panel/blocks'
+import { agentRow, callColor, card, figures, glyphOf, whoCalled, type Els } from './panel/blocks'
 import { cubeDetails } from './panel/details'
 import { contextFrac, cubeNo, fileStamp, fmtDuration, fmtEta, fmtUsd, joinPath, type ContextLike } from './panel/format'
-import { memo, phaseLock } from './svg'
+import { ellipsis, memo, phaseLock, type Drawing } from './svg'
 import { overviewOf } from './panel/overview'
 import { liveInfoOf } from './panel/live-info'
 import { buildAgents, buildLive, buildNow } from './panel/live'
@@ -293,16 +294,22 @@ export const register: Register = (on, options) => {
       theme: boardTheme.id,
       cost: runUsd === null ? null : runUsd < 1 ? fmtUsd(runUsd) : `${runUsd.toFixed(1)}`,
       left: !isActive(r) || leftNow === null ? null : fmtEta(leftNow),
-      // The widget gets a tiny board: parts and traces only.
-      mini: isWidget,
     }
-    const svg = !Svg
-      ? undefined
-      : view === 'board'
-        ? buildBoard(r, sceneWidth, now, sel, boardOpts)
+    /** The task in the chosen view. */
+    const drawScene = (width: number, at: number, selectedStep: number, isMini: boolean): Drawing =>
+      view === 'board'
+        ? buildBoard(r, width, at, selectedStep, { ...boardOpts, mini: isMini })
         : view === 'orbit'
-          ? buildOrbit(r, sceneWidth, now, sel, { motion: settings.animations, mini: isWidget })
-          : buildSvg(r, sceneWidth, now, sel, skin, drawOpts)
+          ? buildOrbit(r, width, at, selectedStep, { motion: settings.animations, mini: isMini })
+          : buildSvg(r, width, at, selectedStep, skin, drawOpts)
+    const svg = Svg ? drawScene(sceneWidth, now, sel, isWidget) : undefined
+    /** A drawing centred in the pane, so the scene and the cards below it keep one axis at any pane width. */
+    const picture = (key: string | undefined, d: Drawing) =>
+      Svg ? (
+        <Box key={key} flexDirection="row" justifyContent="center">
+          <Svg source={d.source} alt={d.alt} width={d.width} height={d.height} isInteractive={!active} />
+        </Box>
+      ) : null
 
     if (isWidget) {
       return (
@@ -324,7 +331,7 @@ export const register: Register = (on, options) => {
     const costColor = budgetFrac === null ? undefined : budgetFrac > 1 ? PALETTE.error[1] : budgetFrac >= 0.8 ? PALETTE.waiting[1] : undefined
     const waitNow = (r.waitMs ?? 0) + (r.waitSince ? Math.max(0, now - r.waitSince) : 0)
     // The status line's content: a question first, then a stuck step, else a calm line.
-    const clip = (t: string) => (t.length > 90 ? t.slice(0, 89) + '…' : t)
+    const clip = (t: string) => ellipsis(t, 90)
     const firstStuck = stuck[0]
     const alert: { text: string; color: string | undefined; strong: boolean } =
       r.status === 'waiting'
@@ -347,38 +354,31 @@ export const register: Register = (on, options) => {
             : { text: active ? tr('● Keine offenen Hinweise', '● Nothing needs you') : tr('○ Bereit', '○ Ready'), color: undefined, strong: false }
     const stats2 = statsFrom(hist)
 
-    const exportSvg = async () => {
+    /**
+     * Writes files next to the work: `write` gets the folder and a time stamp, writes what it has,
+     * and returns the path to name in the panel and the toast.
+     */
+    const saving = (write: (dir: string, at: number) => Promise<string>) => async () => {
       try {
-        const at = await $.clock.now()
-        const pic =
-          view === 'board'
-            ? buildBoard(r, 1000, at, -1, { ...boardOpts, mini: false })
-            : view === 'orbit'
-              ? buildOrbit(r, 1000, at, -1, { motion: settings.animations })
-              : buildSvg(r, 1000, at, -1, skin, drawOpts)
-        const path = joinPath(await $.session.cwd(), `agent-cubes-${fileStamp(at)}.svg`)
-        await $.fs.write(path, pic.source)
+        const path = await write(await $.session.cwd(), await $.clock.now())
         await update($, exported, () => path)
         $.ui.toast(`${tr('Gespeichert', 'Saved')}: ${path}`)
       } catch (err) {
         $.ui.toast(`${tr('Speichern fehlgeschlagen', 'Saving failed')}: ${err instanceof Error ? err.message : String(err)}`)
       }
     }
-    // The stored runs as CSV (one row per step, for a spreadsheet) and JSON, next to the work.
-    const exportData = async () => {
-      try {
-        const at = await $.clock.now()
-        const dir = await $.session.cwd()
-        const csv = joinPath(dir, `agent-cubes-history-${fileStamp(at)}.csv`)
-        const json = joinPath(dir, `agent-cubes-history-${fileStamp(at)}.json`)
-        await $.fs.write(csv, historyCsv(hist))
-        await $.fs.write(json, JSON.stringify(hist, null, 2) + '\n')
-        await update($, exported, () => csv)
-        $.ui.toast(`${tr('Gespeichert', 'Saved')}: ${csv}`)
-      } catch (err) {
-        $.ui.toast(`${tr('Speichern fehlgeschlagen', 'Saving failed')}: ${err instanceof Error ? err.message : String(err)}`)
-      }
-    }
+    const exportSvg = saving(async (dir, at) => {
+      const path = joinPath(dir, `agent-cubes-${fileStamp(at)}.svg`)
+      await $.fs.write(path, drawScene(1000, at, -1, false).source)
+      return path
+    })
+    // The stored runs as CSV (one row per step, for a spreadsheet) and JSON.
+    const exportData = saving(async (dir, at) => {
+      const csv = joinPath(dir, `agent-cubes-history-${fileStamp(at)}.csv`)
+      await $.fs.write(csv, historyCsv(hist))
+      await $.fs.write(joinPath(dir, `agent-cubes-history-${fileStamp(at)}.json`), JSON.stringify(hist, null, 2) + '\n')
+      return csv
+    })
     // The finished run's summary as Markdown, onto the clipboard of the surface that asked.
     const copySummary = async () => {
       const copied = await $.ui.copy({ text: summaryMarkdown(r, runUsd), surface: e.surface })
@@ -388,6 +388,8 @@ export const register: Register = (on, options) => {
       const shown = await $.ui.view(agentId ? { agentId } : {})
       if (shown.deny) $.ui.toast(shown.deny)
     }
+    // A pick in the panel: kept for this session, and stored for the next one. Each names its atom
+    // itself, since the engine reads from the source which values a module writes.
     const pickView = async (id: string) => {
       const picked = viewOf(id)
       await update($, viewPick, () => picked)
@@ -541,9 +543,7 @@ export const register: Register = (on, options) => {
         </Box>
 
         {svg && Svg ? (
-          <Box flexDirection="row" justifyContent="center">
-            <Svg source={svg.source} alt={svg.alt} width={svg.width} height={svg.height} isInteractive={!active} />
-          </Box>
+          picture(undefined, svg)
         ) : (
           <Text>{r.tasks.map(t => (t.status === 'done' ? '■' : t.status === 'running' ? '▣' : '□')).join(' ')}</Text>
         )}
@@ -556,9 +556,7 @@ export const register: Register = (on, options) => {
             tr('ZUSAMMENFASSUNG', 'SUMMARY'),
             <Box flexDirection="column" gap={1}>
               {summaryPic && Svg ? (
-                <Box key="sum-pic" flexDirection="row" justifyContent="center">
-                  <Svg source={summaryPic.source} alt={summaryPic.alt} width={summaryPic.width} height={summaryPic.height} isInteractive={!active} />
-                </Box>
+                picture('sum-pic', summaryPic)
               ) : figures(
                 blockEls,
                 'sum',
@@ -589,14 +587,10 @@ export const register: Register = (on, options) => {
           tr('ÜBERSICHT', 'OVERVIEW'),
           <Box flexDirection="column" gap={1}>
             {gauges && Svg && (
-              <Box flexDirection="row" justifyContent="center">
-                <Svg source={gauges.source} alt={gauges.alt} width={gauges.width} height={gauges.height} isInteractive={!active} />
-              </Box>
+              picture(undefined, gauges)
             )}
             {tiles && Svg ? (
-              <Box key="ov-tiles" flexDirection="row" justifyContent="center">
-                <Svg source={tiles.source} alt={tiles.alt} width={tiles.width} height={tiles.height} isInteractive={!active} />
-              </Box>
+              picture('ov-tiles', tiles)
             ) : (
               figures(blockEls, 'ov', overviewShown, 3)
             )}
@@ -618,9 +612,7 @@ export const register: Register = (on, options) => {
           tr('JETZT', 'NOW'),
           <Box flexDirection="column" gap={1}>
             {nowPic && Svg ? (
-              <Box key="now-pic" flexDirection="row" justifyContent="center">
-                <Svg source={nowPic.source} alt={nowPic.alt} width={nowPic.width} height={nowPic.height} isInteractive={!active} />
-              </Box>
+              picture('now-pic', nowPic)
             ) : (
               <Box flexDirection="column" gap={0}>
                 <Text weight="medium">{nowLine}</Text>
@@ -646,16 +638,14 @@ export const register: Register = (on, options) => {
           'AGENTS',
           agentsPic && Svg ? (
             <Box flexDirection="column" gap={1}>
-              <Box key="agents-pic" flexDirection="row" justifyContent="center">
-                <Svg source={agentsPic.source} alt={agentsPic.alt} width={agentsPic.width} height={agentsPic.height} isInteractive={!active} />
-              </Box>
+              {picture('agents-pic', agentsPic)}
               <Box flexDirection="row" flexWrap="wrap" gap={1}>
                 <Button key="view-main" variant="secondary" onPress={() => viewAgent(undefined)}>
                   {`↗ ${tr('Hauptagent', 'Main agent')}`}
                 </Button>
                 {r.agents.slice(-6).map(a => (
                   <Button key={`view-${a.id}`} variant="secondary" onPress={() => viewAgent(a.id)}>
-                    {`↗ ${a.name.length > 18 ? a.name.slice(0, 17) + '…' : a.name}`}
+                    {`↗ ${ellipsis(a.name, 18)}`}
                   </Button>
                 ))}
               </Box>
@@ -696,9 +686,7 @@ export const register: Register = (on, options) => {
             'card-live',
             'LIVE',
             livePic && Svg ? (
-              <Box key="live-pic" flexDirection="row" justifyContent="center">
-                <Svg source={livePic.source} alt={livePic.alt} width={livePic.width} height={livePic.height} isInteractive={!active} />
-              </Box>
+              picture('live-pic', livePic)
             ) : (
               <Box flexDirection="column" gap={0}>
                 {ticker.map(c => {
@@ -730,9 +718,7 @@ export const register: Register = (on, options) => {
             blockEls,
             'card-timeline',
             tr('ZEITSTRAHL', 'TIMELINE'),
-            <Box key="timeline-pic" flexDirection="row" justifyContent="center">
-              <Svg source={timelinePic.source} alt={timelinePic.alt} width={timelinePic.width} height={timelinePic.height} isInteractive={!active} />
-            </Box>,
+            picture('timeline-pic', timelinePic),
           )}
 
         {/* 4c. The files the calls named */}
@@ -741,9 +727,7 @@ export const register: Register = (on, options) => {
             blockEls,
             'card-files',
             tr('DATEIEN', 'FILES'),
-            <Box key="files-pic" flexDirection="row" justifyContent="center">
-              <Svg source={filesPic.source} alt={filesPic.alt} width={filesPic.width} height={filesPic.height} isInteractive={!active} />
-            </Box>,
+            picture('files-pic', filesPic),
           )}
 
         {/* 5. Cubes: pick one for its details */}

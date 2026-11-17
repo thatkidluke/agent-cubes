@@ -7,17 +7,13 @@
  * follows light and dark mode through the theme classes of `gauges.ts`.
  */
 import type { CubeRun } from '../../types'
-import { FONT, STYLE } from '../gauges'
+import { FONT, themed } from '../gauges'
 import { tr } from '../i18n'
 import { PALETTE, WORK_COLOR } from '../iso'
-import { esc, n1 } from '../svg'
-import { workOf } from './blocks'
+import { workOf } from '../model'
+import { AMBER as WAIT, RED as BAD } from '../pictos'
+import { esc, n1, type Drawing } from '../svg'
 import { cubeNo, fmtDuration } from './format'
-
-type Built = { source: string; width: number; height: number; alt: string }
-
-const BAD = '#e11d48'
-const WAIT = '#f59e0b'
 
 /** The longest stretch without a call running, in ms: the agent thinking, or waiting. */
 export function longestGap(r: CubeRun, end: number): number {
@@ -31,7 +27,7 @@ export function longestGap(r: CubeRun, end: number): number {
 }
 
 /** Null while there is nothing to show: no call yet. `now` is where the band ends while the run goes on. */
-export function buildTimeline(r: CubeRun, now: number, width: number): Built | null {
+export function buildTimeline(r: CubeRun, now: number, width: number): Drawing | null {
   if (r.calls.length === 0) return null
   // Calls beyond the stored ones are gone: the band then begins at the first one kept.
   const isCut = r.toolCalls > r.calls.length
@@ -98,6 +94,5 @@ export function buildTimeline(r: CubeRun, now: number, width: number): Built | n
   s += `<text class="acg-lb" x="${n1(gx + W / 2)}" y="${footY}" font-family="${FONT}" font-size="10" text-anchor="middle">${esc(note)}</text>`
   s += `<text class="acg-lb" x="${n1(width)}" y="${footY}" font-family="${FONT}" font-size="10" text-anchor="end">${esc(fmtDuration(span))}</text>`
   const height = footY + 4
-  const source = `<svg xmlns="http://www.w3.org/2000/svg" width="${n1(width)}" height="${height}" viewBox="0 0 ${n1(width)} ${height}">${STYLE}${s}</svg>`
-  return { source, width, height, alt: `${tr('Zeitstrahl', 'Timeline')}: ${note}, ${fmtDuration(span)}` }
+  return { source: themed(width, height, s), width, height, alt: `${tr('Zeitstrahl', 'Timeline')}: ${note}, ${fmtDuration(span)}` }
 }

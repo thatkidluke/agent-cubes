@@ -6,7 +6,7 @@
  */
 import type { CallKind, CubeCall, CubeRun, CubeStatus } from '../types'
 import type { WorkKind } from './model'
-import { blockersOf, currentTaskIndex, isActive, isWorked, stepProgress, stuckReason, unlockedRecently } from './model'
+import { blockersOf, currentTaskIndex, isActive, isWorked, stepProgress, stuckReason, unlockedRecently, workOf } from './model'
 import { classic } from './skins/classic'
 import type { MiniKind } from './skins/types'
 import { fmtDuration } from './panel/format'
@@ -106,7 +106,7 @@ function miniKinds(calls: CubeCall[], fill: number): MiniKind[] {
   if (calls.length === 0) return Array.from({ length: fill }, () => 'other')
   return Array.from({ length: fill }, (_, k) => {
     const c = calls[Math.min(calls.length - 1, Math.floor((k * calls.length) / fill))]
-    return !c ? 'other' : c.status === 'error' ? 'err' : (c.work ?? c.kind)
+    return !c ? 'other' : c.status === 'error' ? 'err' : workOf(c)
   })
 }
 

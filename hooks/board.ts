@@ -18,7 +18,7 @@ import { expected, stepKind, type StepKind } from './model'
 import { CONTEXT_AMBER, CONTEXT_RED } from './overlays'
 import { perMinute } from './pictos'
 import { tr } from './i18n'
-import { esc, memo, n1, phaseLock } from './svg'
+import { ellipsis, esc, memo, n1, phaseLock, type Drawing } from './svg'
 
 const MONO = 'ui-monospace,Consolas,Menlo,monospace'
 const SANS = 'system-ui,-apple-system,Segoe UI,sans-serif'
@@ -67,7 +67,6 @@ export type BoardOptions = DrawOptions & {
   mini?: boolean
 }
 
-type Drawing = { source: string; width: number; height: number; alt: string }
 type Size = 'small' | 'normal' | 'large'
 /** A part's place: its centre, its row and the row's direction, its width, its LEDs. */
 type Geo = { x: number; y: number; row: number; dir: number; cw: number; seg: number }
@@ -543,7 +542,7 @@ function chip(big: Big, g: Geo, part: { kind: StepKind; size: Size }, flights: F
     if (big.count === 1 && big.name) {
       const max = Math.max(6, Math.floor((CW + 26 * u) / (8.5 * u * 0.6)))
       const name = big.name.replace(/\s+/g, ' ').trim()
-      s += `<text x="${n1(g.x)}" y="${n1(cy)}" font-family="${MONO}" font-size="${n1(8.5 * u)}" text-anchor="middle" fill="${theme.silk}" fill-opacity="${ghost ? 0.45 : 0.8}">${esc(name.length > max ? name.slice(0, max - 1) + '…' : name)}</text>`
+      s += `<text x="${n1(g.x)}" y="${n1(cy)}" font-family="${MONO}" font-size="${n1(8.5 * u)}" text-anchor="middle" fill="${theme.silk}" fill-opacity="${ghost ? 0.45 : 0.8}">${esc(ellipsis(name, max))}</text>`
       cy += 14 * u
     }
     s += `<text x="${n1(g.x)}" y="${n1(cy)}" font-family="${MONO}" font-size="${n1(Math.max(10, 11.5 * u))}" font-weight="600" text-anchor="middle" fill="${theme.text}" fill-opacity="${ghost ? 0.45 : 0.9}">${esc(big.caption)}</text>`

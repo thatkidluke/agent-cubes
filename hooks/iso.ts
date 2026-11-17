@@ -6,7 +6,7 @@
 import type { CubeRun } from '../types'
 import { classic, CLASSIC_CAPTION_DARK } from './skins/classic'
 import type { CubeCtx, MiniKind, SceneCtx, Skin } from './skins/types'
-import { box, type Box, esc, fmt, lin, line, mix, n1, phaseLock, pline, poly, rad } from './svg'
+import { box, type Box, type Drawing, esc, fmt, lin, line, mix, n1, phaseLock, pline, poly, rad } from './svg'
 import type { Pt } from './svg'
 import { pipeBandPx, pipeDefs, progressPipe, type PipeGeometry } from './pipe'
 import { tr } from './i18n'
@@ -623,7 +623,6 @@ function renderRows(sc: Scene, detail: Detail, skin: Skin): { source: string; wi
   return { ...frontOut, source: frontOut.source.replace('<!--back-row-->', placed) }
 }
 
-type Drawing = { source: string; width: number; height: number; alt: string }
 
 /**
  * The last few drawings by everything that shows in them. The panel redraws

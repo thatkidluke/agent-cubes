@@ -7,10 +7,10 @@
 import type { CubeRun } from '../types'
 import { boardThemeById } from './board'
 import { WORK_COLOR } from './scene'
-import { stepKind, WORK_KINDS, WORK_LABEL, type RunSummary, type WorkKind } from './model'
+import { stepKind, WORK_KINDS, WORK_LABEL, workOf, type RunSummary, type WorkKind } from './model'
 import { tr } from './i18n'
 import { fmtDuration } from './panel/format'
-import { esc, n1 } from './svg'
+import { ellipsis, esc, n1 } from './svg'
 
 const MONO = 'ui-monospace,Consolas,Menlo,monospace'
 const GREEN = '#34d399'
@@ -84,7 +84,7 @@ export function buildBoardSummary(r: CubeRun, s: RunSummary, width: number, them
   const dot = (c: string) => `<tspan fill="${c}">●</tspan> `
   bar(tr('ZEIT', 'TIME'), [[work, BLUE], [s.waitMs, AMBER]], `${dot(BLUE)}${tr('Arbeit', 'Working')} ${fmtDuration(work)}   ${dot(AMBER)}${tr('Warten', 'Waiting')} ${s.waitMs > 0 ? '≈ ' + fmtDuration(s.waitMs) : '0:00'}`)
   const byKind = new Map<WorkKind, number>()
-  for (const c of r.calls) byKind.set(c.work ?? c.kind, (byKind.get(c.work ?? c.kind) ?? 0) + 1)
+  for (const c of r.calls) byKind.set(workOf(c), (byKind.get(workOf(c)) ?? 0) + 1)
   const kinds = WORK_KINDS.filter(k => (byKind.get(k) ?? 0) > 0)
   if (kinds.length > 0) {
     const total = kinds.reduce((t, k) => t + (byKind.get(k) ?? 0), 0)
@@ -107,7 +107,7 @@ export function buildBoardSummary(r: CubeRun, s: RunSummary, width: number, them
       out.push(
         `<g><title>${esc(`${st.title}: ${st.ms > 0 ? fmtDuration(st.ms) : '–'}`)}</title>` +
           `<text x="${pad}" y="${y + 19}" font-family="${MONO}" font-size="8.5" letter-spacing="0.6" fill="#7c8aa3">${st.part}</text>` +
-          `<text x="${barX}" y="${y + 8}" font-family="${MONO}" font-size="10.5" fill="${th.text}" fill-opacity="0.9">${esc(label.length > maxChars ? label.slice(0, maxChars - 1) + '…' : label)}</text>` +
+          `<text x="${barX}" y="${y + 8}" font-family="${MONO}" font-size="10.5" fill="${th.text}" fill-opacity="0.9">${esc(ellipsis(label, maxChars))}</text>` +
           ledBar(barX, y + 12, barW, Math.max(10, Math.floor(barW / 8)), st.ms > 0 ? [[st.ms, st.done ? GREEN : BLUE], [longest - st.ms, '#1a2336']] : []) +
           val(W - pad, y + 20, st.ms > 0 ? fmtDuration(st.ms) : '–', th.text, 10.5, ' text-anchor="end"') +
           `</g>`,

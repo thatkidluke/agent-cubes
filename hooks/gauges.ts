@@ -10,7 +10,7 @@
  * drawn through CSS classes with a `prefers-color-scheme: dark` override, while
  * values over liquid stay white with a dark halo, legible in both.
  */
-import { esc, n1 } from './svg'
+import { esc, n1, type Drawing } from './svg'
 
 export type Gauge = {
   /** Short stable key, used for the canister's own ids. */
@@ -46,8 +46,6 @@ export type Tile = {
   title: string
 }
 
-type Built = { source: string; width: number; height: number; alt: string }
-
 export const FONT = 'system-ui,-apple-system,Segoe UI,sans-serif'
 
 /**
@@ -76,15 +74,18 @@ function liquidPath(x0: number, x1: number, top: number, bottom: number, amp: nu
 const drift = (seg: number, dur: number) =>
   `<animateTransform attributeName="transform" type="translate" values="0 0;${n1(seg)} 0" dur="${dur}s" repeatCount="indefinite"/>`
 
-const wrap = (width: number, height: number, defs: string[], parts: string[]) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="${n1(width)}" height="${n1(height)}" viewBox="0 0 ${n1(width)} ${n1(height)}">${STYLE}<defs>${defs.join('')}</defs>${parts.join('')}</svg>`
+/** An SVG document that follows light and dark mode through the theme classes above. */
+export const themed = (width: number, height: number, body: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${n1(width)}" height="${n1(height)}" viewBox="0 0 ${n1(width)} ${n1(height)}">${STYLE}${body}</svg>`
+
+const wrap = (width: number, height: number, defs: string[], parts: string[]) => themed(width, height, `<defs>${defs.join('')}</defs>${parts.join('')}`)
 
 const W_CAN = 46
 const H_CAN = 74
 const GAP = 18
 const LABEL_H = 30
 
-export function buildGauges(items: Gauge[], width: number, animate: boolean): Built {
+export function buildGauges(items: Gauge[], width: number, animate: boolean): Drawing {
   const n = items.length
   const gap = Math.max(8, Math.min(GAP * 2, (width - n * W_CAN) / Math.max(1, n)))
   const total = n * W_CAN + (n - 1) * gap
@@ -164,7 +165,7 @@ const TILE_GAP = 8
  * value below, a pictogram that shows the figure in a tinted badge on the
  * right, and a level bar along the foot.
  */
-export function buildTiles(items: Tile[], width: number, perRow: number): Built {
+export function buildTiles(items: Tile[], width: number, perRow: number): Drawing {
   const rows = Math.ceil(items.length / perRow)
   const w = (width - (perRow - 1) * TILE_GAP) / perRow
   const height = rows * TILE_H + (rows - 1) * TILE_GAP

@@ -4,6 +4,8 @@ export type Pt = [number, number]
 export type Quad = [Pt, Pt, Pt, Pt]
 export type Box = Record<'front' | 'top' | 'right' | 'back' | 'left' | 'bottom', Quad>
 export type Project = (u: number, v: number, w: number) => Pt
+/** What every builder hands to the pane: the markup, its size and a text for those who cannot see it. */
+export type Drawing = { source: string; width: number; height: number; alt: string }
 
 /** One decimal, as short as possible: keeps the markup small. */
 export const n1 = (v: number) => (Math.round(v * 10) / 10).toString()
@@ -16,6 +18,9 @@ export const line = (a: Pt, b: Pt, attrs: string) => `<line x1="${n1(a[0])}" y1=
 export const pline = (ps: Pt[], attrs: string, inner = '') => `<polyline points="${pts(ps)}" ${attrs}>${inner}</polyline>`
 export const circle = (c: Pt, r: number, attrs: string, inner = '') =>
   `<circle cx="${n1(c[0])}" cy="${n1(c[1])}" r="${n1(r)}" ${attrs}>${inner}</circle>`
+
+/** The text cut to `max` characters, the last of them an ellipsis. */
+export const ellipsis = (s: string, max: number) => (s.length > max ? s.slice(0, max - 1) + '…' : s)
 
 export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
