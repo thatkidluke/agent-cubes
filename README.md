@@ -90,6 +90,7 @@ copies it as Markdown, ready for a pull request.
 **See what happens**
 
 - Cube timeline with a status per step: open, running, done, waiting for you, error, each with its own symbol
+- A progress pipe in its own band of the pedestal, filled with energy, liquid or pixels to suit the skin
 - Subagents as badges on the cube they work on
 - Live feed of the latest tool calls
 - Context tank on the pedestal: amber from 70 %, red from 85 %
@@ -140,15 +141,15 @@ Pick a skin from the dropdown at the top of the panel.
 <td width="50%"><img src="docs/skin-cyber.svg" alt="Cyber skin"><br><b>Cyber</b> · neon console with circuit traces and holographic cubes</td>
 </tr>
 <tr>
-<td><img src="docs/skin-cyberpunk.svg" alt="Cyberpunk skin"><br><b>Cyberpunk</b> · a rainy neon city at night with glowing signs</td>
+<td><img src="docs/skin-cyberpunk.svg" alt="Cyberpunk skin"><br><b>Cyberpunk</b> · a city at night, thin neon lettering, lights mirrored in a wet street</td>
 <td><img src="docs/skin-stellar.svg" alt="Stellar skin"><br><b>Stellar</b> · energy cubes in a star field on an obsidian pedestal</td>
 </tr>
 <tr>
-<td><img src="docs/skin-retro.svg" alt="Retro skin"><br><b>Retro</b> · pixels in the style of 8-bit games</td>
-<td><img src="docs/skin-steampunk.svg" alt="Steampunk skin"><br><b>Steampunk</b> · brass, copper and turning gears</td>
+<td><img src="docs/skin-retro.svg" alt="Retro skin"><br><b>Retro</b> · an arcade cabinet at night: pixel art in phosphor colours, a soft CRT glow</td>
+<td><img src="docs/skin-steampunk.svg" alt="Steampunk skin"><br><b>Steampunk</b> · a Victorian instrument case of walnut and brushed brass</td>
 </tr>
 <tr>
-<td><img src="docs/skin-factory.svg" alt="Robot factory skin"><br><b>Robot factory</b> · robot arms, gears, a conveyor and steel crates</td>
+<td><img src="docs/skin-factory.svg" alt="Robot factory skin"><br><b>Robot factory</b> · a production hall of graphite steel, robot arms and coolant lines</td>
 <td><img src="docs/skin-minimal.svg" alt="Minimal skin"><br><b>Minimal</b> · flat and calm, for small panels</td>
 </tr>
 </table>

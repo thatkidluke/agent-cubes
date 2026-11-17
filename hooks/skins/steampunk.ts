@@ -215,7 +215,7 @@ function burst(ctx: SceneCtx, c: CubeCtx): string {
 export const steampunk: Skin = {
   id: 'steampunk',
   name: 'Steampunk',
-  description: 'Brass, copper and gears',
+  description: 'A Victorian instrument case: walnut, brushed brass and warm amber light',
   status: {
     pending: ['#d9bd80', '#a8864a', '#6b5226'],
     running: ['#ffd27a', '#e0a43c', '#b97a22'],
@@ -233,10 +233,10 @@ export const steampunk: Skin = {
     glint: '#ffe9a8',
   },
   tint: {
-    read: ['#3f86e0', 0.6],
-    write: ['#e0462a', 0.58],
-    run: ['#1fae8a', 0.62],
-    agent: ['#9b5fe0', 0.62],
+    read: ['#5b7fa6', 0.45],
+    write: ['#b4553a', 0.45],
+    run: ['#3f8f7a', 0.45],
+    agent: ['#7a5c9e', 0.45],
     other: ['#c8962e', 0],
     err: ['#8a1408', 0.85],
   },
@@ -256,6 +256,7 @@ export const steampunk: Skin = {
     caption: '#ecc77e',
   },
   track: { groove: '#120a04', from: '#b87333', to: '#f3d27a', head: '#ffb347' },
+  pipe: { fill: 'liquid', colors: ['#6a3410', '#c8781e', '#ffd27a'], metal: '#b8862f' },
   font: "Georgia,'Times New Roman',serif",
 
   defs(ctx) {
@@ -301,24 +302,14 @@ export const steampunk: Skin = {
     const d = (r1 + r2) * 0.88
     const a = (150 * Math.PI) / 180
     s +=
-      `<g clip-path="url(#steampunk-clip)" opacity="0.28">` +
+      `<g clip-path="url(#steampunk-clip)" opacity="0.14">` +
       gear('steampunk-g12', W - S * 0.15, S * 0.15, r1, spin * 40, 0, '#0d0703') +
       gear('steampunk-g8', W - S * 0.15 + Math.cos(a) * d, S * 0.15 + Math.sin(a) * d, r2, spin * -26.7, 22.5, '#0d0703') +
       gear('steampunk-g8', S * 0.05, S * 0.35, S * 0.7, spin * -30, 10, '#0d0703') +
       '</g>'
-    // A copper steam pipe along the top, with flanges.
-    const ph = Math.max(3, S * 0.07)
-    const py = 5
-    s += `<rect x="14" y="${py}" width="${W - 28}" height="${n1(ph)}" fill="url(#steampunk-pipe)"/>`
-    let fl = ''
-    for (let k = 0; k <= 4; k++) {
-      const x = 14 + ((W - 28 - 4) * k) / 4
-      fl += `<rect x="${n1(x)}" y="${n1(py - 1.5)}" width="4" height="${n1(ph + 3)}" rx="1"/>`
-    }
-    s += `<g fill="#7a3f1c" stroke="${DARK}" stroke-width="0.5">${fl}</g>`
     // Rivets down both sides of the panel.
     let rv = ''
-    for (let y = py + ph + S * 0.3; y < H - 8; y += S * 0.4) rv += dot([6, y], 1.6) + dot([W - 6, y], 1.6)
+    for (let y = S * 0.35; y < H - 8; y += S * 0.6) rv += dot([6, y], 1.4) + dot([W - 6, y], 1.4)
     s += `<g ${RIVET}>${rv}</g>`
     return s
   },
@@ -363,27 +354,6 @@ export const steampunk: Skin = {
       for (let i = 0; i <= cnt; i++) rv += dot(lerp(a, b, 0.01 + (0.98 * i) / cnt), rr * 0.9)
     }
     out.push(`<g ${RIVET}>${rv}</g>`)
-    // Interlocking gears in the gaps between the plaques; they turn while work runs.
-    const spin = ctx.hasLive ? 1 : 0
-    const pair = (gu: number) => {
-      const cx = xAt(gu - 0.05)
-      const cy = yAt(-0.33)
-      const sx = xAt(gu + 0.06)
-      const sy = cy + S * 0.193
-      return (
-        gear('steampunk-g12', cx, cy, S * 0.15, spin * 8, 0) +
-        gear('steampunk-g8', sx, sy, S * 0.1, spin * -5.33, 22.5, 'url(#steampunk-gc)') +
-        `<g fill="${DARK}">${dot([cx, cy], S * 0.025)}${dot([sx, sy], S * 0.02)}</g>`
-      )
-    }
-    let gears = pair(ctx.cubeU(ctx.n - 1) + 1.095)
-    if (ctx.detail > 1) for (let i = 1; i < ctx.n; i++) gears += pair(ctx.cubeU(i) - 0.15)
-    out.push(gears)
-    // A pressure gauge at the left end showing the overall progress.
-    const shake = ctx.hasLive
-      ? '<animateTransform attributeName="transform" type="rotate" values="0;4;-2;3;0" dur="1.1s" repeatCount="indefinite"/>'
-      : ''
-    out.push(gauge(xAt(ctx.cubeU(0) - 0.095), yAt(-0.42), S * 0.17, -135 + 270 * Math.min(1, Math.max(0, ctx.overall)), shake, false))
     return out.join('')
   },
 

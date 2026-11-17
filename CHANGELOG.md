@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.0
+
+- The progress has a band of its own at the pedestal's foot: a glass pipe in a recessed channel, with metal
+  couplings where one step ends and the next begins and caps at both ends. What flows in it suits the skin:
+  glowing energy with pulses running through it (Cyber, Stellar, Cyberpunk), a liquid with a drifting sheen
+  and rising bubbles (Classic, Steampunk, Robot factory), pixel blocks (Retro) or a calm flat fill (Minimal).
+  The old line on the pedestal top and its finish flag are gone.
+- More grown-up skins:
+  - Retro is an arcade cabinet at night now: phosphor colours, scanlines, a soft CRT vignette, a pixel
+    horizon. The "?" blocks, coins, clouds and green hills are gone.
+  - Steampunk is a Victorian instrument case: no more gears between the plaques or pressure gauge, quieter
+    backdrop gears, muted tints.
+  - Robot factory in graphite steel: robot arms, valves and crates without the cartoon colours, a muted safety
+    yellow, coolant in the pipe.
+  - Cyberpunk: neon signs with fine lettering strokes, a darker sky, less haze, finer rain, neutral mini cubes.
+
 ## 0.9.2
 
 - README: a Privacy and permissions section. What the plugin reads, every hook it uses and what it does, what

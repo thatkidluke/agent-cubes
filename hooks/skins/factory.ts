@@ -13,15 +13,15 @@ import type { CubeCtx, SceneCtx, Skin } from './types'
  */
 const STEEL = '#64748b'
 const DARK = '#1e293b'
-const HAZARD = '#facc15'
-const LAMP = '#fb923c'
+const HAZARD = '#d4a72c'
+const LAMP = '#f59e0b'
 const SPARK = '#fde68a'
 
 const STATUS: Skin['status'] = {
   pending: ['#94a3b8', '#64748b', '#475569'],
   running: ['#7dd3fc', '#0ea5e9', '#0369a1'],
-  done: ['#bef264', '#65a30d', '#3f6212'],
-  error: ['#fca5a5', '#dc2626', '#7f1d1d'],
+  done: ['#a7f3d0', '#10b981', '#065f46'],
+  error: ['#fda4af', '#e11d48', '#7f1d1d'],
   waiting: ['#fde047', '#eab308', '#a16207'],
 }
 
@@ -83,8 +83,8 @@ function backdrop(ctx: SceneCtx): string {
   }
   for (const fx of [0.2, 0.74]) {
     const [vx, vy] = [W * fx, S * 0.23]
-    s += circle([vx, vy], S * 0.12, `fill="none" stroke="#dc2626" stroke-width="${n1(Math.max(1.5, S * 0.04))}"`)
-    s += line([vx - S * 0.12, vy], [vx + S * 0.12, vy], `stroke="#dc2626" stroke-width="1.2"`) + line([vx, vy - S * 0.12], [vx, vy + S * 0.12], `stroke="#dc2626" stroke-width="1.2"`)
+    s += circle([vx, vy], S * 0.12, `fill="none" stroke="#7a8699" stroke-width="${n1(Math.max(1.5, S * 0.04))}"`)
+    s += line([vx - S * 0.12, vy], [vx + S * 0.12, vy], `stroke="#7a8699" stroke-width="1.2"`) + line([vx, vy - S * 0.12], [vx, vy + S * 0.12], `stroke="#7a8699" stroke-width="1.2"`)
   }
   if (live) {
     const [sx, sy] = [W * 0.47, S * 0.36]
@@ -105,8 +105,8 @@ function backdrop(ctx: SceneCtx): string {
   for (const [dx, dy] of [[0, 0], [cw + 1, 0], [cw / 2, cw + 1]] as const) {
     const x = W - cw * 2.4 + dx
     const y = base - cw - dy
-    s += `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(cw)}" height="${n1(cw)}" fill="#7c4a1e" stroke="#3b1f0b" stroke-width="1" ${crisp}/>`
-    s += line([x, y], [x + cw, y + cw], `stroke="#3b1f0b" stroke-width="1"`)
+    s += `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(cw)}" height="${n1(cw)}" fill="#2a3240" stroke="#0f172a" stroke-width="1" ${crisp}/>`
+    s += line([x, y], [x + cw, y + cw], `stroke="#475569" stroke-width="1"`)
   }
 
   // Warning lamps on the wall, blinking while work goes on.
@@ -175,12 +175,12 @@ function robotArm(ctx: SceneCtx, c: CubeCtx, sway: boolean): string {
   const elbow: Pt = [tx + S * 0.35, (railY + ty) / 2 - S * 0.1]
   const wrist: Pt = [tx, ty - S * 0.42]
   const swing = sway ? `<animateTransform attributeName="transform" type="rotate" values="-4 ${n1(tx)} ${n1(railY)};4 ${n1(tx)} ${n1(railY)};-4 ${n1(tx)} ${n1(railY)}" dur="2.6s" repeatCount="indefinite"/>` : ''
-  const link = (a: Pt, b: Pt, w: number) => line(a, b, `stroke="#f59e0b" stroke-width="${n1(w)}" stroke-linecap="round"`) + line(a, b, `stroke="#fde68a" stroke-opacity="0.5" stroke-width="${n1(w * 0.3)}" stroke-linecap="round"`)
+  const link = (a: Pt, b: Pt, w: number) => line(a, b, `stroke="#3b4556" stroke-width="${n1(w)}" stroke-linecap="round"`) + line(a, b, `stroke="#cbd5e1" stroke-opacity="0.45" stroke-width="${n1(w * 0.3)}" stroke-linecap="round"`)
   return (
     `<g>${swing}` +
     `<rect x="${n1(tx - S * 0.16)}" y="${n1(railY - S * 0.05)}" width="${n1(S * 0.32)}" height="${n1(S * 0.12)}" fill="${STEEL}" stroke="#0f172a" stroke-width="0.8" ${crisp}/>` +
     link([tx, railY + S * 0.06], elbow, Math.max(2.5, S * 0.09)) +
-    circle(elbow, Math.max(2, S * 0.06), `fill="${DARK}" stroke="#f59e0b" stroke-width="1"`) +
+    circle(elbow, Math.max(2, S * 0.06), `fill="${DARK}" stroke="${HAZARD}" stroke-width="1"`) +
     link(elbow, wrist, Math.max(2, S * 0.07)) +
     circle(wrist, Math.max(1.8, S * 0.05), `fill="${DARK}"`) +
     line(wrist, [wrist[0] - S * 0.1, wrist[1] + S * 0.14], `stroke="#cbd5e1" stroke-width="1.6" stroke-linecap="round"`) +
@@ -221,7 +221,7 @@ function cubeOverlay(ctx: SceneCtx, c: CubeCtx): string {
     const plate = (p: Pt) => `<rect x="${n1(p[0] - S * 0.06)}" y="${n1(p[1] - S * 0.06)}" width="${n1(S * 0.12)}" height="${n1(S * 0.12)}" fill="#cbd5e1" stroke="#1e293b" stroke-width="0.6" ${crisp}/>`
     s += [b.front[0], b.front[1], b.front[2], b.front[3]].map(plate).join('')
     const [lx, ly] = ctx.P(c.u0 + 0.5, 0.5, 1)
-    s += `<rect x="${n1(lx - S * 0.08)}" y="${n1(ly - S * 0.14)}" width="${n1(S * 0.16)}" height="${n1(S * 0.12)}" fill="${c.status === 'done' ? '#84cc16' : '#dc2626'}" stroke="#0f172a" stroke-width="0.8" ${crisp}/>`
+    s += `<rect x="${n1(lx - S * 0.08)}" y="${n1(ly - S * 0.14)}" width="${n1(S * 0.16)}" height="${n1(S * 0.12)}" fill="${c.status === 'done' ? '#10b981' : '#e11d48'}" stroke="#0f172a" stroke-width="0.8" ${crisp}/>`
   }
   // Not started: a plain steel frame.
   if (c.isGhost) {
@@ -241,16 +241,16 @@ function cubeOverlay(ctx: SceneCtx, c: CubeCtx): string {
 export const factory: Skin = {
   id: 'factory',
   name: 'Robot factory',
-  description: 'Factory hall with robot arms, gears, a conveyor and steel crates',
+  description: 'An automated production hall: graphite steel, robot arms and coolant lines',
   status: STATUS,
   glass: { top: 0.3, bottom: 0.06, ghost: 0.5 },
   edge: { color: '#0f172a', opacity: 0.55 },
   mini: { top: ['#e2e8f0', '#94a3b8'], front: ['#cbd5e1', '#64748b'], side: ['#94a3b8', '#334155'], highlight: '#f8fafc', glint: '#e0f2fe' },
   tint: {
-    read: ['#0ea5e9', 0.5],
-    write: ['#facc15', 0.55],
-    run: ['#f97316', 0.5],
-    agent: ['#22c55e', 0.45],
+    read: ['#38bdf8', 0.4],
+    write: ['#d4a72c', 0.45],
+    run: ['#a78bfa', 0.4],
+    agent: ['#34d399', 0.4],
     other: ['#94a3b8', 0],
     err: ['#dc2626', 0.85],
   },
@@ -258,10 +258,11 @@ export const factory: Skin = {
   plaque: {
     frame: ['#94a3b8', '#334155'],
     inner: ['#0b1220', '#111827'],
-    text: { pending: '#64748b', running: '#38bdf8', done: '#a3e635', error: '#f87171', waiting: '#facc15' },
+    text: { pending: '#64748b', running: '#38bdf8', done: '#34d399', error: '#fb7185', waiting: '#fbbf24' },
     caption: '#e2e8f0',
   },
-  track: { groove: '#0f172a', from: '#0ea5e9', to: '#84cc16', head: HAZARD },
+  track: { groove: '#0f172a', from: '#0ea5e9', to: '#10b981', head: HAZARD },
+  pipe: { fill: 'liquid', colors: ['#0e7490', '#06b6d4', '#a5f3fc'], metal: '#94a3b8' },
   font: 'ui-monospace,Consolas,monospace',
   effects: { glint: false, sparks: false },
   defs: () =>

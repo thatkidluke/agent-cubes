@@ -57,8 +57,9 @@ function neonSign(x: number, y: number, w: number, h: number, col: string, flick
   const anim = flicker ? `<animate attributeName="opacity" values="1;1;0.3;1;0.6;1" keyTimes="0;0.8;0.83;0.86;0.9;1" dur="4s" begin="${begin}s" repeatCount="indefinite"/>` : ''
   return (
     `<g filter="url(#gl)">${anim}` +
-    `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(h * 0.3)}" fill="none" stroke="${col}" stroke-width="1.6"/>` +
-    `<rect x="${n1(x + w * 0.15)}" y="${n1(y + h * 0.42)}" width="${n1(w * 0.7)}" height="${n1(Math.max(1.2, h * 0.16))}" rx="1" fill="${col}"/>` +
+    `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(Math.min(3, h * 0.15))}" fill="#05030a" fill-opacity="0.55" stroke="${col}" stroke-width="1"/>` +
+    // Lettering suggested by a few strokes of different length, never a readable word.
+    [0.62, 0.34, 0.5].map((l, k) => `<rect x="${n1(x + w * 0.14 + (k % 2) * w * 0.08)}" y="${n1(y + h * (0.28 + k * 0.2))}" width="${n1(w * l)}" height="${n1(Math.max(0.9, h * 0.07))}" rx="0.5" fill="${col}"/>`).join('') +
     `</g>`
   )
 }
@@ -87,7 +88,7 @@ function backdrop(ctx: SceneCtx): string {
     for (let k = 0; k < 46; k++) {
       const x = rnd() * (W + S)
       const y = rnd() * H - H * 0.5
-      rain += line([x, y], [x - S * 0.08, y + S * 0.3], `stroke="#c4b5fd" stroke-opacity="${n1(0.18 + rnd() * 0.25)}" stroke-width="0.8"`)
+      rain += line([x, y], [x - S * 0.08, y + S * 0.3], `stroke="#c4b5fd" stroke-opacity="${n1(0.1 + rnd() * 0.16)}" stroke-width="0.7"`)
     }
     s += `<g>${fall}${rain}</g>`
   }
@@ -144,16 +145,16 @@ function cubeOverlay(ctx: SceneCtx, c: CubeCtx): string {
 export const cyberpunk: Skin = {
   id: 'cyberpunk',
   name: 'Cyberpunk',
-  description: 'Neon city at night with rain, glowing signs and a wet street',
+  description: 'A city at night: rain, thin neon lettering and the lights mirrored in a wet street',
   status: STATUS,
   glass: { top: 0.3, bottom: 0.06, ghost: 0.55 },
   edge: { color: '#0b0614', opacity: 0.6 },
-  mini: { top: ['#fdf4ff', '#f0abfc'], front: ['#e9d5ff', '#a78bfa'], side: ['#a78bfa', '#5b21b6'], highlight: '#ffffff', glint: '#fae8ff' },
+  mini: { top: ['#e8e9f3', '#cfd1e3'], front: ['#aeb0cb', '#8d8fae'], side: ['#6d6f92', '#4b4d6e'], highlight: '#ffffff', glint: '#f5e8ff' },
   tint: {
-    read: [CYAN, 0.5],
-    write: [YELLOW, 0.55],
-    run: [PINK, 0.5],
-    agent: ['#34d399', 0.45],
+    read: [CYAN, 0.42],
+    write: [YELLOW, 0.4],
+    run: [PINK, 0.42],
+    agent: ['#34d399', 0.38],
     other: ['#a78bfa', 0],
     err: ['#f43f5e', 0.85],
   },
@@ -165,11 +166,12 @@ export const cyberpunk: Skin = {
     caption: '#f5d0fe',
   },
   track: { groove: '#05030a', from: PINK, to: CYAN, head: YELLOW },
+  pipe: { fill: 'energy', colors: [VIOLET, PINK, CYAN], metal: '#3b2a5e' },
   font: 'ui-monospace,Consolas,monospace',
   defs: () =>
-    lin('cyberpunk-sky', 0, 1, [[0, '#0b0620'], [0.55, '#1e0b35'], [1, '#2a0b3d']]) +
-    rad('cyberpunk-haze-p', [[0, PINK, 0.25], [1, PINK, 0]]) +
-    rad('cyberpunk-haze-c', [[0, CYAN, 0.18], [1, CYAN, 0]]) +
+    lin('cyberpunk-sky', 0, 1, [[0, '#07060f'], [0.55, '#120b22'], [1, '#1a0c29']]) +
+    rad('cyberpunk-haze-p', [[0, PINK, 0.13], [1, PINK, 0]]) +
+    rad('cyberpunk-haze-c', [[0, CYAN, 0.1], [1, CYAN, 0]]) +
     rad('cyberpunk-glow', [[0, '#ffffff', 0.9], [0.35, PINK, 0.7], [1, PINK, 0]]) +
     lin('cyberpunk-wet', 0, 1, [[0, '#ffffff', 0.06], [0.4, '#ffffff', 0], [1, '#000000', 0.25]]) +
     lin('cyberpunk-curb', 1, 0, [[0, PINK], [0.5, VIOLET], [1, CYAN]]) +

@@ -120,6 +120,7 @@ export const minimal: Skin = {
     caption: '#64748b',
   },
   track: { groove: HAIR, from: ACCENT, to: GREEN, head: ACCENT },
+  pipe: { fill: 'flat', colors: [ACCENT, '#4f9fd8', GREEN], metal: '#cbd5e1' },
   font: 'Inter, system-ui, -apple-system, Segoe UI, sans-serif',
   // Calm: the skin's own breathing tint is the one live effect.
   effects: { glint: false, sparks: false, glow: false, pulse: false, sweep: false, flag: false, plaqueShadow: false },

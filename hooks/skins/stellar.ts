@@ -111,6 +111,7 @@ export const stellar: Skin = {
     caption: '#c7d2fe',
   },
   track: { groove: '#0c0a22', from: '#38bdf8', to: '#34d399', head: '#a78bfa' },
+  pipe: { fill: 'energy', colors: ['#6366f1', '#a78bfa', '#f0abfc'], metal: '#312e81' },
   font: 'Avenir Next,Futura,Century Gothic,Segoe UI,system-ui,sans-serif',
 
   defs(ctx) {

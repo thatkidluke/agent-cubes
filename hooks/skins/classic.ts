@@ -103,6 +103,7 @@ export const classic: Skin = {
     caption: '#1e293b',
   },
   track: { groove: '#334155', from: '#3b82f6', to: '#22c55e', head: '#3b82f6' },
+  pipe: { fill: 'liquid', colors: ['#2563eb', '#14b8a6', '#86efac'], metal: '#94a3b8' },
   font: 'system-ui,-apple-system,sans-serif',
   cubeOverlay: (ctx, c) => completionBurst(ctx, c, '#22c55e'),
 }

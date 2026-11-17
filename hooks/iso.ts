@@ -4,6 +4,7 @@ import { classic, CLASSIC_CAPTION_DARK } from './skins/classic'
 import type { CubeCtx, MiniKind, SceneCtx, Skin } from './skins/types'
 import { box, circle, esc, fmt, lin, line, mix, n1, phaseLock, pline, poly, seeded } from './svg'
 import type { Pt } from './svg'
+import { pipeBandPx, pipeDefs, progressPipe, type PipeGeometry } from './pipe'
 import { fmtDuration } from './panel/format'
 import { tr } from './i18n'
 import { contextTank, cracks, dependencies, smoke, testSeal } from './overlays'
@@ -383,7 +384,10 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
   const ds = diffSize(S)
   // The captions, and a diff line under them, need room: the pedestal grows to fit them.
   const anyDiff = bigs.some(b => b.added > 0 || b.removed > 0)
-  const pedH = Math.max(PED_H, 0.8 + (0.4 * cs + (anyDiff ? 1.35 * ds : 0)) / S + 0.06)
+  // The progress pipe gets its own band at the pedestal's foot, under the plaques and captions.
+  const pipeR = Math.max(3.5, S * 0.085)
+  const pipeBand = pipeBandPx(pipeR) / S
+  const pedH = Math.max(PED_H, 0.8 + (0.4 * cs + (anyDiff ? 1.35 * ds : 0)) / S + 0.06) + pipeBand
   const badgeR = Math.max(7, S * 0.2)
   const drop = S * 0.9
   const above = Math.max(drop, S * 0.42 + badgeR * 2 + 6)
@@ -401,6 +405,13 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
   const moving = hasLive && !still
   const ped = box(P, uStart, uEnd, PED_FRONT, PED_BACK, -pedH, 0)
   const ctx: SceneCtx = { width, height, S, detail, hasLive, n, P, pedestal: ped, cubeU, overall, context: ctxFill }
+  const pipe: PipeGeometry = {
+    x0: P(uStart, PED_FRONT, 0)[0] + pipeR * 3.4,
+    x1: P(uEnd, PED_FRONT, 0)[0] - pipeR * 3.4,
+    y: P(0, PED_FRONT, -pedH)[1] - (pipeBand * S) / 2 - 1,
+    r: pipeR,
+    joints: Array.from({ length: Math.max(0, n - 1) }, (_, k) => P(cubeU(k + 1) - (PITCH - 1) / 2, PED_FRONT, 0)[0]),
+  }
 
   // ── Definitions ──
   const defs: string[] = []
@@ -417,7 +428,7 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
   defs.push(lin('pS', 0, 1, [[0, pd.side[0]], [1, pd.side[1]]]))
   defs.push(lin('plq', 0, 1, [[0, skin.plaque.frame[0]], [1, skin.plaque.frame[1]]]))
   defs.push(lin('plqIn', 0, 1, [[0, skin.plaque.inner[0]], [1, skin.plaque.inner[1]]]))
-  defs.push(lin('track', 1, 0, [[0, skin.track.from], [1, skin.track.to]]))
+  defs.push(pipeDefs(pipe, skin, moving))
   if (moving && detail > 0) {
     defs.push(
       lin('sh', 1, 0.5, [[0, '#ffffff', 0], [0.42, '#ffffff', 0], [0.5, '#ffffff', 0.5], [0.58, '#ffffff', 0]],
@@ -487,37 +498,8 @@ function render(sc: Scene, detail: Detail, skin: Skin) {
   parts.push(hook(skin.pedestalDecor && (() => skin.pedestalDecor!(ctx))))
   if (ctxFill !== null) parts.push(safe(() => contextTank(ctxFill, P, S, uEnd, pedH, PED_BACK, cs, detail, skin, still)))
 
-  // ── Timeline groove on the pedestal top, in front of the cubes ──
-  const gv = PED_FRONT / 2
-  {
-    const [ax, ay] = P(uStart + 0.12, gv, 0)
-    const [bx] = P(uEnd - 0.12, gv, 0)
-    const gw = Math.max(2.5, S * 0.07)
-    parts.push(line([ax, ay], [bx, ay], `stroke="${skin.track.groove}" stroke-opacity="0.55" stroke-width="${n1(gw + 1.5)}" stroke-linecap="round"`))
-    parts.push(line([ax, ay + 0.8], [bx, ay + 0.8], `stroke="${pd.light}" stroke-opacity="0.35" stroke-width="0.8"`))
-    for (let i = 1; i < n; i++) {
-      const [tx] = P(cubeU(i) - (PITCH - 1) / 2, gv, 0)
-      parts.push(line([tx, ay - gw], [tx, ay + gw], `stroke="${skin.track.groove}" stroke-opacity="0.6" stroke-width="1"`))
-    }
-    if (overall > 0) {
-      const px = ax + (bx - ax) * overall
-      // A rect, not a line: a gradient or filter on a box with no height draws nothing.
-      parts.push(
-        `<rect x="${n1(ax - gw / 2)}" y="${n1(ay - gw / 2)}" width="${n1(Math.max(gw, px - ax + gw))}" height="${n1(gw)}" rx="${n1(gw / 2)}" fill="url(#track)" filter="url(#gl)"/>`,
-      )
-      const pulse = moving ? '<animate attributeName="r" values="3;4.6;3" dur="1.4s" repeatCount="indefinite"/>' : ''
-      overlay.push(`<circle cx="${n1(px)}" cy="${n1(ay)}" r="3.5" fill="#ffffff" stroke="${skin.track.head}" stroke-width="1.5" filter="url(#gl)">${pulse}</circle>`)
-    }
-    // A chequered finish flag at the end of the line.
-    const fx = bx + 2
-    const fh = S * 0.5
-    const sq = fh / 6
-    let flag = line([fx, ay], [fx, ay - fh], `stroke="${skin.track.groove}" stroke-width="1.2"`)
-    for (let a = 0; a < 3; a++) for (let b = 0; b < 2; b++) {
-      flag += `<rect x="${n1(fx + a * sq)}" y="${n1(ay - fh + b * sq)}" width="${n1(sq)}" height="${n1(sq)}" fill="${(a + b) % 2 ? '#ffffff' : '#0f172a'}"/>`
-    }
-    if (skin.effects?.flag !== false) parts.push(`<g opacity="${overall >= 1 ? 1 : 0.7}">${flag}</g>`)
-  }
+  // ── The progress pipe, in its own band at the pedestal's foot ──
+  parts.push(progressPipe(pipe, overall, skin, moving, detail, skin.track.groove, pd.light))
 
   // ── Plaques: an embossed number per step on the pedestal's front, its time below ──
   for (const big of bigs) {

@@ -107,6 +107,13 @@ export type Skin = {
     caption: string
   }
   track: { groove: string; from: string; to: string; head: string }
+  /**
+   * The progress pipe in its own band at the pedestal's foot: what flows in it
+   * (glowing energy, a liquid with bubbles, pixel blocks, or a flat fill), its
+   * colours from start to front, and the metal of its fittings. Left out, the
+   * pipe carries energy in the track's colours.
+   */
+  pipe?: { fill: 'energy' | 'liquid' | 'pixel' | 'flat'; colors: [string, string, string]; metal: string }
   /** Font family for numbers and captions. */
   font: string
   /**

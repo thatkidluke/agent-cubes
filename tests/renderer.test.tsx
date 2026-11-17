@@ -145,3 +145,15 @@ test('renderer: plaques carry a status glyph and titles a status word', async ()
   expect(ws.includes('⏸')).toBe(true)
   expect(ws.includes('(waiting for you')).toBe(true)
 })
+
+test('every skin carries the progress in a pipe of its own, in the band at the pedestal foot', async () => {
+  let r = startRun(emptyRun, 'Build it', 1)
+  r = applyTaskTool(r, 'mcp__ccd_turn__update_plan', { items: [{ content: 'A', status: 'completed' }, { content: 'B', status: 'in_progress' }, { content: 'C', status: 'pending' }] }, undefined, 2)
+  for (const skin of SKINS) {
+    const src = buildSvg(r, 600, 60_000, -1, skin).source
+    expect(src.includes('pp-clip'), `${skin.id}: pipe`).toBe(true)
+    expect(src.includes('url(#track)'), `${skin.id}: no old track`).toBe(false)
+  }
+  const retroSrc = buildSvg(r, 600, 60_000, -1, SKINS.find(s => s.id === 'retro')!).source
+  expect(retroSrc.includes('fill="url(#pp-fill)"'), 'retro fills with pixel blocks, not a gradient bar').toBe(false)
+})
