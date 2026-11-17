@@ -303,7 +303,7 @@ function draw(sc: Scene, detail: 0 | 1): { source: string; height: number } {
       const via = fp === big.pos - 1 && f.row !== g.row ? turnX[fp] : undefined
       return { dx: f.x - g.x, dy: f.y - g.y, via: via === undefined ? undefined : via - g.x }
     })
-    out.push(chip(big, g, sc.parts[big.pos]!, flights, { u, CH, still, selected: big.pos === sc.selPos, detail, mini, theme }))
+    out.push(chip(big, g, sc.parts[big.pos]!, flights, { u, CH, still, selected: big.pos === sc.selPos, detail, mini, theme, finale }))
   }
 
   const source = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><defs>${defs}</defs>${out.join('')}</svg>`
@@ -378,7 +378,7 @@ function display(sc: Scene, o: DisplayOptions): string {
   return s + `<rect x="${n1(x)}" y="${top}" width="${n1(w)}" height="${n1(dispH)}" rx="${n1(7 * u)}" fill="url(#bd-gloss)"/>`
 }
 
-type ChipOptions = { u: number; CH: number; still: boolean; selected: boolean; detail: 0 | 1; mini: boolean; theme: BoardTheme }
+type ChipOptions = { u: number; CH: number; still: boolean; selected: boolean; detail: 0 | 1; mini: boolean; theme: BoardTheme; finale: boolean }
 type Flight = { dx: number; dy: number; via: number | undefined } | null
 
 /** What marks a part's kind, in the free corner beside pin one. */
@@ -491,6 +491,10 @@ function chip(big: Big, g: Geo, part: { kind: StepKind; size: Size }, flights: F
     } else s += `<rect ${base} fill="#1a2336"/>`
   }
 
+  // The finale: once every step is done, the parts flash one after the other, as the light runs along the traces.
+  if (o.finale) {
+    s += `<rect x="${n1(L)}" y="${n1(T)}" width="${n1(CW)}" height="${n1(CH)}" rx="${n1(7 * u)}" fill="${ST.done}" opacity="0" pointer-events="none"><animate attributeName="opacity" values="0;0.7;0" dur="0.6s" begin="${n1(0.25 + big.pos * 0.12)}s" fill="freeze"/></rect>`
+  }
   // A flash over the package when its step is done just now.
   if (big.justDone && !still) {
     s += `<rect x="${n1(L)}" y="${n1(T)}" width="${n1(CW)}" height="${n1(CH)}" rx="${n1(7 * u)}" fill="#ffffff" opacity="0" pointer-events="none"><animate attributeName="opacity" values="0.75;0" dur="0.9s" fill="freeze"/></rect>`

@@ -6,7 +6,7 @@
 import type { CubeRun } from '../types'
 import { classic, CLASSIC_CAPTION_DARK } from './skins/classic'
 import type { CubeCtx, MiniKind, SceneCtx, Skin } from './skins/types'
-import { box, esc, fmt, lin, line, mix, n1, phaseLock, pline, poly, rad } from './svg'
+import { box, type Box, esc, fmt, lin, line, mix, n1, phaseLock, pline, poly, rad } from './svg'
 import type { Pt } from './svg'
 import { pipeBandPx, pipeDefs, progressPipe, type PipeGeometry } from './pipe'
 import { tr } from './i18n'
@@ -91,6 +91,8 @@ type Scene = {
   ctxFill: number | null
   /** Draw a still picture, no SMIL. */
   still: boolean
+  /** Every step is done and the last one just now: the finale plays once. */
+  finale: boolean
 }
 
 /**
@@ -488,6 +490,8 @@ function render(sc: Scene, detail: Detail, skin: Skin, row: RowOptions = {}) {
     parts.push(hook(skin.cubeOverlay && (() => skin.cubeOverlay!(ctx, cube))))
     if (big.test) overlay.push(safe(() => testSeal(big.test, b.front[2], S, skin)))
     // A step freed just now: its padlock springs open, rises and fades.
+    // The finale: a wave of light runs over the cubes, one after the other, and sparks rise from each.
+    if (sc.finale) overlay.push(finaleMark(b, P(u0 + 0.5, (v0 + v1) / 2, w1), S, big.pos, skin.status.done[1]))
     if (big.unlocked && !still) overlay.push(unlockMark(P(u0 + 0.18, v0, w1 + 0.12), S, skin.status.done[1]))
 
     // Agent badges above the cube.
@@ -526,6 +530,22 @@ function render(sc: Scene, detail: Detail, skin: Skin, row: RowOptions = {}) {
 
   const source = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${css}<defs>${defs.join('')}</defs>${parts.join('')}${overlay.join('')}</svg>`
   return { source, width, height }
+}
+
+/** The task's last moment on one cube: its faces flash white in turn along the row, then sparks rise from its top. */
+function finaleMark(b: Box, [tx, ty]: Pt, S: number, pos: number, okc: string): string {
+  const at = pos * 0.13
+  const hull = [b.front[0], b.front[1], b.right[1], b.right[2], b.top[3], b.front[3]]
+  let s = `<g pointer-events="none">${poly(hull, 'fill="#ffffff" opacity="0"').replace('/>', `><animate attributeName="opacity" values="0;0.8;0" keyTimes="0;0.3;1" dur="0.7s" begin="${n1(at)}s" fill="freeze"/></polygon>`)}`
+  for (let j = 0; j < 3; j++) {
+    const sx = tx + (j - 1) * S * 0.24
+    const begin = n1(at + 0.3 + j * 0.14)
+    s +=
+      `<circle cx="${n1(sx)}" cy="${n1(ty)}" r="${n1(Math.max(1.2, S * 0.045))}" fill="${j === 1 ? '#ffffff' : okc}" opacity="0">` +
+      `<animate attributeName="opacity" values="0;1;0" dur="1.1s" begin="${begin}s" fill="freeze"/>` +
+      `<animate attributeName="cy" values="${n1(ty)};${n1(ty - S * (0.7 + j * 0.12))}" dur="1.1s" begin="${begin}s" fill="freeze"/></circle>`
+  }
+  return s + '</g>'
 }
 
 /** An open padlock rising and fading over a step that was freed just now, with a ring spreading out. */
@@ -648,6 +668,7 @@ export function buildSvg(
     // Whole percent: the tank moves, and the drawing changes, once per percent.
     ctxFill: typeof ctxRaw === 'number' && Number.isFinite(ctxRaw) ? Math.round(Math.max(0, Math.min(1, ctxRaw)) * 100) / 100 : null,
     still: opts.motion === false,
+    finale: opts.motion !== false && bigs.length > 0 && bigs.every(b => b.status === 'done') && bigs.some(b => b.justDone),
   }
 
   // Everything that shows: the cubes (status, fill, kinds, badges, caption,

@@ -6,7 +6,7 @@ import { agentColor, agentInitial, MAIN_COLOR, PALETTE, STATUS_LABEL, WORK_COLOR
 import { blockersOf, isWorked, stepCost, stepProgress, stuckReason, WORK_KINDS, WORK_LABEL, type StuckThresholds } from '../model'
 import { callColor, figures, glyphOf, whoCalled, workOf, type Els } from './blocks'
 import { baseName, cubeNo, fmtDuration, fmtTokens, fmtUsd } from './format'
-import { tr } from '../i18n'
+import { tr, unitWord } from '../i18n'
 
 export type DetailsInput = {
   r: CubeRun
@@ -96,7 +96,7 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
     ])
   }
   if (blockers.length > 0) {
-    facts.push([tr('Wartet auf', 'Waits for'), <Text key="f-wait" color={PALETTE.waiting[1]}>{tr('Würfel', 'Cube')} {blockers.map(cubeNo).join(', ')}</Text>])
+    facts.push([tr('Wartet auf', 'Waits for'), <Text key="f-wait" color={PALETTE.waiting[1]}>{unitWord()} {blockers.map(cubeNo).join(', ')}</Text>])
   }
   if (files.length > 0) facts.push([tr('Dateien', 'Files'), <Text key="f-files" dimColor>{files.map(baseName).join(', ')}</Text>])
 
@@ -104,7 +104,7 @@ export function cubeDetails(els: Els, d: DetailsInput): RenderChildren {
     <Box flexDirection="column" gap={1} borderStyle="round" borderColor="#fbbf24" paddingX={1}>
       <Box flexDirection="row" justifyContent="space-between">
         <Text weight="bold">
-          {tr('Würfel', 'Cube')} {cubeNo(i)} · {task.title}
+          {unitWord()} {cubeNo(i)} · {task.title}
         </Text>
         <Text color={PALETTE[status][1]} weight="semibold">
           ● {STATUS_LABEL[status]}

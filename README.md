@@ -52,7 +52,7 @@ The panel opens when a session starts, or any time with `/cubes`.
 <p align="center"><img src="docs/demo.svg" width="640" alt="A sample task playing out: cubes fill, agents move from step to step, finished steps turn solid"></p>
 
 Every step of the agents' plan (`update_plan`, `TodoWrite`, `TaskCreate` / `TaskUpdate`) becomes a glass cube on a
-pedestal, or a chip on a circuit board; a dropdown switches between the two. While a step is worked on, its cube fills with small cubes, one slice of the step's real tool calls each,
+pedestal, a chip on a circuit board, or a segment of the ring in the orbit view; a dropdown switches between them. While a step is worked on, its cube fills with small cubes, one slice of the step's real tool calls each,
 tinted by the kind of work: reading, writing, running, agents. A finished step turns into a solid cube with a tick.
 
 Subagents show up as coloured badges on the cube they work on. The panel estimates progress and time left, spots
@@ -117,6 +117,16 @@ remembered, and the `defaultView` setting says where new sessions start.
 
 When the task is done, the summary turns into this test report. The widget shows a tiny board.
 
+### Or as an orbit
+
+<p align="center"><img src="docs/orbit.svg" width="640" alt="The orbit view: the main agent as a sun with the plan as a ring around it, its calls as a comet, and three subagents as planets"></p>
+
+The third view puts the agents first. The main agent is the sun in the middle, with the plan as a ring of segments
+around it, one per step, and the progress written on it. Its latest calls circle it as a comet, a dot per call in
+the colour of its kind of work. Every subagent is a planet on an orbit of its own: it travels while it works, with a
+moon in the colour of what it is doing, and docks at the front once it is done. When the last step is done, the
+ring lights up segment by segment and a wave runs outwards. The widget shows the sun and the ring.
+
 ## The panel
 
 <picture>
@@ -130,6 +140,8 @@ When the task is done, the summary turns into this test report. The widget shows
 | **Now** | The step in work as a numbered badge, its progress and the agents on it. |
 | **Agents** | The main agent and every subagent as an avatar, with the cube it works on and the tool it uses. A button each opens its transcript. |
 | **Live** | The latest calls as a feed: an icon per kind of work, who made the call, what it touched and how it went. |
+| **Timeline** | The task as a band of time: a stroke per call in the colour of its kind of work, as wide as it took, the main agent above and the subagents below. Gaps are the agent thinking, amber is waiting for you, and a strip underneath says which step was in work. |
+| **Files** | A tile per file the calls named, grouped by folder: wider the busier the file was, amber where it was written, blue where it was only read, with the lines changed or the number of reads. |
 | **Cube details** | Time, tokens, cost share, lines changed, test runs, files and recent calls of one step. Keys **1–9** open the first nine. |
 
 Everything follows the app's light or dark mode.
@@ -181,7 +193,7 @@ test report on a piece of the board.
 
 **Make it yours**
 
-- Two views of the same task: cubes on a pedestal, or chips on a circuit board
+- Three views of the same task: cubes on a pedestal, chips on a circuit board, or an orbit of agents
 - Eight skins for the cubes, from calm to playful, each standing free on the pane
 - Five solder masks for the board
 - Still mode without animation, for calm or slow machines
@@ -232,7 +244,7 @@ Find them under **Agent Cubes** in the plugin settings; a change applies at once
 | --- | --- | --- |
 | `language` | `en` | Panel language: `en` or `de`. |
 | `defaultSkin` | `classic` | The skin while none is picked in the panel; a pick in the panel wins. |
-| `defaultView` | `cubes` | The view while none is picked in the panel: `cubes` or `board`. |
+| `defaultView` | `cubes` | The view while none is picked in the panel: `cubes`, `board` or `orbit`. |
 | `budgetUsd` | `0` | Cost budget per task in USD: amber from 80 %, a warning once passed. `0` turns it off. |
 | `autoOpen` | on | Open the panel when a session starts; otherwise only via `/cubes`. |
 | `animations` | on | Animation in the panel and the export: filling, flights, mood lights, the pipe's flow. Off draws still pictures. |
@@ -261,7 +273,7 @@ your machine: no network calls, no telemetry, no accounts. The only web address 
 `http://www.w3.org/2000/svg`, which every SVG file names and nothing ever contacts.
 
 **What it reads.** The plan steps, the tool calls of the session and its subagents (tool name, the file or command
-for the live feed, the lines an edit adds or removes, whether the call failed), token use, the session's cost and
+for the live feed, the name of the file's folder for the file map, the lines an edit adds or removes, whether the call failed), token use, the session's cost and
 how full the context window is. It reads no credentials, environment variables or files of yours.
 
 **The hooks it uses, and what each does**

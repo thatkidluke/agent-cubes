@@ -35,6 +35,9 @@ import {
 import { buildSummary } from './summary'
 import { BOARD_THEMES, boardThemeById, buildBoard } from './board'
 import { buildBoardSummary } from './board-summary'
+import { buildOrbit } from './orbit'
+import { buildTimeline } from './panel/timeline'
+import { buildFileMap } from './panel/filemap'
 import { buildGauges, buildTiles, type Tile } from './gauges'
 import { agentRow, callColor, card, figures, glyphOf, whoCalled, workOf, type Els } from './panel/blocks'
 import { cubeDetails } from './panel/details'
@@ -62,8 +65,9 @@ const history = atom({ plugin: 'agent-cubes', key: 'history' } as const, [] as H
 const skinPick = atom({ plugin: 'agent-cubes', key: 'skin' } as const, '')
 const exported = atom({ plugin: 'agent-cubes', key: 'exported' } as const, '')
 const SKIN_KEY = 'skin'
-/** How the task is drawn: as cubes on a pedestal, or as chips on a circuit board. */
-const VIEWS = ['cubes', 'board'] as const
+/** How the task is drawn: as cubes on a pedestal, as chips on a circuit board, or as an orbit of agents. */
+const VIEWS = ['cubes', 'board', 'orbit'] as const
+const viewOf = (id: string): View => (id === 'board' || id === 'orbit' ? id : 'cubes')
 type View = (typeof VIEWS)[number]
 /** The view the person picked in the panel; '' while they have not, so the defaultView setting applies. */
 const viewPick = atom({ plugin: 'agent-cubes', key: 'view' } as const, '')
@@ -278,8 +282,8 @@ export const register: Register = (on, options) => {
     const curTask = cur >= 0 ? r.tasks[cur] : undefined
 
     const drawOpts = { context: ctxFrac, motion: settings.animations }
-    const view: View = ((await read($, viewPick)) || settings.defaultView) === 'board' ? 'board' : 'cubes'
-    setUnit(view === 'board' ? 'chip' : 'cube')
+    const view = viewOf((await read($, viewPick)) || settings.defaultView)
+    setUnit(view === 'board' ? 'chip' : view === 'orbit' ? 'step' : 'cube')
     const boardTheme = boardThemeById(await read($, boardPick))
     const sceneWidth = isWidget ? 180 : Math.max(260, Math.min(680, cols * 7.5))
     // The board's display also shows cost and time left: in tenths of a dollar and whole minutes, so it stays calm.
@@ -292,7 +296,13 @@ export const register: Register = (on, options) => {
       // The widget gets a tiny board: parts and traces only.
       mini: isWidget,
     }
-    const svg = !Svg ? undefined : view === 'board' ? buildBoard(r, sceneWidth, now, sel, boardOpts) : buildSvg(r, sceneWidth, now, sel, skin, drawOpts)
+    const svg = !Svg
+      ? undefined
+      : view === 'board'
+        ? buildBoard(r, sceneWidth, now, sel, boardOpts)
+        : view === 'orbit'
+          ? buildOrbit(r, sceneWidth, now, sel, { motion: settings.animations, mini: isWidget })
+          : buildSvg(r, sceneWidth, now, sel, skin, drawOpts)
 
     if (isWidget) {
       return (
@@ -340,7 +350,12 @@ export const register: Register = (on, options) => {
     const exportSvg = async () => {
       try {
         const at = await $.clock.now()
-        const pic = view === 'board' ? buildBoard(r, 1000, at, -1, { ...boardOpts, mini: false }) : buildSvg(r, 1000, at, -1, skin, drawOpts)
+        const pic =
+          view === 'board'
+            ? buildBoard(r, 1000, at, -1, { ...boardOpts, mini: false })
+            : view === 'orbit'
+              ? buildOrbit(r, 1000, at, -1, { motion: settings.animations })
+              : buildSvg(r, 1000, at, -1, skin, drawOpts)
         const path = joinPath(await $.session.cwd(), `agent-cubes-${fileStamp(at)}.svg`)
         await $.fs.write(path, pic.source)
         await update($, exported, () => path)
@@ -374,7 +389,7 @@ export const register: Register = (on, options) => {
       if (shown.deny) $.ui.toast(shown.deny)
     }
     const pickView = async (id: string) => {
-      const picked: View = id === 'board' ? 'board' : 'cubes'
+      const picked = viewOf(id)
       await update($, viewPick, () => picked)
       await $.store.set(VIEW_KEY, picked).catch(() => undefined)
     }
@@ -448,6 +463,13 @@ export const register: Register = (on, options) => {
     const nowPic = Svg ? memo('now', JSON.stringify([nowInfo, drawWidth, moving]), () => lock(buildNow(nowInfo, drawWidth, moving))) : null
     const agentsPic = Svg ? memo('agents', JSON.stringify([agentInfos, drawWidth, moving]), () => lock(buildAgents(agentInfos, drawWidth, moving))) : null
     const livePic = Svg && callInfos.length > 0 ? memo('live', JSON.stringify([callInfos, drawWidth, moving]), () => lock(buildLive(callInfos, drawWidth, moving))) : null
+    // The task as a band of time, and the files it touched: redrawn every five seconds while it runs, and when a call comes or goes.
+    const bandEnd = active ? Math.floor(now / 5000) * 5000 : r.endedAt || now
+    const callsKey = [r.calls.length, r.calls.filter(c => c.status === 'running').length, r.calls[r.calls.length - 1]?.id ?? '', r.errors]
+    const timelinePic = Svg
+      ? memo('timeline', JSON.stringify([callsKey, bandEnd, drawWidth, r.waits?.length ?? 0, r.waitSince, r.tasks.map(t => t.status), settings.language]), () => buildTimeline(r, bandEnd, drawWidth))
+      : null
+    const filesPic = Svg ? memo('files', JSON.stringify([callsKey, drawWidth, settings.language]), () => buildFileMap(r, drawWidth)) : null
     const skinPicker = Select ? (
       <Select
         key="skin"
@@ -460,7 +482,7 @@ export const register: Register = (on, options) => {
       <Text dimColor>Skin: {skin.name}</Text>
     )
 
-    const viewLabel = (v: View) => (v === 'board' ? tr('Platine', 'Circuit board') : tr('Würfel', 'Cubes'))
+    const viewLabel = (v: View) => (v === 'board' ? tr('Platine', 'Circuit board') : v === 'orbit' ? tr('Umlaufbahn', 'Orbit') : tr('Würfel', 'Cubes'))
     const boardPicker = Select ? (
       <Select
         key="board"
@@ -487,7 +509,7 @@ export const register: Register = (on, options) => {
               {pct !== null ? `${pct} %` : '–'}
             </Text>
             <Text dimColor>
-              {prog ? tr(`${prog.done} von ${prog.total} ${view === 'board' ? 'Chips' : 'Würfeln'} erledigt`, `${prog.done} of ${prog.total} ${unitWords()} done`) : tr(`Noch kein Plan: 1 ${unitWord()} für den ganzen Auftrag`, `No plan yet: 1 ${unitWord().toLowerCase()} for the whole task`)}
+              {prog ? tr(`${prog.done} von ${prog.total} ${view === 'board' ? 'Chips' : view === 'orbit' ? 'Schritten' : 'Würfeln'} erledigt`, `${prog.done} of ${prog.total} ${unitWords()} done`) : tr(`Noch kein Plan: 1 ${unitWord()} für den ganzen Auftrag`, `No plan yet: 1 ${unitWord().toLowerCase()} for the whole task`)}
             </Text>
           </Box>
           <Box flexDirection="column" alignItems="flex-end" gap={0}>
@@ -702,12 +724,34 @@ export const register: Register = (on, options) => {
             ),
           )}
 
+        {/* 4b. The task as a band of time */}
+        {timelinePic && Svg &&
+          card(
+            blockEls,
+            'card-timeline',
+            tr('ZEITSTRAHL', 'TIMELINE'),
+            <Box key="timeline-pic" flexDirection="row" justifyContent="center">
+              <Svg source={timelinePic.source} alt={timelinePic.alt} width={timelinePic.width} height={timelinePic.height} isInteractive={!active} />
+            </Box>,
+          )}
+
+        {/* 4c. The files the calls named */}
+        {filesPic && Svg &&
+          card(
+            blockEls,
+            'card-files',
+            tr('DATEIEN', 'FILES'),
+            <Box key="files-pic" flexDirection="row" justifyContent="center">
+              <Svg source={filesPic.source} alt={filesPic.alt} width={filesPic.width} height={filesPic.height} isInteractive={!active} />
+            </Box>,
+          )}
+
         {/* 5. Cubes: pick one for its details */}
         {r.tasks.length > 0 &&
           card(
             blockEls,
             'card-cubes',
-            tr('WÜRFEL-DETAILS', 'CUBE DETAILS'),
+            view === 'orbit' ? tr('SCHRITT-DETAILS', 'STEP DETAILS') : view === 'board' ? tr('CHIP-DETAILS', 'CHIP DETAILS') : tr('WÜRFEL-DETAILS', 'CUBE DETAILS'),
             <Box flexDirection="column" gap={1}>
               <Box flexDirection="row" flexWrap="wrap" gap={1}>
                 {r.tasks.map((_t, i) => (

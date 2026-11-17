@@ -58,6 +58,8 @@ export type CubeCall = {
   ms: number
   /** The file it read or wrote, when it names one. */
   file: string
+  /** The folder that file lies in, by its own name only; absent on calls stored before it existed. */
+  dir?: string
   /** A short what-it-did for the ticker: a command, a file name, a pattern, a URL. */
   detail: string
   /** Lines it adds / removes, counted when it succeeds (Edit, MultiEdit, Write). */
@@ -122,7 +124,7 @@ declare module 'claude-code' {
       history: Shaped<HistRun[]>
       /** The chosen skin's id. */
       skin: string
-      /** How the task is drawn: 'cubes' or 'board'; '' while the person has not picked. */
+      /** How the task is drawn: 'cubes', 'board' or 'orbit'; '' while the person has not picked. */
       view: string
       /** The circuit board's solder mask. */
       board: string

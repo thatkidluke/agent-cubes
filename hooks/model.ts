@@ -169,6 +169,8 @@ export function isTestCommand(command: string): boolean {
 
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 const base = (p: string) => p.split(/[\\/]/).pop() ?? p
+/** The name of the folder a path's file lies in; '' for a bare file name. */
+const dirOf = (p: string) => p.split(/[\\/]/).slice(-2, -1)[0] ?? ''
 
 /** A short what-it-did for the ticker. */
 export function detailOf(tool: string, input: Args | undefined): string {
@@ -215,6 +217,7 @@ export function toolStart(
         ms: 0,
         // The base name only: the full path is never shown and would bloat the stored run.
         file: base(fileOf(c.input)),
+        dir: dirOf(fileOf(c.input)),
         detail: detailOf(c.tool, c.input),
         ...diffOf(c.tool, c.input),
         isTest: (c.tool === 'Bash' || c.tool === 'PowerShell') && isTestCommand(typeof c.input?.command === 'string' ? c.input.command : ''),

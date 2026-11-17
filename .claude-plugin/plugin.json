@@ -1,7 +1,7 @@
 {
   "name": "agent-cubes",
-  "version": "0.14.2",
-  "description": "A live view of your agents' work beside the Claude Code chat, as glass cubes or as a circuit board: a step each, progress, agents, a live feed, stuck detection, context and cost, eight skins, five solder masks",
+  "version": "0.15.0",
+  "description": "A live view of your agents' work beside the Claude Code chat, as glass cubes, as a circuit board or as an orbit of agents: a step each, progress, agents, a live feed, stuck detection, context and cost, eight skins, five solder masks",
   "author": {
     "name": "Agent Cubes contributors"
   },
@@ -37,10 +37,11 @@
     "defaultView": {
       "type": "string",
       "title": "Default view",
-      "description": "How the task is drawn until you pick a view in the panel: cubes on a pedestal, or chips on a circuit board. A pick in the panel wins.",
+      "description": "How the task is drawn until you pick a view in the panel: cubes on a pedestal, chips on a circuit board, or an orbit with the subagents as planets. A pick in the panel wins.",
       "options": [
         "cubes",
-        "board"
+        "board",
+        "orbit"
       ],
       "default": "cubes"
     },

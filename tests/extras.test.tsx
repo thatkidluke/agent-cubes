@@ -22,6 +22,10 @@ import { buildGauges, buildTiles, warnColors } from '../hooks/gauges'
 import { buildAgents, buildLive, buildNow, clip } from '../hooks/panel/live'
 import { activity, clock, coins, cup, diffBlocks, hourglass, perMinute, tank, tokenBars, warning } from '../hooks/pictos'
 import { readSettings } from '../hooks/panel/settings'
+import { buildTimeline, longestGap } from '../hooks/panel/timeline'
+import { buildFileMap, fileStats } from '../hooks/panel/filemap'
+import { buildOrbit } from '../hooks/orbit'
+import { addAgent } from '../hooks/model'
 import { callColor } from '../hooks/panel/blocks'
 import { buildSvg } from '../hooks/iso'
 
@@ -135,8 +139,11 @@ test('the panel: cube hotkeys, the timeline card and the data export', async ($,
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect((await ui.find({ type: 'Button', key: 'cube-0' }))?.props.hotkey).toBe('1')
   expect((await ui.find({ type: 'Button', key: 'cube-1' }))?.props.hotkey).toBe('2')
-  expect(await ui.find({ type: 'Text', text: /TIMELINE/ }), 'no timeline card').toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /TIMELINE/ }), 'timeline card').toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /FILES/ }), 'files card').toBeDefined()
   const svgs = await ui.findAll({ type: 'Svg' })
+  expect(svgs.some(n => String(n.props.alt).startsWith('Timeline: ')), 'timeline drawing').toBe(true)
+  expect(svgs.some(n => String(n.props.alt).includes('a.ts')), 'file map drawing').toBe(true)
   expect(svgs.some(n => String(n.props.alt).includes('Waiting:')), 'waiting tile').toBe(true)
   await ui.unmount()
 })
@@ -387,4 +394,81 @@ test('the live feed, the scene and the board colour a browser call like the summ
   expect(buildLive([{ kind: 'browser', status: 'done', letter: 'H', color: '#818cf8', tool: 'navigate', detail: '' }], 360, true).source.includes(pink), 'feed icon').toBe(true)
   expect(buildBoard(r, 560, 3000).source.includes(pink), 'board LED').toBe(true)
   expect(buildSvg(r, 600, 3000).source.includes('m-browser'), 'mini cube').toBe(true)
+})
+
+// A run with a plan of three, calls on files in two folders, a failed command and two subagents.
+function busyRun() {
+  let r = applyTaskTool(startRun(emptyRun, 'x', 1000), 'mcp__ccd_turn__update_plan', {
+    items: [{ content: 'Read', status: 'completed' }, { content: 'Write', status: 'in_progress' }, { content: 'Test', status: 'pending' }],
+  }, undefined, 1000)
+  let t = 1000
+  const call = (id: string, tool: string, input: Record<string, unknown>, agentId?: string, isError = false) => {
+    t += 2000
+    r = toolStart(r, { id, tool, agentId, input }, t)
+    r = toolEnd(r, { id, tool, agentId, isError, errorText: isError ? 'no' : '' }, t + 500)
+  }
+  call('c1', 'Read', { file_path: '/p/src/a.ts' })
+  call('c2', 'Read', { file_path: 'C:\\p\\src\\a.ts' })
+  call('c3', 'Write', { file_path: '/p/src/b.ts', content: 'x\ny\nz' })
+  call('c4', 'Bash', { command: 'make' }, undefined, true)
+  r = addAgent(r, { id: 'a1', name: 'Review it', kind: 'general-purpose' }, t)
+  r = addAgent(r, { id: 'a2', name: 'Test it', kind: 'general-purpose' }, t)
+  call('c5', 'Read', { file_path: '/p/docs/guide.md' }, 'a1')
+  return { r, t: t + 9000 }
+}
+
+test('the timeline draws a stroke per call, a lane for subagents and the longest pause', async () => {
+  const { r, t } = busyRun()
+  expect(buildTimeline(emptyRun, 1, 400)).toBeNull()
+  const pic = buildTimeline(r, t, 400)!
+  expect(pic.source.startsWith('<svg') && pic.source.endsWith('</svg>')).toBe(true)
+  expect((pic.source.match(/<rect [^>]*rx="0.8"/g) ?? []).length, 'one stroke per call').toBe(5)
+  expect(pic.source.includes('>S</text>'), 'subagent lane').toBe(true)
+  expect(pic.source.includes('#e11d48'), 'the failed call is red').toBe(true)
+  expect(longestGap(r, t)).toBe(8500)
+  expect(pic.alt.includes('5 calls')).toBe(true)
+})
+
+test('the file map counts reads, writes and lines per file and groups by folder', async () => {
+  const { r } = busyRun()
+  expect(buildFileMap(emptyRun, 400)).toBeNull()
+  const stats = fileStats(r)
+  expect(stats.map(f => f.dir + '/' + f.name).sort()).toEqual(['docs/guide.md', 'src/a.ts', 'src/b.ts'])
+  expect(stats.find(f => f.name === 'a.ts')!.reads, 'both path styles are one file').toBe(2)
+  const b = stats.find(f => f.name === 'b.ts')!
+  expect([b.writes, b.added]).toEqual([1, 3])
+  const pic = buildFileMap(r, 400)!
+  expect(pic.source.includes('>src/</text>') && pic.source.includes('>docs/</text>'), 'folder names').toBe(true)
+  expect(pic.source.includes('/p/'), 'no full path').toBe(false)
+})
+
+test('the orbit shows the plan as a ring, the calls as a comet and each subagent as a planet', async () => {
+  const { r, t } = busyRun()
+  const pic = buildOrbit(r, 520, t)
+  expect(pic.source.length).toBeLessThan(131_073)
+  expect(pic.alt).toBe('Orbit: ' + pic.alt.slice(7))
+  expect(pic.alt.includes('2 subagents, 2 working')).toBe(true)
+  expect((pic.source.match(/type="rotate"/g) ?? []).length, 'a moon per working subagent with a call').toBe(1)
+  expect((pic.source.match(/dur="18s"/g) ?? []).length, 'a comet dot per main call').toBe(4)
+  const still = buildOrbit(r, 520, t, -1, { motion: false }).source
+  expect(still.includes('<animate'), 'still picture').toBe(false)
+  const mini = buildOrbit(r, 180, t, -1, { mini: true })
+  expect(mini.source.includes('dur="18s"') || mini.width !== 180, 'the widget shows sun and ring only').toBe(false)
+  // No ids but its own, and no script.
+  expect([...pic.source.matchAll(/ id="([^"]+)"/g)].every(m => m[1]!.startsWith('ob-'))).toBe(true)
+  expect(/<script|on[a-z]+=|javascript:/i.test(pic.source)).toBe(false)
+})
+
+test('the finale plays once when the last step is done, in the cubes and in the orbit', async () => {
+  let { r, t } = busyRun()
+  r = applyTaskTool(r, 'mcp__ccd_turn__update_plan', {
+    items: [{ content: 'Read', status: 'completed' }, { content: 'Write', status: 'completed' }, { content: 'Test', status: 'completed' }],
+  }, undefined, t)
+  r = endRun(r, 'answer', t + 100)
+  const wave = /keyTimes="0;0.3;1"/g
+  expect((buildSvg(r, 600, t + 500).source.match(wave) ?? []).length, 'a flash per cube').toBe(3)
+  expect((buildSvg(r, 600, t + 60_000).source.match(wave) ?? []).length, 'gone later').toBe(0)
+  expect((buildSvg(r, 600, t + 500, -1, undefined, { motion: false }).source.match(wave) ?? []).length, 'not in a still picture').toBe(0)
+  expect(buildOrbit(r, 520, t + 500).source.includes('attributeName="rx"'), 'the orbit sends a wave out').toBe(true)
+  expect(buildOrbit(r, 520, t + 60_000).source.includes('attributeName="rx"')).toBe(false)
 })

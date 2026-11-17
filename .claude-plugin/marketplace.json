@@ -1,6 +1,6 @@
 {
   "name": "agent-cubes",
-  "description": "Agent Cubes: a live view of your agents' work beside the Claude Code chat, as glass cubes or as a circuit board, with agents, a live feed, eight skins and five solder masks.",
+  "description": "Agent Cubes: a live view of your agents' work beside the Claude Code chat, as glass cubes, as a circuit board or as an orbit of agents, with a timeline, a file map, a live feed, eight skins and five solder masks.",
   "owner": { "name": "Agent Cubes contributors" },
   "plugins": [{ "name": "agent-cubes", "source": "./" }]
 }

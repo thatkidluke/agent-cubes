@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.15.0
+
+- A third view, the orbit: the main agent as a sun with the plan as a ring of segments around it, its latest calls
+  as a comet, and every subagent as a planet that travels while it works and docks once it is done.
+- A timeline card: the task as a band of time, a stroke per call in the colour of its kind of work, with the
+  subagents in a lane of their own, waiting in amber, the steps underneath and the longest pause named.
+- A files card: a tile per file the calls named, grouped by folder, wider the busier the file was, with the lines
+  changed or the number of reads. For this a call now also keeps the name of the folder its file lies in.
+- A finale when the last step is done: a wave of light runs over the cubes and sparks rise from each; on the board
+  the parts flash in turn as the light runs along the traces; in the orbit the ring lights up and a wave runs out.
+- The details card speaks of chips or steps where the view does.
+
 ## 0.14.2
 
 - The finer kinds of work (browser, planning, tools of connected servers) now show everywhere, not only in the
