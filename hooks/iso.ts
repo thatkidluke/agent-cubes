@@ -170,7 +170,7 @@ function render(sc: Scene, detail: Detail, skin: Skin, row: RowOptions = {}) {
   defs.push(lin('plq', 0, 1, [[0, skin.plaque.frame[0]], [1, skin.plaque.frame[1]]]))
   defs.push(lin('plqIn', 0, 1, [[0, skin.plaque.inner[0]], [1, skin.plaque.inner[1]]]))
   defs.push(pipeDefs(pipe, skin, moving))
-  // Mood lights: a warm spot for a step that waits for you, a red glow for one that is stuck, a calm wash once all is done.
+  // Mood lights: a warm spot for a step that waits for you, a red glow for one that is stuck.
   defs.push(
     lin('mood-cone', 0, 1, [[0, '#fde68a', 0], [0.55, '#fbbf24', 0.16], [1, '#f59e0b', 0.32]]) +
       rad('mood-amber', [[0, '#fbbf24', 0.45], [1, '#fbbf24', 0]]) +
@@ -565,8 +565,7 @@ function unlockMark([lx, ly]: Pt, S: number, okc: string): string {
 
 /**
  * Light that tells the state at a glance: a warm spot falling on a step that
- * waits for you, a red glow around one that is stuck (and a faint red edge
- * round the scene), a calm bright wash once every step is done.
+ * waits for you, a red glow around one that is stuck.
  */
 function moodLights(bigs: Big[], P: (u: number, v: number, w: number) => Pt, S: number, cubeU: (i: number) => number, W: number, H: number, still: boolean, skin: Skin): string {
   if (skin.effects?.mood === false) return ''

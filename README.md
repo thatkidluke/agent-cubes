@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/hero.svg" width="100%" alt="Agent Cubes: watch your agents work, as glass cubes or on a circuit board">
+  <img src="docs/hero.svg" width="100%" alt="Agent Cubes: watch your agents work, as glass cubes, on a circuit board or as an orbit">
 </p>
 
 <p align="center">
@@ -12,13 +12,14 @@
 <p align="center">
   <b>A live view of your agents' work, right beside the Claude Code chat.</b><br>
   Every step of the plan becomes a glass cube that fills while the agents work on it,<br>
-  or a chip on a circuit board that lights up. Your choice.
+  a chip on a circuit board that lights up, or a segment of the ring around a sun with the agents in orbit. Your choice.
 </p>
 
 <p align="center">
   <a href="#install">Install</a> ·
   <a href="#the-scene">The scene</a> ·
   <a href="#or-as-a-circuit-board">Circuit board</a> ·
+  <a href="#or-as-an-orbit">Orbit</a> ·
   <a href="#the-panel">The panel</a> ·
   <a href="#skins">Skins</a> ·
   <a href="#settings">Settings</a> ·
@@ -52,12 +53,14 @@ The panel opens when a session starts, or any time with `/cubes`.
 <p align="center"><img src="docs/demo.svg" width="640" alt="A sample task playing out: cubes fill, agents move from step to step, finished steps turn solid"></p>
 
 Every step of the agents' plan (`update_plan`, `TodoWrite`, `TaskCreate` / `TaskUpdate`) becomes a glass cube on a
-pedestal, a chip on a circuit board, or a segment of the ring in the orbit view; a dropdown switches between them. While a step is worked on, its cube fills with small cubes, one slice of the step's real tool calls each,
-tinted by the kind of work: reading, writing, running, agents. A finished step turns into a solid cube with a tick.
+pedestal, a chip on a circuit board, or a segment of the ring in the orbit view; a dropdown switches between them.
+While a step is worked on, its cube fills with small cubes, one slice of the step's real tool calls each, tinted by
+the kind of work: reading, writing, running, the browser, the tools of connected servers, agents and planning. A
+finished step turns into a solid cube with a tick.
 
 Subagents show up as coloured badges on the cube they work on. The panel estimates progress and time left, spots
-steps that are stuck, shows how full the context window is and what it all costs, and sums the task up once it
-is done.
+steps that are stuck, shows how full the context window is and what it all costs, draws the task as a band of time
+and the files it touched as a map, and sums the task up once it is done.
 
 ## The scene
 
@@ -70,8 +73,9 @@ The drawing tells what happens before you read a number:
 - **The context tank** on the pedestal's side fills with the same liquid; amber from 70 %, red from 85 %.
 - **Agents** are badges over their cube. The main agent flies over to the step it starts; a new subagent flies from
   the main agent's step to its own.
-- **Mood lights:** a warm spot falls on a step that waits for you, a stuck step glows red with a faint red edge
-  round the scene, and the light turns calm once every step is done.
+- **Mood lights:** a warm spot falls on a step that waits for you, and a stuck step glows red.
+- **The finale:** when the last step is done, a wave of light runs over the cubes, one after the other, and sparks
+  rise from each.
 - **Dependencies** run as pipes between the cubes, with a padlock on the waiting one that springs open when it is
   free.
 - **Long plans** stand in two rows, the earlier steps raised at the back; past sixteen cubes, finished runs fold
@@ -82,15 +86,16 @@ The drawing tells what happens before you read a number:
 
 <p align="center"><img src="docs/board-demo.svg" width="640" alt="A sample task playing out on the circuit board: LEDs light up, traces glow, agents move from part to part"></p>
 
-The **View** dropdown at the top of the panel switches between the cubes and a circuit board; your pick is
-remembered, and the `defaultView` setting says where new sessions start.
+The **View** dropdown at the top of the panel switches between the cubes, a circuit board and the
+[orbit](#or-as-an-orbit); your pick is remembered, and the `defaultView` setting says where new sessions start.
 
 - **Parts:** every step is a part, its kind chosen by the kind of step: a processor for work, memory for research,
   a test IC, a lens for review, a labelled ROM for docs, a regulator for setup, a port for shipping. Steps expected to
   take longer get a larger part. The step's name stands under it in silkscreen.
 - **LEDs:** a row lights up with the step's calls, one colour per kind of work; the newest flickers on as its call ends.
 - **Traces:** copper joins the parts in order and winds from row to row. It glows once a step is done, pulses run
-  into the part in work, and a wave of light runs over the whole board when the task is finished.
+  into the part in work, and when the task is finished a wave of light runs over the whole board and the parts
+  flash one after the other.
 - **Dependencies:** a thin amber trace runs from the step waited for to the one that waits, with a diode on the
   waiting part that turns green when it is free.
 - **Agents** sit on their part as probes and travel along the trace when they move on.
@@ -121,28 +126,38 @@ When the task is done, the summary turns into this test report. The widget shows
 
 <p align="center"><img src="docs/orbit.svg" width="640" alt="The orbit view: the main agent as a sun with the plan as a ring around it, its calls as a comet, and three subagents as planets"></p>
 
-The third view puts the agents first. The main agent is the sun in the middle, with the plan as a ring of segments
-around it, one per step, and the progress written on it. Its latest calls circle it as a comet, a dot per call in
-the colour of its kind of work. Every subagent is a planet on an orbit of its own: it travels while it works, with a
-moon in the colour of what it is doing, and docks at the front once it is done. When the last step is done, the
-ring lights up segment by segment and a wave runs outwards. The widget shows the sun and the ring.
+The third view puts the agents first.
+
+- **The sun** in the middle is the main agent, with a corona that turns while it works. On it stand the progress
+  and the tool it is using, and a red count once calls have failed. Its colour follows the task: working, waiting
+  for you, done, failed.
+- **The ring** around it is the plan, one segment per step. The segment in work fills as far as the step has come,
+  and a spark runs along it.
+- **The comet** is the main agent's latest calls, a dot per call in the colour of its kind of work, the newest at
+  its glowing head.
+- **Planets** are the subagents, each on an orbit of its own with its name below it. A planet travels while its
+  agent works, a trail behind it and a moon in the colour of what it is doing turning around it; it grows as it
+  comes to the front and shrinks as it goes behind. Once the agent is done, it docks at the front with a tick.
+- **The finale:** when the last step is done, the ring lights up segment by segment and waves run outwards.
+
+It stands free on the pane like the cubes and follows light and dark mode. The widget shows the sun and the ring.
 
 ## The panel
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/panel-dark.svg">
-  <img src="docs/panel-light.svg" width="100%" alt="The overview tiles, the current step, the agents and the live feed">
+  <img src="docs/panel-light.svg" width="100%" alt="The overview tiles, the current step, the timeline, the agents, the live feed and the file map">
 </picture>
 
 | | |
 | --- | --- |
 | **Overview** | Nine tiles, each with a pictogram that shows its figure: a clock for the time spent, an hourglass for the time left, a cup that fills while the agents wait for you, a glass cylinder for the context window, a warning sign, an activity chart of calls per minute, token bars, a stack of coins against your budget, and diff blocks for the lines changed. |
 | **Now** | The step in work as a numbered badge, its progress and the agents on it. |
-| **Agents** | The main agent and every subagent as an avatar, with the cube it works on and the tool it uses. A button each opens its transcript. |
-| **Live** | The latest calls as a feed: an icon per kind of work, who made the call, what it touched and how it went. |
+| **Agents** | The main agent and every subagent as an avatar, with the step it works on and the tool it uses. A button each opens its transcript. |
+| **Live** | The latest calls as a feed: an icon per kind of work (reading, writing, running, browser, tools, agents, planning), who made the call, what it touched and how it went. |
 | **Timeline** | The task as a band of time: a stroke per call in the colour of its kind of work, as wide as it took, the main agent above and the subagents below. Gaps are the agent thinking, amber is waiting for you, and a strip underneath says which step was in work. |
 | **Files** | A tile per file the calls named, grouped by folder: wider the busier the file was, amber where it was written, blue where it was only read, with the lines changed or the number of reads. |
-| **Cube details** | Time, tokens, cost share, lines changed, test runs, files and recent calls of one step. Keys **1–9** open the first nine. |
+| **Cube details** | Time, tokens, cost share, the kinds of work, lines changed, test runs, files and recent calls of one step. Keys **1–9** open the first nine. The card is named after the view: cube, chip or step. |
 
 Everything follows the app's light or dark mode.
 
@@ -156,9 +171,9 @@ With the cubes as the view:
 </picture>
 
 A ring for the steps done next to time, cost, tool calls and subagents; bars for working versus waiting and
-for the kinds of work; code and tests; one bar per step, as long as it took and tinted by its kind. One click
-copies it as Markdown, ready for a pull request. With the circuit board as the view, the same figures come as a
-test report on a piece of the board.
+for the kinds of work; code and tests, where the task changed lines or ran tests; one bar per step, as long as it
+took and tinted by its kind. One click copies it as Markdown, ready for a pull request. With the circuit board as
+the view, the same figures come as a test report on a piece of the board; the orbit uses the summary of the cubes.
 
 ## Features
 
@@ -170,8 +185,9 @@ test report on a piece of the board.
 
 - A cube or a chip per step with a status: open, running, done, waiting for you, error, each with its own symbol
 - A progress pipe and a context tank, filled to suit the skin
-- Mood lights for waiting, stuck and finished steps
+- Mood lights for waiting and stuck steps, and a finale when the task is done
 - Agents as badges that move with their work; a live feed of the latest calls
+- A timeline of every call and a map of the files touched
 - Dependencies as pipes, with padlocks that spring open
 - Two rows for long plans
 
@@ -205,7 +221,7 @@ test report on a piece of the board.
 **Take it with you**
 
 - Summary as Markdown with one click
-- Export of the drawing, cubes or board, as an SVG file
+- Export of the drawing, cubes, board or orbit, as an SVG file
 - Data export of the history as CSV and JSON
 
 </td>
@@ -214,7 +230,8 @@ test report on a piece of the board.
 
 ## Skins
 
-The skins dress the cubes; the circuit board has [solder masks](#or-as-a-circuit-board) instead. Pick a skin from the dropdown at the top of the panel. Each brings its own pedestal, cubes and pipe filling,
+The skins dress the cubes; the circuit board has [solder masks](#or-as-a-circuit-board) instead, and the orbit has
+one look. Pick a skin from the dropdown at the top of the panel. Each brings its own pedestal, cubes and pipe filling,
 and stands free on the pane, without a backdrop.
 
 <table>
@@ -247,7 +264,7 @@ Find them under **Agent Cubes** in the plugin settings; a change applies at once
 | `defaultView` | `cubes` | The view while none is picked in the panel: `cubes`, `board` or `orbit`. |
 | `budgetUsd` | `0` | Cost budget per task in USD: amber from 80 %, a warning once passed. `0` turns it off. |
 | `autoOpen` | on | Open the panel when a session starts; otherwise only via `/cubes`. |
-| `animations` | on | Animation in the panel and the export: filling, flights, mood lights, the pipe's flow. Off draws still pictures. |
+| `animations` | on | Animation in the panel and the export: filling, flights, mood lights, the pipe's flow, the orbits, the finale. Off draws still pictures. |
 | `gaugeRow` | off | A row of glass canisters above the overview; the tiles show the same values. |
 | `stuckSilentMinutes` | `5` | Minutes without a tool call after which a cube counts as stuck (0.5–240). |
 | `stuckFailsInRow` | `3` | Failed calls in a row after which a cube is stuck (1–50). |
@@ -273,14 +290,14 @@ your machine: no network calls, no telemetry, no accounts. The only web address 
 `http://www.w3.org/2000/svg`, which every SVG file names and nothing ever contacts.
 
 **What it reads.** The plan steps, the tool calls of the session and its subagents (tool name, the file or command
-for the live feed, the name of the file's folder for the file map, the lines an edit adds or removes, whether the call failed), token use, the session's cost and
-how full the context window is. It reads no credentials, environment variables or files of yours.
+for the live feed, the name of the file's folder for the file map, the lines an edit adds or removes, whether the
+call failed), token use, the session's cost and how full the context window is. It reads no credentials, environment variables or files of yours.
 
 **The hooks it uses, and what each does**
 
 | Hook | What it does |
 | --- | --- |
-| `session.start` | Loads the stored history and skin pick, opens the panel if `autoOpen` is on, starts a once-a-second refresh while a task runs. |
+| `session.start` | Loads the stored history and your picks of view, skin and solder mask, opens the panel if `autoOpen` is on, starts a once-a-second refresh while a task runs. |
 | `command.run` for `/cubes` | Opens the panel. |
 | `turn.start`, `turn.step`, `turn.complete` | Start and end a task, count each model request's tokens. They pass everything on unchanged. |
 | `agent.spawn` | Reads a new subagent's description to name its badge and notes when it started, for its flight to its step. The spawn itself is unchanged. |
